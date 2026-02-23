@@ -1,0 +1,39 @@
+# Build output
+dist
+
+# Dependencies
+node_modules
+
+!eslint.config.mjs
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage
+.nyc_output
+
+# Vitest
+.vitest
+test-results
+playwright-report
+
+# Temporary files
+*.tmp
+.cache
+
+test/browser/__screenshots__/
+
+/private

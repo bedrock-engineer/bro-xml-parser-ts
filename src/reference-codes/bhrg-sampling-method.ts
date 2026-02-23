@@ -1,0 +1,50 @@
+/**
+ * SamplingMethod codes and descriptions from the official BRO reference.
+ *
+ * @generated from urn:bro:bhrg:SamplingMethod
+ * @see https://publiek.broservices.nl/bro/refcodes/v1/codes?domain=urn%3Abro%3Abhrg%3ASamplingMethod
+ */
+
+export const BHRG_SAMPLING_METHOD_CODES: Record<string, string> = {
+  graven:
+    "Manier van bemonsteren waarbij een deel van de ondergrond mechanisch of met de hand wordt weggegraven en in een graafbak of op een schep naar boven wordt gehaald. Levert normaliter monsters op met bemonsteringskwaliteit klasse E.",
+  onbekend: "Het is niet bekend welke manier is toegepast.",
+  onbekendDeelsOpDiepteUitsteken:
+    "Er zijn twee manieren van bemonsteren toegepast. Voor een deel van het interval is een kolom grond op diepte uitgestoken en in een container opgevangen (opDiepteUitsteken). Het is onbekend welke andere manier is toegepast.",
+  opAfstandDroog:
+    "Manier van bemonsteren waarbij het materiaal op diepte wordt losgeroerd, de losgemaakte grond door schroefwerking naar boven wordt gehaald of met behulp van perslucht wordt losgemaakt en naar boven gehaald en aan het oppervlak bemonsterd wordt. Een van de methoden die gebruikt worden bij boren met een avegaar. Levert normaliter monsters met bemonsteringskwaliteit klasse E.",
+  opAfstandDroogDeelsOpDiepteUitsteken:
+    "Er zijn twee manieren van bemonsteren toegepast. Het materiaal is op diepte losgeroerd en de losgemaakte grond is door schroefwerking naar boven gehaald (opAfstandDroog). Voor een deel van het interval is een kolom materiaal op diepte uitgestoken en in een container opgevangen (opDiepteUitsteken). Dit is bijvoorbeeld het geval bij boren met een holle avegaar waarbij ook monsters zijn gestoken.",
+  opAfstandNat:
+    "Manier van bemonsteren waarbij het materiaal op diepte wordt losgeroerd of losgespoten, het losgemaakte materiaal op een niet nader omschreven manier naar boven wordt gespoeld en aan het oppervlak bemonsterd wordt door vloeistof en materiaal van elkaar te scheiden. De methode wordt gebruikt bij gebruik van de geodoff en bij rotary drilling. De methode is niet bedoeld voor luchtliften, zuigboren en straightflushboren, want daarbij wordt de manier waarop het materiaal naar boven wordt gespoeld nader omschreven. Levert normaliter monsters op met bemonsteringskwaliteit klasse E.",
+  opAfstandNatBinnendoor:
+    "Manier van bemonsteren waarbij het materiaal op diepte wordt losgeroerd of losgespoten, het losgemaakte materiaal via de holle boorstangen naar boven wordt gespoeld en aan het oppervlak bemonsterd wordt door vloeistof en materiaal van elkaar te scheiden. De methode wordt gebruikt bij luchtliften, counterflushboren en mechanisch zuigboren. Levert normaliter monsters op met bemonsteringskwaliteit klasse E.",
+  opAfstandNatBuitenlangs:
+    "Manier van bemonsteren waarbij het materiaal op diepte wordt losgeroerd of losgespoten, het losgemaakte materiaal via de ruimte tussen de boorstangen en de wand van het gat naar boven wordt gespoeld en aan het oppervlak bemonsterd wordt door vloeistof en materiaal van elkaar te scheiden. De methode wordt gebruikt bij straightflushboren en spuitboren. Levert normaliter monsters op met bemonsteringskwaliteit klasse E.",
+  opAfstandNatDeelsOpDiepteKernen:
+    "Er zijn twee manieren van bemonsteren toegepast. Het materiaal is op diepte losgeroerd of losgespoten en de grond is naar boven gespoeld op een niet nader omschreven manier: omvat de IMBRO-waarden opAfstandNat, op AfstandNatBinnendoor en op afstandNatBuitenlangs). Voor een deel van het interval is een kolom materiaal op diepte met een speciale boorbeitel of met draaiende spuiters vrijgeboord en in een container opgevangen (opDiepteKernen). Dit is bijvoorbeeld het geval bij straightflushboren waarbij ook is gekernd.",
+  opAfstandNatDeelsOpDiepteUitsteken:
+    "Er zijn twee manieren van bemonsteren toegepast. Het materiaal is op diepte losgeroerd of losgespoten en de grond is naar boven gespoeld (opAfstandNat). Voor een deel van het interval is een kolom materiaal op diepte uitgestoken en in een container opgevangen (opDiepteUitsteken). Dit is bijvoorbeeld het geval bij straightflushboren waarbij ook monsters zijn gestoken.",
+  opAfstandOnbekend:
+    "Manier van bemonsteren waarbij het materiaal op diepte wordt losgeroerd of losgespoten en niet bekend is hoe de losgemaakte grond naar boven is gehaald (droog of nat).",
+  opDiepteGrijpen:
+    "Manier van bemonsteren waarbij het materiaal op diepte met een grijper wordt uitgenomen. De methode wordt gebruikt bij het grijperboren. Levert normaliter monsters op met bemonsteringskwaliteit klasse D of E. Welke klasse van toepassing is wordt mede bepaald door de cohesie en de vochtigheid van de grond.",
+  opDiepteKernen:
+    "Manier van bemonsteren waarbij een kolom materiaal op diepte met een speciale boorbeitel of met draaiende spuiters wordt vrijgeboord, in een container wordt opgevangen, wordt losgetrokken of losgesneden en naar boven wordt gehaald. De methode wordt gebruikt bij kernboren, rotary core drilling en bij gebruik van de Sherbrooke sampler. Levert normaliter monsters op met bemonsteringskwaliteit klasse A, B, C of D. Welke klasse van toepassing is wordt bepaald door het type bemonsteringsapparaat, de boortechniek, de cohesie en de vochtigheid van de grond.",
+  opDiepteLosroeren:
+    "Manier van bemonsteren waarbij het materiaal op diepte wordt losgeroerd, in het apparaat wordt opgevangen en met het apparaat naar boven wordt gehaald. De methode wordt gebruikt bij boren met het bucketsysteem, draaiend boren met de hand, pulsboren en bij de VanderStaay-boor en de handbediende zuigerboor. Levert normaliter monsters op met bemonsteringskwaliteit klasse E tot D. Welke klasse van toepassing is wordt bepaald door de boortechniek en de cohesie en de vochtigheid van het materiaal.",
+  opDiepteOnbekend:
+    "Manier van bemonsteren waarbij het materiaal op diepte is losgemaakt en opgevangen en niet bekend is hoe het opgevangen materiaal naar boven is gehaald.",
+  opDiepteUitsteken:
+    "Manier van bemonsteren waarbij een kolom materiaal op diepte wordt uitgestoken, in een container wordt opgevangen, wordt losgetrokken of losgesneden en in de container naar boven wordt gehaald. De methode wordt gebruikt bij het Ackermann-apparaat, de VanderStaay-boor, Aqualock sampler, Beeker-monsternemer, het Begemann-steekapparaat, Dachnovski-apparaat, de dropcorer, DLDS, folie-sampler, grondkolomcilinder, gutsboor, monsterringsteker, MOSTAP, pistoncorer, (veen)profielsteker, ramgutsboor, sonisch boren, de spitsmuismonstersteker, steekbuis, trilflip, het VanderHorst-steekapparaat, de vibrocorer, window sampler en de Zenkovitchboor. Levert monsters op met bemonsteringskwaliteit klasse A, B, C of D. Welke klasse van toepassing is wordt bepaald door het type bemonsteringsapparaat, de boortechniek, de cohesie en de vochtigheid van het materiaal.",
+};
+
+/**
+ * Get the Dutch description for a SamplingMethod code.
+ *
+ * @param code - The code value
+ * @returns The Dutch description, or undefined if the code is not recognized
+ */
+export function getBhrgSamplingMethodDescription(code: string): string | undefined {
+  return BHRG_SAMPLING_METHOD_CODES[code];
+}

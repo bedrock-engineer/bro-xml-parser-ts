@@ -1,0 +1,9 @@
+{
+  "ignoreDependencies": [
+    "playwright",
+    "@xmldom/xmldom",
+    "fontoxpath"
+  ],
+  "ignoreBinaries": ["tsx"
+]
+}

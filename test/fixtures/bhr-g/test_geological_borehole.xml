@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dispatchDataResponse xmlns="http://www.broservices.nl/xsd/dsbhrg/3.1"
+                      xmlns:brocom="http://www.broservices.nl/xsd/brocommon/3.0"
+                      xmlns:bhrgcom="http://www.broservices.nl/xsd/bhrgcommon/3.1"
+                      xmlns:gml="http://www.opengis.net/gml/3.2"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <brocom:responseType>dispatch</brocom:responseType>
+  <brocom:dispatchTime>2024-01-15T10:30:00+01:00</brocom:dispatchTime>
+  <brocom:dispatchDocument>
+    <BHR_G_CompleteReport>
+      <brocom:broId>BHR000000123456</brocom:broId>
+      <brocom:deliveryAccountableParty>12345678</brocom:deliveryAccountableParty>
+      <brocom:qualityRegime>IMBRO</brocom:qualityRegime>
+
+      <researchReportDate>
+        <brocom:date>2024-01-10</brocom:date>
+      </researchReportDate>
+
+      <deliveredLocation>
+        <bhrgcom:location srsName="urn:ogc:def:crs:EPSG::28992" gml:id="loc1">
+          <gml:pos>155000.0 463000.0</gml:pos>
+        </bhrgcom:location>
+      </deliveredLocation>
+
+      <standardizedLocation>
+        <brocom:location srsName="urn:ogc:def:crs:EPSG::4258" gml:id="loc2">
+          <gml:pos>52.123456 5.234567</gml:pos>
+        </brocom:location>
+      </standardizedLocation>
+
+      <deliveredVerticalPosition>
+        <bhrgcom:offset uom="m">5.50</bhrgcom:offset>
+        <bhrgcom:verticalDatum codeSpace="urn:bro:bhrgcommon:VerticalDatum">NAP</bhrgcom:verticalDatum>
+        <bhrgcom:localVerticalReferencePoint codeSpace="urn:bro:bhrgcommon:LocalVerticalReferencePoint">maaiveld</bhrgcom:localVerticalReferencePoint>
+      </deliveredVerticalPosition>
+
+      <boring>
+        <bhrgcom:Boring>
+          <bhrgcom:rockReached>nee</bhrgcom:rockReached>
+          <bhrgcom:finalDepthBoring uom="m">8.5</bhrgcom:finalDepthBoring>
+          <bhrgcom:finalDepthSampling uom="m">8.5</bhrgcom:finalDepthSampling>
+          <bhrgcom:boreholeCompleted codeSpace="urn:bro:bhrgcommon:BoreholeCompleted">ja</bhrgcom:boreholeCompleted>
+        </bhrgcom:Boring>
+      </boring>
+
+      <boreholeSampleDescription>
+        <bhrgcom:BoreholeSampleDescription>
+          <bhrgcom:descriptionProcedure codeSpace="urn:bro:bhrgcommon:DescriptionProcedure">NEN5104</bhrgcom:descriptionProcedure>
+
+          <bhrgcom:descriptiveBoreholeLog>
+            <bhrgcom:DescriptiveBoreholeLog>
+
+              <bhrgcom:layer>
+                <bhrgcom:Layer>
+                  <bhrgcom:upperBoundary uom="m">0.0</bhrgcom:upperBoundary>
+                  <bhrgcom:lowerBoundary uom="m">0.5</bhrgcom:lowerBoundary>
+                  <bhrgcom:anthropogenic codeSpace="urn:bro:bhrgcommon:Anthropogenic">ja</bhrgcom:anthropogenic>
+                  <bhrgcom:rooted codeSpace="urn:bro:bhrgcommon:Rooted">ja</bhrgcom:rooted>
+                  <bhrgcom:soil>
+                    <bhrgcom:soilNameNEN5104 codeSpace="urn:bro:bhrgcommon:SoilNameNEN5104">klei</bhrgcom:soilNameNEN5104>
+                    <bhrgcom:colour codeSpace="urn:bro:bhrgcommon:Colour">bruin</bhrgcom:colour>
+                    <bhrgcom:organicMatterContentClassNEN5104 codeSpace="urn:bro:bhrgcommon:OrganicMatterContentClassNEN5104">matigHumeusH2</bhrgcom:organicMatterContentClassNEN5104>
+                  </bhrgcom:soil>
+                </bhrgcom:Layer>
+              </bhrgcom:layer>
+
+              <bhrgcom:layer>
+                <bhrgcom:Layer>
+                  <bhrgcom:upperBoundary uom="m">0.5</bhrgcom:upperBoundary>
+                  <bhrgcom:lowerBoundary uom="m">2.0</bhrgcom:lowerBoundary>
+                  <bhrgcom:anthropogenic codeSpace="urn:bro:bhrgcommon:Anthropogenic">nee</bhrgcom:anthropogenic>
+                  <bhrgcom:rooted codeSpace="urn:bro:bhrgcommon:Rooted">nee</bhrgcom:rooted>
+                  <bhrgcom:soil>
+                    <bhrgcom:soilNameNEN5104 codeSpace="urn:bro:bhrgcommon:SoilNameNEN5104">zand</bhrgcom:soilNameNEN5104>
+                    <bhrgcom:colour codeSpace="urn:bro:bhrgcommon:Colour">geelbruin</bhrgcom:colour>
+                    <bhrgcom:sandMedianClass codeSpace="urn:bro:bhrgcommon:SandMedianClass">fijn</bhrgcom:sandMedianClass>
+                  </bhrgcom:soil>
+                </bhrgcom:Layer>
+              </bhrgcom:layer>
+
+              <bhrgcom:layer>
+                <bhrgcom:Layer>
+                  <bhrgcom:upperBoundary uom="m">2.0</bhrgcom:upperBoundary>
+                  <bhrgcom:lowerBoundary uom="m">5.5</bhrgcom:lowerBoundary>
+                  <bhrgcom:anthropogenic codeSpace="urn:bro:bhrgcommon:Anthropogenic">nee</bhrgcom:anthropogenic>
+                  <bhrgcom:soil>
+                    <bhrgcom:soilNameNEN5104 codeSpace="urn:bro:bhrgcommon:SoilNameNEN5104">zandMetGrind</bhrgcom:soilNameNEN5104>
+                    <bhrgcom:colour codeSpace="urn:bro:bhrgcommon:Colour">grijs</bhrgcom:colour>
+                    <bhrgcom:gravelContentClass codeSpace="urn:bro:bhrgcommon:GravelContentClass">zwakGrindigG1</bhrgcom:gravelContentClass>
+                    <bhrgcom:sandMedianClass codeSpace="urn:bro:bhrgcommon:SandMedianClass">middelgrof</bhrgcom:sandMedianClass>
+                    <bhrgcom:carbonateContentClass codeSpace="urn:bro:bhrgcommon:CarbonateContentClass">kalkhoudendCa1</bhrgcom:carbonateContentClass>
+                  </bhrgcom:soil>
+                </bhrgcom:Layer>
+              </bhrgcom:layer>
+
+              <bhrgcom:layer>
+                <bhrgcom:Layer>
+                  <bhrgcom:upperBoundary uom="m">5.5</bhrgcom:upperBoundary>
+                  <bhrgcom:lowerBoundary uom="m">8.5</bhrgcom:lowerBoundary>
+                  <bhrgcom:anthropogenic codeSpace="urn:bro:bhrgcommon:Anthropogenic">nee</bhrgcom:anthropogenic>
+                  <bhrgcom:soil>
+                    <bhrgcom:soilNameNEN5104 codeSpace="urn:bro:bhrgcommon:SoilNameNEN5104">klei</bhrgcom:soilNameNEN5104>
+                    <bhrgcom:colour codeSpace="urn:bro:bhrgcommon:Colour">blauwgrijs</bhrgcom:colour>
+                    <bhrgcom:organicMatterContentClassNEN5104 codeSpace="urn:bro:bhrgcommon:OrganicMatterContentClassNEN5104">zwakHumeusH1</bhrgcom:organicMatterContentClassNEN5104>
+                  </bhrgcom:soil>
+                </bhrgcom:Layer>
+              </bhrgcom:layer>
+
+            </bhrgcom:DescriptiveBoreholeLog>
+          </bhrgcom:descriptiveBoreholeLog>
+
+        </bhrgcom:BoreholeSampleDescription>
+      </boreholeSampleDescription>
+
+    </BHR_G_CompleteReport>
+  </brocom:dispatchDocument>
+</dispatchDataResponse>

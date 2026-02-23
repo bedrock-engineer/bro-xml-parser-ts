@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<dispatchDataResponse xmlns="http://www.broservices.nl/xsd/dscpt/2.0" xmlns:brocom="http://www.broservices.nl/xsd/brocommon/3.0" xmlns:gml="http://www.opengis.net/gml/3.2">
+  <brocom:responseType>dispatch</brocom:responseType>
+  <brocom:requestReference>Invalid-version-test</brocom:requestReference>
+  <brocom:dispatchTime>2023-10-17T15:41:11+02:00</brocom:dispatchTime>
+  <dispatchDocument>
+    <CPT_O gml:id="TEST_001">
+      <brocom:broId>CPT000000000000</brocom:broId>
+      <brocom:qualityRegime>IMBRO</brocom:qualityRegime>
+    </CPT_O>
+  </dispatchDocument>
+</dispatchDataResponse>

@@ -1,0 +1,26 @@
+/**
+ * PreTreatment codes and descriptions from the official BRO reference.
+ *
+ * @generated from urn:bro:bhrgt:PreTreatment
+ * @see https://publiek.broservices.nl/bro/refcodes/v1/codes?domain=urn%3Abro%3Abhrgt%3APreTreatment
+ */
+
+export const BHRGT_PRE_TREATMENT_CODES: Record<string, string> = {
+  bevriezing: "De uitvoerder heeft het interval tijdens het boren bevroren.",
+  geen: "Er heeft tijdens het boren geen voorbehandeling plaatsgevonden.",
+  injectieDragendVermogen:
+    "De uitvoerder heeft het interval tijdens het boren geïnjecteerd met materiaal om het dragend vermogen te vergroten.",
+  injectieWaterdoorlatendheid:
+    "De uitvoerder heeft het interval tijdens het boren geïnjecteerd met materiaal om de waterdoorlatendheid te verkleinen.",
+  onbekend: "Het is onbekend of er tijdens het boren voorbehandeling heeft plaatsgevonden.",
+};
+
+/**
+ * Get the Dutch description for a PreTreatment code.
+ *
+ * @param code - The code value
+ * @returns The Dutch description, or undefined if the code is not recognized
+ */
+export function getBhrgtPreTreatmentDescription(code: string): string | undefined {
+  return BHRGT_PRE_TREATMENT_CODES[code];
+}

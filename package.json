@@ -1,0 +1,123 @@
+{
+  "name": "@bedrock-engineer/bro-xml-parser",
+  "version": "0.1.4",
+  "description": "Schema-driven parser for Dutch BRO (Basisregistratie Ondergrond) geotechnical XML data",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "browser": {
+        "types": "./dist/browser.d.ts",
+        "import": "./dist/browser.js",
+        "default": "./dist/browser.js"
+      },
+      "node": {
+        "types": "./dist/node.d.ts",
+        "import": "./dist/node.js",
+        "default": "./dist/node.js"
+      },
+      "default": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      }
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js",
+      "default": "./dist/browser.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
+    },
+    "./reference-codes": {
+      "types": "./dist/reference-codes-entry.d.ts",
+      "import": "./dist/reference-codes-entry.js",
+      "default": "./dist/reference-codes-entry.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run --project=unit",
+    "test:node": "vitest run --project=node",
+    "test:browser": "vitest run --project=browser",
+    "test:browser:ui": "vitest --project=browser --ui",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "knip": "knip",
+    "codegen:reference-codes": "npx tsx scripts/codegen-reference-codes.ts"
+  },
+  "keywords": [
+    "bro",
+    "imbro",
+    "bro/xml",
+    "geotechnical",
+    "cpt",
+    "bore",
+    "soil",
+    "gef"
+  ],
+  "author": "Jules Blom @ Bedrock.engineer",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bedrock-engineer/bro-parser-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bedrock-engineer/bro-parser-js/issues"
+  },
+  "homepage": "https://github.com/bedrock-engineer/bro-parser-js#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^20.0.0",
+    "@vitest/browser": "^2.1.8",
+    "@vitest/ui": "^2.1.8",
+    "@xmldom/xmldom": "^0.8.11",
+    "eslint": "^9.39.3",
+    "fontoxpath": "^3.33.2",
+    "@vitest/coverage-v8": "^2.1.8",
+    "knip": "^5.72.0",
+    "playwright": "^1.40.0",
+    "prettier": "^3.7.4",
+    "typescript": "^5.3.0",
+    "typescript-eslint": "^8.54.0",
+    "vitest": "^2.1.8"
+  },
+  "peerDependencies": {
+    "@xmldom/xmldom": "^0.8.11",
+    "fontoxpath": "^3.33.2"
+  },
+  "peerDependenciesMeta": {
+    "@xmldom/xmldom": {
+      "optional": true
+    },
+    "fontoxpath": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": false,
+    "tabWidth": 2,
+    "trailingComma": "all",
+    "printWidth": 100
+  }
+}
