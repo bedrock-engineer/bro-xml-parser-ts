@@ -1,7 +1,7 @@
 {
   "name": "@bedrock-engineer/bro-xml-parser",
-  "version": "0.1.4",
-  "description": "Schema-driven parser for Dutch BRO (Basisregistratie Ondergrond) geotechnical XML data",
+  "version": "0.1.5",
+  "description": "Schema-driven parser for Dutch BRO (Basisregistratie Ondergrond) geotechnical and geological XML data",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -83,24 +83,24 @@
   },
   "homepage": "https://github.com/bedrock-engineer/bro-parser-js#readme",
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@types/node": "^20.0.0",
-    "@vitest/browser": "^2.1.8",
-    "@vitest/ui": "^2.1.8",
+    "@eslint/js": "^9.39.3",
+    "@types/node": "^25.3.0",
+    "@vitest/browser": "^4.0.18",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
     "@xmldom/xmldom": "^0.8.11",
     "eslint": "^9.39.3",
-    "fontoxpath": "^3.33.2",
-    "@vitest/coverage-v8": "^2.1.8",
-    "knip": "^5.72.0",
+    "fontoxpath": "^3.34.0",
+    "knip": "^5.85.0",
     "playwright": "^1.40.0",
-    "prettier": "^3.7.4",
-    "typescript": "^5.3.0",
-    "typescript-eslint": "^8.54.0",
-    "vitest": "^2.1.8"
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.0",
+    "vitest": "^4.0.18"
   },
   "peerDependencies": {
     "@xmldom/xmldom": "^0.8.11",
-    "fontoxpath": "^3.33.2"
+    "fontoxpath": "^3.34.0"
   },
   "peerDependenciesMeta": {
     "@xmldom/xmldom": {
