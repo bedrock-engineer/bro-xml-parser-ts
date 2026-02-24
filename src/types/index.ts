@@ -104,6 +104,18 @@ export interface Location {
 }
 
 /**
+ * Layer of material removed before CPT was performed (e.g. asphalt, gravel fill)
+ *
+ * Found in additionalInvestigation. Directly affects depth interpretation.
+ */
+export interface RemovedLayer {
+  sequenceNumber: number;
+  upperBoundary: number;
+  lowerBoundary: number;
+  description: string | null;
+}
+
+/**
  * CPT measurement row (dynamic fields based on parameters)
  */
 export interface CPTMeasurement {
@@ -208,10 +220,28 @@ export interface CPTData {
   deliveredLocation: Location | null;
   standardizedLocation: Location | null;
 
+  // Location provenance
+  /** Date horizontal position was determined */
+  horizontalPositioningDate: Date | null;
+  /** Method used to determine horizontal position (e.g., "onbekend", "GNSS") */
+  horizontalPositioningMethod: string | null;
+
   // Vertical position
   deliveredVerticalPositionOffset: number | null;
   deliveredVerticalPositionDatum: string | null;
   deliveredVerticalPositionReferencePoint: string | null;
+  /** Date vertical position was determined */
+  verticalPositioningDate: Date | null;
+  /** Method used to determine vertical position (e.g., "onbekend", "waterpassingKlasse2") */
+  verticalPositioningMethod: string | null;
+
+  // Survey context
+  /** Delivery context (e.g., "publiekeTaak", "archiefoverdracht") */
+  deliveryContext: string | null;
+  /** Survey purpose (e.g., "waterkering", "onbekend") */
+  surveyPurpose: string | null;
+  /** Whether additional investigation was performed alongside the CPT */
+  additionalInvestigationPerformed: boolean | null;
 
   // Test metadata
   cptStandard: string | null;
@@ -219,11 +249,23 @@ export interface CPTData {
   cptMethod: string | null;
   /** Stop criterion for the test */
   stopCriterion: string | null;
+  /** Azimuth orientation of the sensor (degrees from north) */
+  sensorAzimuth: number | null;
   dissipationtestPerformed: boolean | null;
   qualityClass: number | null;
   predrilledDepth: number | null;
   finalDepth: number | null;
   groundwaterLevel: number | null;
+
+  // Additional investigation
+  /** Date of additional investigation (e.g. groundwater level measurement) */
+  investigationDate: Date | null;
+  /** Site conditions at time of investigation */
+  conditions: string | null;
+  /** Description of surface at CPT location */
+  surfaceDescription: string | null;
+  /** Layers removed before CPT (e.g. asphalt, gravel fill) - affects depth interpretation */
+  removedLayers: Array<RemovedLayer>;
 
   // Processing flags
   /** Date of final processing */
@@ -262,12 +304,19 @@ export interface CPTData {
   zlmPorePressureU1After: number | null;
   zlmPorePressureU2After: number | null;
   zlmPorePressureU3After: number | null;
+  /** Electrical conductivity before test (mS/m) - zero-load calibration */
+  zlmElectricalConductivityBefore: number | null;
+  /** Electrical conductivity after test (mS/m) - zero-load calibration */
+  zlmElectricalConductivityAfter: number | null;
 
   // Measurement data
   data: Array<CPTMeasurement>;
 
   // Dissipation tests (pore pressure decay at specific depths)
   dissipationTests: Array<DissipationTest>;
+
+  // Administrative history
+  registrationHistory: RegistrationHistory | null;
 }
 
 /**

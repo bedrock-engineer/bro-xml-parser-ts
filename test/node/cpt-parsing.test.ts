@@ -131,6 +131,94 @@ describe('CPT Parsing (Node)', () => {
     });
   });
 
+  describe('Survey context', () => {
+    it('should parse deliveryContext and surveyPurpose from IMBRO/A file', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.imbroa());
+
+      expect(cpt.deliveryContext).toBe('archiefoverdracht');
+      expect(cpt.surveyPurpose).toBe('onbekend');
+    });
+
+    it('should parse additionalInvestigationPerformed flag', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.imbroa());
+
+      expect(cpt.additionalInvestigationPerformed).toBe(true);
+    });
+
+    it('should return null for deliveryContext when not present', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.example());
+
+      // example.xml has deliveryContext
+      expect(cpt.deliveryContext).not.toBeUndefined();
+    });
+  });
+
+  describe('Location provenance', () => {
+    it('should parse horizontalPositioningDate and method from IMBRO/A file', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.imbroa());
+
+      expect(cpt.horizontalPositioningDate).toBeInstanceOf(Date);
+      expect(cpt.horizontalPositioningDate?.toISOString().startsWith('2014-02-05')).toBe(true);
+      expect(cpt.horizontalPositioningMethod).toBe('onbekend');
+    });
+
+    it('should parse verticalPositioningDate and method from IMBRO/A file', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.imbroa());
+
+      expect(cpt.verticalPositioningDate).toBeInstanceOf(Date);
+      expect(cpt.verticalPositioningDate?.toISOString().startsWith('2014-02-05')).toBe(true);
+      expect(cpt.verticalPositioningMethod).toBe('onbekend');
+    });
+  });
+
+  describe('Additional investigation', () => {
+    it('should parse investigationDate from IMBRO/A file', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.imbroa());
+
+      expect(cpt.investigationDate).toBeInstanceOf(Date);
+      expect(cpt.investigationDate?.toISOString().startsWith('2014-02-05')).toBe(true);
+    });
+
+    it('should parse removedLayers from IMBRO/A file', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.imbroa());
+
+      expect(cpt.removedLayers).toHaveLength(2);
+
+      const first = cpt.removedLayers[0];
+      expect(first.sequenceNumber).toBe(1);
+      expect(first.upperBoundary).toBe(0);
+      expect(first.lowerBoundary).toBe(0.1);
+      expect(first.description).toBe('Tegel');
+
+      expect(cpt.removedLayers[1].description).toBe('Zand');
+    });
+
+    it('should return empty array for removedLayers when none present', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.example());
+
+      expect(cpt.removedLayers).toEqual([]);
+    });
+  });
+
+  describe('Registration history', () => {
+    it('should parse registrationHistory from IMBRO/A file', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.imbroa());
+
+      expect(cpt.registrationHistory).not.toBeNull();
+      expect(cpt.registrationHistory?.registrationStatus).toBe('voltooid');
+      expect(cpt.registrationHistory?.corrected).toBe(false);
+      expect(cpt.registrationHistory?.objectRegistrationTime).toBeInstanceOf(Date);
+    });
+
+    it('should parse registrationHistory from example.xml', () => {
+      const cpt = parser.parseCPT(fixtures.cpt.example());
+
+      expect(cpt.registrationHistory).not.toBeNull();
+      expect(cpt.registrationHistory?.registrationStatus).toBe('voltooid');
+      expect(cpt.registrationHistory?.corrected).toBe(false);
+    });
+  });
+
   describe('Dissipation tests', () => {
     it('should parse dissipation test from CPT000000179849', () => {
       const xml = fixtures.cpt.imbro2();

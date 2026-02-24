@@ -13,6 +13,7 @@ import type { Schema } from "../types/index.js";
 import * as typeResolvers from "../resolvers/type-resolvers.js";
 import * as gmlResolvers from "../resolvers/gml-resolvers.js";
 import * as measurementResolvers from "../resolvers/measurement-resolver.js";
+import * as cptResolvers from "../resolvers/cpt-resolvers.js";
 
 export const CPT_SCHEMA: Schema = {
   // === Core Identification ===
@@ -46,6 +47,15 @@ export const CPT_SCHEMA: Schema = {
     resolver: gmlResolvers.parseGMLLocation,
   },
 
+  horizontalPositioningDate: {
+    xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningDate/brocom:date",
+    resolver: typeResolvers.parseDate,
+  },
+
+  horizontalPositioningMethod: {
+    xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningMethod",
+  },
+
   // === Vertical Position ===
 
   deliveredVerticalPositionOffset: {
@@ -63,6 +73,30 @@ export const CPT_SCHEMA: Schema = {
     resolver: typeResolvers.lowerText,
   },
 
+  verticalPositioningDate: {
+    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningDate/brocom:date",
+    resolver: typeResolvers.parseDate,
+  },
+
+  verticalPositioningMethod: {
+    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningMethod",
+  },
+
+  // === Survey Context ===
+
+  deliveryContext: {
+    xpath: "./dscpt:deliveryContext",
+  },
+
+  surveyPurpose: {
+    xpath: "./dscpt:surveyPurpose",
+  },
+
+  additionalInvestigationPerformed: {
+    xpath: "./dscpt:additionalInvestigationPerformed",
+    resolver: typeResolvers.parseBoolean,
+  },
+
   // === Test Metadata ===
 
   cptMethod: {
@@ -71,6 +105,11 @@ export const CPT_SCHEMA: Schema = {
 
   stopCriterion: {
     xpath: "./dscpt:conePenetrometerSurvey/cptcommon:stopCriterion",
+  },
+
+  sensorAzimuth: {
+    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:sensorAzimuth",
+    resolver: typeResolvers.parseFloat,
   },
 
   dissipationtestPerformed: {
@@ -86,6 +125,26 @@ export const CPT_SCHEMA: Schema = {
   groundwaterLevel: {
     xpath: "./dscpt:additionalInvestigation/cptcommon:groundwaterLevel",
     resolver: typeResolvers.parseFloat,
+  },
+
+  // === Additional Investigation ===
+
+  investigationDate: {
+    xpath: "./dscpt:additionalInvestigation/cptcommon:investigationDate/brocom:date",
+    resolver: typeResolvers.parseDate,
+  },
+
+  conditions: {
+    xpath: "./dscpt:additionalInvestigation/cptcommon:conditions",
+  },
+
+  surfaceDescription: {
+    xpath: "./dscpt:additionalInvestigation/cptcommon:surfaceDescription",
+  },
+
+  removedLayers: {
+    xpath: ".",
+    resolver: cptResolvers.processRemovedLayers,
   },
 
   predrilledDepth: {
@@ -272,6 +331,19 @@ export const CPT_SCHEMA: Schema = {
     resolver: typeResolvers.parseFloat,
   },
 
+  // Electrical Conductivity
+  zlmElectricalConductivityBefore: {
+    xpath:
+      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:electricalConductivityBefore",
+    resolver: typeResolvers.parseFloat,
+  },
+
+  zlmElectricalConductivityAfter: {
+    xpath:
+      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:electricalConductivityAfter",
+    resolver: typeResolvers.parseFloat,
+  },
+
   // === Measurement Data ===
 
   data: {
@@ -284,5 +356,12 @@ export const CPT_SCHEMA: Schema = {
   dissipationTests: {
     xpath: "./dscpt:conePenetrometerSurvey",
     resolver: measurementResolvers.processDissipationTests,
+  },
+
+  // === Administrative History ===
+
+  registrationHistory: {
+    xpath: ".",
+    resolver: cptResolvers.processCPTRegistrationHistory,
   },
 };
