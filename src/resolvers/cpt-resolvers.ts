@@ -7,20 +7,7 @@
 
 import type { ResolverContext, RemovedLayer, RegistrationHistory } from "../types/index.js";
 import { createXPathTextGetter, createNamespaceResolver } from "./bore-resolver-utils.js";
-
-function parseJaNee(text: string | null): boolean | null {
-  if (!text) {
-    return null;
-  }
-  const lower = text.toLowerCase().trim();
-  if (lower === "ja") {
-    return true;
-  }
-  if (lower === "nee") {
-    return false;
-  }
-  return null;
-}
+import { parseJaNee } from "./type-resolvers.js";
 
 /**
  * Process removedLayer elements from additionalInvestigation

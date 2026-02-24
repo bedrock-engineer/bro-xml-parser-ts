@@ -19,31 +19,7 @@ import {
   createNamespaceResolver,
 } from "./bore-resolver-utils.js";
 
-import { parseFloat as parseFloatValue } from "./type-resolvers.js";
-
-/**
- * Parse ja/nee boolean field
- */
-function parseJaNee(text: string | null): boolean | null {
-  if (text === null) {
-    return null;
-  }
-  const lower = text.toLowerCase();
-  if (lower === "ja" || lower === "yes") {
-    return true;
-  }
-  if (lower === "nee" || lower === "no") {
-    return false;
-  }
-  return null;
-}
-
-/**
- * Helper to parse float with null handling
- */
-function parseFloat(text: string | null | undefined): number | null {
-  return parseFloatValue(text ?? null);
-}
+import { parseFloat, parseJaNee } from "./type-resolvers.js";
 
 /**
  * Process BHR-G layer data from descriptiveBoreholeLog element

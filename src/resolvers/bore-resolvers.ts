@@ -48,25 +48,7 @@ import {
 } from "./bore-resolver-utils.js";
 
 // Import type resolvers
-import { parseBoolean as parseBoole, parseFloat as parseFloatValue } from "./type-resolvers.js";
-
-/**
- * Parse ja/nee boolean field
- * Returns true for 'ja'/'yes', false for 'nee'/'no', null if not present
- */
-function parseJaNee(text: string | null): boolean | null {
-  if (text === null) {
-    return null;
-  }
-  const lower = text.toLowerCase();
-  if (lower === "ja" || lower === "yes") {
-    return true;
-  }
-  if (lower === "nee" || lower === "no") {
-    return false;
-  }
-  return null;
-}
+import { parseBoolean, parseFloat, parseJaNee } from "./type-resolvers.js";
 
 /**
  * Parse dispersedInhomogeneity field
@@ -215,20 +197,6 @@ export const processBHRGTLayerData = createLayerParser<BHRGTLayer>({
 });
 
 /**
- * Adapter for parseBoolean to handle our specific needs
- */
-function parseBoolean(text: string | null | undefined): boolean | null {
-  return parseBoole(text ?? null);
-}
-
-/**
- * Adapter for parseFloat to handle our specific needs
- */
-function parseFloat(text: string | null | undefined): number | null {
-  return parseFloatValue(text ?? null);
-}
-
-/**
  * Empty structure constants for determinations
  */
 const EMPTY_CONSISTENCY_LIMITS: ConsistencyLimitsDetermination = {
@@ -283,23 +251,28 @@ function parseWaterContentDetermination(
 
   const resultNode = findChildElement(node, "./bhrgtcom:determinationResult", adapter, namespaces);
 
+  const extra = resultNode
+    ? {
+        dryingTemperature: getText("./bhrgtcom:determinationResult/bhrgtcom:dryingTemperature"),
+        waterContent: parseFloat(getText("./bhrgtcom:determinationResult/bhrgtcom:waterContent")),
+        saltCorrectionMethod: getText(
+          "./bhrgtcom:determinationResult/bhrgtcom:saltCorrectionMethod",
+        ),
+        dryingPeriod: getText("./bhrgtcom:determinationResult/bhrgtcom:dryingPeriod"),
+      }
+    : {
+        dryingTemperature: null,
+        waterContent: null,
+        saltCorrectionMethod: null,
+        dryingPeriod: null,
+      };
+
   return {
     determinationProcedure: getText("./bhrgtcom:determinationProcedure"),
     determinationMethod: getText("./bhrgtcom:determinationMethod"),
     sampleMoistness: getText("./bhrgtcom:sampleMoistness"),
     removedMaterial: getText("./bhrgtcom:removedMaterial"),
-    waterContent: resultNode
-      ? parseFloat(getText("./bhrgtcom:determinationResult/bhrgtcom:waterContent"))
-      : null,
-    dryingTemperature: resultNode
-      ? getText("./bhrgtcom:determinationResult/bhrgtcom:dryingTemperature")
-      : null,
-    dryingPeriod: resultNode
-      ? getText("./bhrgtcom:determinationResult/bhrgtcom:dryingPeriod")
-      : null,
-    saltCorrectionMethod: resultNode
-      ? getText("./bhrgtcom:determinationResult/bhrgtcom:saltCorrectionMethod")
-      : null,
+    ...extra,
   };
 }
 
@@ -604,21 +577,21 @@ function parseConsistencyLimitsDetermination(
   adapter: XMLAdapter,
   namespaces: Namespaces,
 ): ConsistencyLimitsDetermination {
-  const detNode = findChildElement(
+  const determinationNode = findChildElement(
     node,
     "./bhrgtcom:ConsistencyLimitsDetermination",
     adapter,
     namespaces,
   );
 
-  if (!detNode) {
+  if (!determinationNode) {
     return EMPTY_CONSISTENCY_LIMITS;
   }
 
-  const getText = createXPathTextGetter(detNode, adapter, namespaces);
+  const getText = createXPathTextGetter(determinationNode, adapter, namespaces);
 
   const plasticityAtSpecificWaterContent = extractArray(
-    detNode,
+    determinationNode,
     "./bhrgtcom:plasticityAtSpecificWaterContent",
     (_pNode, getPlasticityText) => {
       const waterContent = parseFloat(getPlasticityText("./bhrgtcom:waterContent"));
@@ -653,21 +626,21 @@ function parseSettlementCharacteristicsDetermination(
   adapter: XMLAdapter,
   namespaces: Namespaces,
 ): SettlementCharacteristicsDetermination {
-  const detNode = findChildElement(
+  const determinationNode = findChildElement(
     node,
     "./bhrgtcom:SettlementCharacteristicsDetermination",
     adapter,
     namespaces,
   );
 
-  if (!detNode) {
+  if (!determinationNode) {
     return EMPTY_SETTLEMENT_CHARACTERISTICS;
   }
 
-  const getText = createXPathTextGetter(detNode, adapter, namespaces);
+  const getText = createXPathTextGetter(determinationNode, adapter, namespaces);
 
   const determinationSteps = extractArray(
-    detNode,
+    determinationNode,
     "./bhrgtcom:determinationStep",
     (stepNode, getStepText) => {
       const stepNumber = parseInt(getStepText("./bhrgtcom:stepNumber") ?? "0", 10);
@@ -729,21 +702,21 @@ function parseSaturatedPermeabilityDetermination(
   adapter: XMLAdapter,
   namespaces: Namespaces,
 ): SaturatedPermeabilityDetermination {
-  const detNode = findChildElement(
+  const determinationNode = findChildElement(
     node,
     "./bhrgtcom:SaturatedPermeabilityDetermination",
     adapter,
     namespaces,
   );
 
-  if (!detNode) {
+  if (!determinationNode) {
     return EMPTY_SATURATED_PERMEABILITY;
   }
 
-  const getText = createXPathTextGetter(detNode, adapter, namespaces);
+  const getText = createXPathTextGetter(determinationNode, adapter, namespaces);
 
   const saturatedPermeabilityAtSpecificDensity = extractArray(
-    detNode,
+    determinationNode,
     "./bhrgtcom:saturatedPermeabilityAtSpecificDensity",
     (_densityNode, getDensityText) => {
       const dryVolumetricMassDensity = parseFloat(
@@ -788,33 +761,33 @@ function parseShearStressChangeDuringLoadingDeterminations(
   const nsResolver = createNamespaceResolver(namespaces);
 
   // Find all shearStressChangeDuringLoadingDetermination elements
-  const detNodes = adapter.evaluateXPathAll(
+  const determinationNodes = adapter.evaluateXPathAll(
     node,
     "./bhrgtcom:shearStressChangeDuringLoadingDetermination",
     nsResolver,
   );
 
   // If no tests found, return undefined (property won't be set on interval)
-  if (detNodes.length === 0) {
+  if (determinationNodes.length === 0) {
     return undefined;
   }
 
   const determinations: Array<ShearStressChangeDuringLoadingDetermination> = [];
 
-  for (const detNode of detNodes) {
+  for (const determinationNode of determinationNodes) {
     // Find the actual ShearStressChangeDuringLoadingDetermination child element
-    const actualDetNode = findChildElement(
-      detNode,
+    const actualDeterminationNode = findChildElement(
+      determinationNode,
       "./bhrgtcom:ShearStressChangeDuringLoadingDetermination",
       adapter,
       namespaces,
     );
 
-    if (!actualDetNode) {
+    if (!actualDeterminationNode) {
       continue;
     }
 
-    const getText = createXPathTextGetter(actualDetNode, adapter, namespaces);
+    const getText = createXPathTextGetter(actualDeterminationNode, adapter, namespaces);
 
     // Parse main properties
     const determination: ShearStressChangeDuringLoadingDetermination = {
@@ -836,7 +809,7 @@ function parseShearStressChangeDuringLoadingDeterminations(
 
     // Parse membrane correction (optional nested object)
     const membraneCorrectionNode = findChildElement(
-      actualDetNode,
+      actualDeterminationNode,
       "./bhrgtcom:membraneCorrection",
       adapter,
       namespaces,
@@ -852,7 +825,7 @@ function parseShearStressChangeDuringLoadingDeterminations(
 
     // Parse drainage strip correction (optional nested object)
     const drainageStripNode = findChildElement(
-      actualDetNode,
+      actualDeterminationNode,
       "./bhrgtcom:drainageStripCorrection",
       adapter,
       namespaces,
@@ -868,7 +841,7 @@ function parseShearStressChangeDuringLoadingDeterminations(
 
     // Parse saturation stage (optional nested object)
     const saturationNode = findChildElement(
-      actualDetNode,
+      actualDeterminationNode,
       "./bhrgtcom:saturationStageAtLoading",
       adapter,
       namespaces,
@@ -892,7 +865,7 @@ function parseShearStressChangeDuringLoadingDeterminations(
 
     // Parse consolidation stage (optional nested object with time-series data)
     const consolidationNode = findChildElement(
-      actualDetNode,
+      actualDeterminationNode,
       "./bhrgtcom:consolidationStageAtLoading",
       adapter,
       namespaces,
@@ -939,7 +912,7 @@ function parseShearStressChangeDuringLoadingDeterminations(
 
     // Parse load stage (optional nested object with time-series data)
     const loadStageNode = findChildElement(
-      actualDetNode,
+      actualDeterminationNode,
       "./bhrgtcom:loadStage",
       adapter,
       namespaces,
@@ -1037,32 +1010,32 @@ function parseShearStressChangeDuringHorizontalDeformationDeterminations(
   const nsResolver = createNamespaceResolver(namespaces);
 
   // Find all shearStressChangeDuringHorizontalDeformationDetermination elements
-  const detNodes = adapter.evaluateXPathAll(
+  const determinationNodes = adapter.evaluateXPathAll(
     node,
     "./bhrgtcom:shearStressChangeDuringHorizontalDeformationDetermination",
     nsResolver,
   );
 
-  if (detNodes.length === 0) {
+  if (determinationNodes.length === 0) {
     return undefined;
   }
 
   const determinations: Array<ShearStressChangeDuringHorizontalDeformationDetermination> = [];
 
-  for (const detNode of detNodes) {
+  for (const determinationNode of determinationNodes) {
     // Find the actual ShearStressChangeDuringHorizontalDeformationDetermination child element (PascalCase)
-    const actualDetNode = findChildElement(
-      detNode,
+    const actualDeterminationNode = findChildElement(
+      determinationNode,
       "./bhrgtcom:ShearStressChangeDuringHorizontalDeformationDetermination",
       adapter,
       namespaces,
     );
 
-    if (!actualDetNode) {
+    if (!actualDeterminationNode) {
       continue;
     }
 
-    const getText = createXPathTextGetter(actualDetNode, adapter, namespaces);
+    const getText = createXPathTextGetter(actualDeterminationNode, adapter, namespaces);
 
     const determination: ShearStressChangeDuringHorizontalDeformationDetermination = {
       determinationProcedure: getText("./bhrgtcom:determinationProcedure"),
@@ -1085,7 +1058,7 @@ function parseShearStressChangeDuringHorizontalDeformationDeterminations(
 
     // Parse consolidation stage (optional nested object with consolidation steps)
     const consolidationNode = findChildElement(
-      actualDetNode,
+      actualDeterminationNode,
       "./bhrgtcom:consolidationStageAtHorizontalDeformation",
       adapter,
       namespaces,
@@ -1135,7 +1108,7 @@ function parseShearStressChangeDuringHorizontalDeformationDeterminations(
 
     // Parse shear stage (optional nested object with time-series data)
     const shearStageNode = findChildElement(
-      actualDetNode,
+      actualDeterminationNode,
       "./bhrgtcom:shearStage",
       adapter,
       namespaces,
@@ -1374,10 +1347,10 @@ export function processBoreholeSampleAnalysis(
 
     // Parse all determinations using registry pattern
     for (const config of DETERMINATION_CONFIGS) {
-      const detNode = adapter.evaluateXPath(intervalNode, config.xpath, nsResolver);
-      if (detNode) {
+      const determinationNode = adapter.evaluateXPath(intervalNode, config.xpath, nsResolver);
+      if (determinationNode) {
         (interval as Record<keyof InvestigatedInterval, unknown>)[config.propertyName] =
-          config.parser(detNode, adapter, namespaces);
+          config.parser(determinationNode, adapter, namespaces);
       }
     }
 

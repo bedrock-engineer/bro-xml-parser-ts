@@ -2,11 +2,13 @@
  * Type resolver functions for converting XML values to JavaScript types
  */
 
+import { SENTINEL } from "./constants";
+
 /**
  * Parse float, handle null values and -999999 sentinel
  */
-export function parseFloat(value: string | null): number | null {
-  if (!value || value.trim() === "" || value === "-999999") {
+export function parseFloat(value: string | null | undefined): number | null {
+  if (!value || value.trim() === "" || value === String(SENTINEL)) {
     return null;
   }
 
@@ -27,8 +29,8 @@ export function parseFloat(value: string | null): number | null {
 /**
  * Parse integer
  */
-export function parseInt(value: string | null): number | null {
-  if (!value || value.trim() === "" || value === "-999999") {
+export function parseInt(value: string | null | undefined): number | null {
+  if (!value || value.trim() === "" || value === String(SENTINEL)) {
     return null;
   }
 
@@ -49,7 +51,7 @@ export function parseInt(value: string | null): number | null {
 /**
  * Parse boolean (ja/nee or true/false)
  */
-export function parseBoolean(value: string | null): boolean | null {
+export function parseBoolean(value: string | null | undefined): boolean | null {
   if (!value) {
     return null;
   }
@@ -116,4 +118,18 @@ export function lowerText(value: string | null): string | null {
     return null;
   }
   return value.trim().toLowerCase();
+}
+
+export function parseJaNee(text: string | null): boolean | null {
+  if (!text) {
+    return null;
+  }
+  const lower = text.toLowerCase().trim();
+  if (lower === "ja") {
+    return true;
+  }
+  if (lower === "nee") {
+    return false;
+  }
+  return null;
 }

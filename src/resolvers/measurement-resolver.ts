@@ -9,6 +9,7 @@ import type {
   DissipationMeasurement,
 } from "../types/index.js";
 import { BROParseError } from "../types/index.js";
+import { SENTINEL } from "./constants.js";
 
 /**
  * Parse CPT measurement data from embedded CSV
@@ -131,8 +132,8 @@ export function processCPTResult(
       const measurement: Record<string, number | null> = {};
 
       // Extract only the columns that are marked "ja"
-      columns.forEach((col, i) => {
-        const idx = indices[i];
+      columns.forEach((col, index) => {
+        const idx = indices[index];
         if (idx === undefined) {
           return;
         }
@@ -141,11 +142,11 @@ export function processCPTResult(
           return;
         }
         const value = parseFloat(valueStr);
-        // -999999 is the BRO null sentinel value
-        measurement[col] = value === -999999 || isNaN(value) ? null : value;
+
+        measurement[col] = value === SENTINEL || isNaN(value) ? null : value;
       });
 
-      return measurement as unknown as CPTMeasurement;
+      return measurement as CPTMeasurement;
     })
     .filter((m: CPTMeasurement) => {
       // Keep rows with at least some valid data
@@ -229,7 +230,7 @@ export function processDissipationTests(
             return null;
           }
           const n = parseFloat(s);
-          return n === -999999 || isNaN(n) ? null : n;
+          return n === SENTINEL || isNaN(n) ? null : n;
         };
         return {
           elapsedTime: parseFloat(vals[0] ?? "0"),
