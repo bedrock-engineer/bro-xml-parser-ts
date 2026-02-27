@@ -1,5 +1,7 @@
 # @bedrock-engineer/bro-xml-parser
 
+> **Pre-1.0:** This library is under active development. Minor versions may include breaking changes.
+
 TypeScript parser library for Dutch [Basisregistratie Ondergrond](https://basisregistratieondergrond.nl/) (BRO) XML data, focussing on geotechnical and geological data.
 
 The [BRO contains many registration object types](https://basisregistratieondergrond.nl/inhoud-bro/registratieobjecten/). This library currently only covers three:
@@ -8,18 +10,21 @@ The [BRO contains many registration object types](https://basisregistratieonderg
 2. **BHR-GT** (Geotechnical Borehole)
 3. **BHR-G** (Geological Borehole)
 
-No dependencies in browser. For use in node.js, you need to install two extra dependencies.
+Support for more registration object types is desired but not our curent focus. PRs are welcome.
 
 **Live demo:** [bro.bedrock.engineer](https://bro.bedrock.engineer/) ([source](https://github.com/bedrock-engineer/bro-xml-app))
 
-> **Pre-1.0:** This library is under active development. Minor versions may include breaking changes.
-
 ## Installation
+
+No dependencies in the browser.
 
 ```bash
 npm install @bedrock-engineer/bro-xml-parser
+```
 
-# Node.js also requires:
+For use in node.js, you need to install two extra dependencies.
+
+```
 npm install @xmldom/xmldom fontoxpath
 ```
 
@@ -56,11 +61,7 @@ const bhr_g = parser.parseBHRG(xmlText);
 Extract only the fields you need:
 
 ```typescript
-import {
-  BROParser,
-  XMLAdapter,
-  resolvers,
-} from "@bedrock-engineer/bro-xml-parser/node";
+import { BROParser, XMLAdapter, resolvers } from "@bedrock-engineer/bro-xml-parser/node";
 
 const parser = new BROParser(new XMLAdapter());
 
