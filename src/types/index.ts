@@ -216,6 +216,12 @@ export interface CPTData {
 
   researchReportDate: Date | null;
 
+  // Measurement timing (OGC O&M timestamps on the conePenetrationTest observation)
+  /** When the cone penetration test was physically performed in the field (om:phenomenonTime) */
+  conePenetrationTestPhenomenonTime: Date | null;
+  /** When the cone penetration test result was produced (om:resultTime) */
+  conePenetrationTestResultTime: Date | null;
+
   // Location
   deliveredLocation: Location | null;
   standardizedLocation: Location | null;

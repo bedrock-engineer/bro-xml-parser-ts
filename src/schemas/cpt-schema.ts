@@ -1,7 +1,7 @@
 /**
  * CPT (Cone Penetration Test) schema definition
  *
- * Defines 42 metadata fields for CPT data.
+ * Defines 44 metadata fields for CPT data.
  * Each field specifies:
  * - xpath: location in XML document
  * - resolver: function to convert/parse value (optional)
@@ -28,6 +28,19 @@ export const CPT_SCHEMA: Schema = {
 
   researchReportDate: {
     xpath: "./dscpt:researchReportDate/brocom:date",
+    resolver: typeResolvers.parseDate,
+  },
+
+  // Measurement timing (OGC O&M timestamps on the conePenetrationTest observation)
+  conePenetrationTestPhenomenonTime: {
+    xpath:
+      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrationTest/om:phenomenonTime/gml:TimeInstant/gml:timePosition",
+    resolver: typeResolvers.parseDate,
+  },
+
+  conePenetrationTestResultTime: {
+    xpath:
+      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrationTest/om:resultTime/gml:TimeInstant/gml:timePosition",
     resolver: typeResolvers.parseDate,
   },
 

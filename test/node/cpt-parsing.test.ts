@@ -100,6 +100,20 @@ describe('CPT Parsing (Node)', () => {
 
       expect(cpt.researchReportDate).toBeInstanceOf(Date);
     });
+
+    it('should extract conePenetrationTest phenomenonTime and resultTime', () => {
+      const xml = fixtures.cpt.imbroa();
+      const cpt = parser.parseCPT(xml);
+
+      expect(cpt.conePenetrationTestPhenomenonTime).toBeInstanceOf(Date);
+      expect(
+        cpt.conePenetrationTestPhenomenonTime?.toISOString().startsWith('2014-02-05')
+      ).toBe(true);
+      expect(cpt.conePenetrationTestResultTime).toBeInstanceOf(Date);
+      expect(
+        cpt.conePenetrationTestResultTime?.toISOString().startsWith('2014-02-05')
+      ).toBe(true);
+    });
   });
 
   describe('Processing flags', () => {

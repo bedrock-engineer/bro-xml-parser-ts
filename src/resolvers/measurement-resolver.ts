@@ -132,7 +132,7 @@ export function processCPTResult(
       const measurement: Partial<CPTMeasurement> = {};
 
       // Extract only the columns that are marked "ja"
-      columns.forEach((col, index) => {
+      columns.forEach((column, index) => {
         const idx = indices[index];
         if (idx === undefined) {
           return;
@@ -143,7 +143,7 @@ export function processCPTResult(
         }
         const value = parseFloat(valueStr);
 
-        Object.assign(measurement, { [col]: value === SENTINEL || isNaN(value) ? null : value });
+        Object.assign(measurement, { [column]: value === SENTINEL || isNaN(value) ? null : value });
       });
 
       return measurement as CPTMeasurement;
