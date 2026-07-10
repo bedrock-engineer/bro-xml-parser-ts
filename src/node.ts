@@ -61,6 +61,20 @@ export type {
   VolumeChangeAtSpecificTime,
   ConsolidationStageAtLoading,
   LoadStage,
+  RemovedLayer,
+  RegistrationHistory,
+  ReportHistory,
+  IntermediateEvent,
+  BoredInterval,
+  SamplerDetails,
+  SampledInterval,
+  CompletedInterval,
+  NotDescribedInterval,
+  WaterContentDetermination,
+  VolumetricMassDensityDetermination,
+  OrganicMatterContentDetermination,
+  CarbonateContentDetermination,
+  VolumetricMassDensityOfSolidsDetermination,
 } from "./types/index.js";
 
 export { BROParseError } from "./types/index.js";

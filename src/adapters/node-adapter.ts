@@ -15,23 +15,19 @@ export class NodeXMLAdapter implements XMLAdapter {
 
   constructor() {
     this.parser = new DOMParser({
-      errorHandler: {
-        warning: () => {
-          // Ignore warnings
-        },
-        error: (msg: string) => {
-          throw new Error(`XML parsing failed: ${msg}`);
-        },
-        fatalError: (msg: string) => {
-          throw new Error(`XML parsing failed: ${msg}`);
-        },
+      onError: (level, message) => {
+        // Ignore warnings; fatalError already throws in @xmldom/xmldom >= 0.9
+        if (level === "error") {
+          throw new Error(`XML parsing failed: ${message}`);
+        }
       },
     });
     this.fontoxpath = fontoxpath;
   }
 
   parseXML(xmlText: string): Document {
-    return this.parser.parseFromString(xmlText, "text/xml");
+    // @xmldom/xmldom ships its own Document type; structurally compatible for our XPath usage
+    return this.parser.parseFromString(xmlText, "text/xml") as unknown as Document;
   }
 
   evaluateXPath(

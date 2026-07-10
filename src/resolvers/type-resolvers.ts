@@ -2,7 +2,7 @@
  * Type resolver functions for converting XML values to JavaScript types
  */
 
-import { SENTINEL } from "./constants";
+import { SENTINEL } from "./constants.js";
 
 /**
  * Parse float, handle null values and -999999 sentinel
