@@ -190,6 +190,7 @@ export const processBHRGTLayerData = createLayerParser<BHRGTLayer>({
         sizeFraction: getText("./bhrgtcom:sizeFraction"),
         angularity: getText("./bhrgtcom:angularity"),
         sphericity: getText("./bhrgtcom:sphericity"),
+        roughness: getText("./bhrgtcom:roughness"),
       };
       layer.grainshape = grainshape;
     }

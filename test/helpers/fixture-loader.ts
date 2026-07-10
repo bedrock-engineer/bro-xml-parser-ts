@@ -26,6 +26,7 @@ export const fixtures = {
     dispatch: () => loadFixture('bhr-gt', 'BHR000000347577.xml'),
     BHR000000378222: () => loadFixture('bhr-gt', 'BHR000000378222.xml'),
     BHR000000380390: () => loadFixture('bhr-gt', 'BHR000000380390.xml'),
+    BHR000000377186: () => loadFixture('bhr-gt', 'BHR000000377186.xml'),
   },
   bhrGtBma: {
     dispatch: () => loadFixture('BHR-GT-BMA', 'BHR000000336089.xml'),

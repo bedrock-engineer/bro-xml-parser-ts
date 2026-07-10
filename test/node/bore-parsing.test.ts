@@ -103,6 +103,24 @@ describe('BORE Parsing (Node)', () => {
     expect(layerWithGrainshape!.grainshape!.sphericity).toBe('bol');
   });
 
+  it('should extract grainshape roughness when present (gravel fraction)', () => {
+    const xml = fixtures.bhrGt.BHR000000377186();
+    const bore = parser.parseBHRGT(xml);
+
+    // Gravel (grind) grainshapes carry roughness; sand ones in this file do not
+    const gravelLayer = bore.data.find(
+      layer => layer.grainshape?.sizeFraction === 'grind'
+    );
+    expect(gravelLayer).toBeDefined();
+    expect(gravelLayer!.grainshape!.roughness).toBe('ruw');
+
+    const sandLayer = bore.data.find(
+      layer => layer.grainshape?.sizeFraction === 'zand'
+    );
+    expect(sandLayer).toBeDefined();
+    expect(sandLayer!.grainshape!.roughness).toBeNull();
+  });
+
   it('should not include grainshape when absent', () => {
     const xml = fixtures.bhrGt.BHR000000378222();
     const bore = parser.parseBHRGT(xml);

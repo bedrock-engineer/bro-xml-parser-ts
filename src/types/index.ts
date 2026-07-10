@@ -335,6 +335,8 @@ export interface Grainshape {
   angularity: string | null;
   /** Sphericity of grains (e.g., "bol", "plat", "langwerpig") */
   sphericity: string | null;
+  /** Roughness of grains (e.g., "ruw", "glad") */
+  roughness: string | null;
 }
 
 /**

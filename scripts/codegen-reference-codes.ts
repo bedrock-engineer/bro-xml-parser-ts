@@ -11,9 +11,9 @@
  *   npm run codegen:reference-codes
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
+import * as fs from "fs";
+import * as path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,27 +22,27 @@ const __dirname = path.dirname(__filename);
 // Configuration
 // ---------------------------------------------------------------------------
 
-const BRO_API_BASE = 'https://publiek.broservices.nl/bro/refcodes/v1';
-const OUTPUT_DIR = path.join(__dirname, '../src/reference-codes');
+const BRO_API_BASE = "https://publiek.broservices.nl/bro/refcodes/v1";
+const OUTPUT_DIR = path.join(__dirname, "../src/reference-codes");
 
 /**
  * Supported schema versions - must match src/core/version-detector.ts
  */
 const SUPPORTED_VERSIONS: Record<string, string> = {
-  CPT: '1.1',
-  'BHR-GT': '2.1',
-  'BHR-G': '3.1',
+  CPT: "1.1",
+  "BHR-GT": "2.1",
+  "BHR-G": "3.1",
 };
 
 /**
  * Map URN prefixes to data types for version selection
  */
 const URN_PREFIX_TO_DATATYPE: Record<string, string | null> = {
-  'urn:bro:cpt:': 'CPT',
-  'urn:bro:bhrgt:': 'BHR-GT',
-  'urn:bro:bhrg:': 'BHR-G',
-  'urn:bro:bhrgcommon:': 'BHR-G',
-  'urn:bro:': null, // Common codes - use latest
+  "urn:bro:cpt:": "CPT",
+  "urn:bro:bhrgt:": "BHR-GT",
+  "urn:bro:bhrg:": "BHR-G",
+  "urn:bro:bhrgcommon:": "BHR-G",
+  "urn:bro:": null, // Common codes - use latest
 };
 
 /**
@@ -50,10 +50,10 @@ const URN_PREFIX_TO_DATATYPE: Record<string, string | null> = {
  * Only include domains that are actually used in our parsed types
  */
 const INCLUDED_DOMAIN_PREFIXES = [
-  'urn:bro:cpt:',
-  'urn:bro:bhrgt:',
-  'urn:bro:bhrg:',
-  'urn:bro:bhrgcommon:',
+  "urn:bro:cpt:",
+  "urn:bro:bhrgt:",
+  "urn:bro:bhrg:",
+  "urn:bro:bhrgcommon:",
 ];
 
 // ---------------------------------------------------------------------------
@@ -133,7 +133,7 @@ function getTargetVersion(urn: string): { major: number; minor: number } | null 
   const versionStr = SUPPORTED_VERSIONS[dataType];
   if (!versionStr) return null;
 
-  const [major, minor] = versionStr.split('.').map(Number);
+  const [major, minor] = versionStr.split(".").map(Number);
   return { major, minor };
 }
 
@@ -154,8 +154,9 @@ function selectVersionCodes(domain: RefDomainResponse, urn: string): RefCode[] {
 
     // Find version <= target
     const match = sorted.find(
-      v => v.majorVersion < target.major ||
-           (v.majorVersion === target.major && v.minorVersion <= target.minor)
+      (v) =>
+        v.majorVersion < target.major ||
+        (v.majorVersion === target.major && v.minorVersion <= target.minor),
     );
 
     if (match) {
@@ -180,50 +181,47 @@ function selectVersionCodes(domain: RefDomainResponse, urn: string): RefCode[] {
 
 function extractUrnParts(urn: string): { prefix: string; name: string } {
   // urn:bro:bhrgt:GeotechnicalSoilName -> { prefix: 'bhrgt', name: 'GeotechnicalSoilName' }
-  const parts = urn.split(':');
-  const name = parts.pop() || 'unknown';
-  const prefix = parts.pop() || '';
+  const parts = urn.split(":");
+  const name = parts.pop() || "unknown";
+  const prefix = parts.pop() || "";
   return { prefix, name };
 }
 
 function urnToFileName(urn: string): string {
   // urn:bro:bhrgt:GeotechnicalSoilName -> bhrgt-geotechnical-soil-name.ts
   const { prefix, name } = extractUrnParts(urn);
-  return toKebabCase(prefix) + '-' + toKebabCase(name) + '.ts';
+  return toKebabCase(prefix) + "-" + toKebabCase(name) + ".ts";
 }
 
 function urnToConstName(urn: string): string {
   // urn:bro:bhrgt:GeotechnicalSoilName -> BHRGT_GEOTECHNICAL_SOIL_NAME_CODES
   const { prefix, name } = extractUrnParts(urn);
-  return toScreamingSnakeCase(prefix) + '_' + toScreamingSnakeCase(name) + '_CODES';
+  return toScreamingSnakeCase(prefix) + "_" + toScreamingSnakeCase(name) + "_CODES";
 }
 
 function urnToFunctionName(urn: string): string {
   // urn:bro:bhrgt:GeotechnicalSoilName -> getBhrgtGeotechnicalSoilNameDescription
   const { prefix, name } = extractUrnParts(urn);
   const capitalizedPrefix = prefix.charAt(0).toUpperCase() + prefix.slice(1);
-  return 'get' + capitalizedPrefix + name + 'Description';
+  return "get" + capitalizedPrefix + name + "Description";
 }
 
 function toKebabCase(str: string): string {
   return str
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
     .toLowerCase();
 }
 
 function toScreamingSnakeCase(str: string): string {
   return str
-    .replace(/([a-z])([A-Z])/g, '$1_$2')
-    .replace(/([A-Z])([A-Z][a-z])/g, '$1_$2')
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1_$2")
     .toUpperCase();
 }
 
 function escapeString(str: string): string {
-  return str
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
-    .replace(/\n/g, '\\n');
+  return str.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
 }
 
 function isValidIdentifier(str: string): boolean {
@@ -237,11 +235,11 @@ function formatKey(key: string): string {
 function generateFile(urn: string, codes: RefCode[]): string {
   const constName = urnToConstName(urn);
   const funcName = urnToFunctionName(urn);
-  const domainName = urn.split(':').pop() || 'Unknown';
+  const domainName = urn.split(":").pop() || "Unknown";
 
   const codeEntries = codes
-    .map(c => `  ${formatKey(c.code)}: '${escapeString(c.description)}',`)
-    .join('\n');
+    .map((c) => `  ${formatKey(c.code)}: '${escapeString(c.description)}',`)
+    .join("\n");
 
   return `/**
  * ${domainName} codes and descriptions from the official BRO reference.
@@ -268,13 +266,13 @@ export function ${funcName}(code: string): string | undefined {
 
 function generateIndexFile(domains: Array<{ uri: string; fileName: string }>): string {
   const exports = domains
-    .map(d => {
+    .map((d) => {
       const constName = urnToConstName(d.uri);
       const funcName = urnToFunctionName(d.uri);
-      const moduleName = d.fileName.replace('.ts', '.js');
+      const moduleName = d.fileName.replace(".ts", ".js");
       return `export { ${constName}, ${funcName} } from './${moduleName}';`;
     })
-    .join('\n');
+    .join("\n");
 
   return `/**
  * BRO Reference Codes
@@ -295,14 +293,14 @@ ${exports}
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log('Fetching BRO reference code domains...\n');
+  console.log("Fetching BRO reference code domains...\n");
 
   const allDomains = await fetchDomains();
   console.log(`Found ${allDomains.length} total domains\n`);
 
   // Filter to included prefixes
-  const includedDomains = allDomains.filter(d =>
-    d.uri && INCLUDED_DOMAIN_PREFIXES.some(prefix => d.uri.startsWith(prefix))
+  const includedDomains = allDomains.filter(
+    (d) => d.uri && INCLUDED_DOMAIN_PREFIXES.some((prefix) => d.uri.startsWith(prefix)),
   );
   console.log(`Filtered to ${includedDomains.length} relevant domains\n`);
 
@@ -314,7 +312,7 @@ async function main() {
   // Clear existing generated files (keep index.ts for now)
   const existingFiles = fs.readdirSync(OUTPUT_DIR);
   for (const file of existingFiles) {
-    if (file.endsWith('.ts') && file !== 'index.ts') {
+    if (file.endsWith(".ts") && file !== "index.ts") {
       fs.unlinkSync(path.join(OUTPUT_DIR, file));
     }
   }
@@ -329,14 +327,14 @@ async function main() {
       const response = await fetchDomainCodes(domain.uri);
 
       if (!response) {
-        console.log(' (empty)');
+        console.log(" (empty)");
         continue;
       }
 
       const codes = selectVersionCodes(response, domain.uri);
 
       if (codes.length === 0) {
-        console.log(' (no codes)');
+        console.log(" (no codes)");
         continue;
       }
 
@@ -344,7 +342,7 @@ async function main() {
       const filePath = path.join(OUTPUT_DIR, fileName);
       const content = generateFile(domain.uri, codes);
 
-      fs.writeFileSync(filePath, content, 'utf-8');
+      fs.writeFileSync(filePath, content, "utf-8");
 
       generated.push({ uri: domain.uri, fileName, codeCount: codes.length });
       totalCodes += codes.length;
@@ -356,17 +354,17 @@ async function main() {
   }
 
   // Generate index file
-  console.log('\nGenerating index.ts...');
+  console.log("\nGenerating index.ts...");
   const indexContent = generateIndexFile(generated);
-  fs.writeFileSync(path.join(OUTPUT_DIR, 'index.ts'), indexContent, 'utf-8');
+  fs.writeFileSync(path.join(OUTPUT_DIR, "index.ts"), indexContent, "utf-8");
 
-  console.log('\n' + '='.repeat(60));
+  console.log("\n" + "=".repeat(60));
   console.log(`Generated ${generated.length} files in ${OUTPUT_DIR}`);
   console.log(`Total: ${totalCodes} codes`);
-  console.log('='.repeat(60));
+  console.log("=".repeat(60));
 }
 
-main().catch(err => {
-  console.error('Fatal error:', err);
+main().catch((err) => {
+  console.error("Fatal error:", err);
   process.exit(1);
 });
