@@ -83,24 +83,24 @@
   },
   "homepage": "https://github.com/bedrock-engineer/bro-parser-js#readme",
   "devDependencies": {
-    "@eslint/js": "^9.39.3",
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.3.0",
-    "@vitest/browser": "^4.0.18",
-    "@vitest/browser-playwright": "^4.0.18",
-    "@vitest/coverage-v8": "^4.0.18",
-    "@vitest/ui": "^4.0.18",
-    "@xmldom/xmldom": "^0.8.11",
-    "eslint": "^9.39.3",
+    "@vitest/browser": "^4.1.10",
+    "@vitest/browser-playwright": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/ui": "^4.1.10",
+    "@xmldom/xmldom": "^0.9.10",
+    "eslint": "^10.6.0",
     "fontoxpath": "^3.34.0",
-    "knip": "^5.85.0",
-    "playwright": "^1.40.0",
-    "prettier": "^3.8.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.0",
-    "vitest": "^4.0.18"
+    "knip": "^6.25.0",
+    "playwright": "^1.61.1",
+    "prettier": "^3.9.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.63.0",
+    "vitest": "^4.1.10"
   },
   "peerDependencies": {
-    "@xmldom/xmldom": "^0.8.11",
+    "@xmldom/xmldom": "^0.9.10",
     "fontoxpath": "^3.34.0"
   },
   "peerDependenciesMeta": {
