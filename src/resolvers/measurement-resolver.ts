@@ -126,7 +126,7 @@ export function processCPTResult(
   // Parse CSV rows
   const rows = csvText.split(blockSeparator).filter((r: string) => r.trim());
 
-  return rows
+  const measurements = rows
     .map((row: string) => {
       const allValues = row.split(delimiter);
       const measurement: Partial<CPTMeasurement> = {};
@@ -153,6 +153,15 @@ export function processCPTResult(
       // (filters out rows that are all nulls)
       return Object.values(m).some((v) => v !== null && v !== undefined);
     });
+
+  // BRO does not guarantee row order in the values block — some files (e.g.
+  // CPT000000200287) contain shuffled depth blocks. Sort by penetration
+  // length (depth as fallback) so consumers can draw depth profiles directly;
+  // the elapsedTime column still records acquisition order.
+  const sortKey = (m: CPTMeasurement): number =>
+    m.penetrationLength ?? m.depth ?? Number.POSITIVE_INFINITY;
+
+  return measurements.sort((a, b) => sortKey(a) - sortKey(b));
 }
 
 /**

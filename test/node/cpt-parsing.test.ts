@@ -281,6 +281,23 @@ describe('CPT Parsing (Node)', () => {
       expect('coneResistance' in firstMeasurement).toBe(true);
     });
 
+    it('should sort measurements by penetration length', () => {
+      // CPT000000200287.xml stores its values block out of depth order
+      // (e.g. jumping from 32.76m back to 2.46m mid-file), which is legal
+      // per the BRO standard. The parser must return depth-ordered data.
+      const xml = fixtures.cpt.unordered();
+      const cpt = parser.parseCPT(xml);
+
+      expect(cpt.broId).toBe('CPT000000200287');
+      expect(cpt.data.length).toBeGreaterThan(1000);
+
+      for (let i = 1; i < cpt.data.length; i++) {
+        expect(cpt.data[i].penetrationLength).toBeGreaterThanOrEqual(
+          cpt.data[i - 1].penetrationLength
+        );
+      }
+    });
+
     it('should handle null values correctly', () => {
       const xml = fixtures.cpt.example();
       const cpt = parser.parseCPT(xml);

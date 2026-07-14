@@ -21,6 +21,8 @@ export const fixtures = {
     imbro: () => loadFixture('cpt', 'example.xml'),
     imbro2: () => loadFixture('cpt', 'CPT000000179849.xml'),
     imbroa: () => loadFixture('cpt', 'CPT000000061388.xml'),
+    // File whose values block is not ordered by penetration length
+    unordered: () => loadFixture('cpt', 'CPT000000200287.xml'),
   },
   bhrGt: {
     dispatch: () => loadFixture('bhr-gt', 'BHR000000347577.xml'),
