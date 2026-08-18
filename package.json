@@ -49,6 +49,7 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
+    "release": "GITHUB_TOKEN=$(gh auth token) release-it",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
@@ -76,12 +77,12 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bedrock-engineer/bro-parser-js.git"
+    "url": "git+https://github.com/bedrock-engineer/bro-xml-parser-ts.git"
   },
   "bugs": {
-    "url": "https://github.com/bedrock-engineer/bro-parser-js/issues"
+    "url": "https://github.com/bedrock-engineer/bro-xml-parser-ts/issues"
   },
-  "homepage": "https://github.com/bedrock-engineer/bro-parser-js#readme",
+  "homepage": "https://github.com/bedrock-engineer/bro-xml-parser-ts#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.3.0",
@@ -95,6 +96,7 @@
     "knip": "^6.25.0",
     "playwright": "^1.61.1",
     "prettier": "^3.9.5",
+    "release-it": "^21.0.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0",
     "vitest": "^4.1.10"
