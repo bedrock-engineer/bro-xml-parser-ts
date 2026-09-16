@@ -7,7 +7,7 @@
 
 import type { ResolverContext, RemovedLayer, RegistrationHistory } from "../types/index.js";
 import { createXPathTextGetter, createNamespaceResolver } from "./bore-resolver-utils.js";
-import { parseJaNee } from "./type-resolvers.js";
+import { parseBoolean, parseDate } from "./type-resolvers.js";
 
 /**
  * Process removedLayer elements from additionalInvestigation
@@ -66,16 +66,16 @@ export function processCPTRegistrationHistory(
 
   const objectRegistrationTimeStr = getText("./brocom:objectRegistrationTime");
   const registrationCompletionTimeStr = getText("./brocom:registrationCompletionTime");
+  const latestCorrectionTimeStr = getText("./brocom:latestCorrectionTime");
 
   return {
-    objectRegistrationTime: objectRegistrationTimeStr ? new Date(objectRegistrationTimeStr) : null,
+    objectRegistrationTime: parseDate(objectRegistrationTimeStr),
     registrationStatus: getText("./brocom:registrationStatus"),
-    registrationCompletionTime: registrationCompletionTimeStr
-      ? new Date(registrationCompletionTimeStr)
-      : null,
-    corrected: parseJaNee(getText("./brocom:corrected")),
-    underReview: parseJaNee(getText("./brocom:underReview")),
-    deregistered: parseJaNee(getText("./brocom:deregistered")),
-    reregistered: parseJaNee(getText("./brocom:reregistered")),
+    registrationCompletionTime: parseDate(registrationCompletionTimeStr),
+    latestCorrectionTime: parseDate(latestCorrectionTimeStr),
+    corrected: parseBoolean(getText("./brocom:corrected")),
+    underReview: parseBoolean(getText("./brocom:underReview")),
+    deregistered: parseBoolean(getText("./brocom:deregistered")),
+    reregistered: parseBoolean(getText("./brocom:reregistered")),
   };
 }

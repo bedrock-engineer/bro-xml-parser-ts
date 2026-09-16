@@ -1,0 +1,38 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "tsconfig": "tsconfig.json",
+  "name": "bro-xml-parser",
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-plugin-frontmatter",
+    "./scripts/typedoc-starlight.mjs"
+  ],
+  "out": "docs/api",
+  "readme": "none",
+  "githubPages": false,
+  "hideGenerator": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "intentionallyNotExported": ["XMLAdapter"],
+  "router": "group",
+  "groupOrder": ["General", "CPT", "BHR-GT", "BHR-G", "Resolvers", "*"],
+  "categorizeByGroup": true,
+  "defaultCategory": "none",
+  "categoryOrder": ["*", "Lab analysis"],
+  "sort": ["source-order"],
+  "outputFileStrategy": "members",
+  "hidePageHeader": true,
+  "hideBreadcrumbs": true,
+  "useCodeBlocks": true,
+  "parametersFormat": "table",
+  "propertiesFormat": "table",
+  "enumMembersFormat": "table",
+  "typeDeclarationFormat": "table",
+  "entryFileName": "index",
+  "frontmatterGlobals": {
+    "prev": false,
+    "next": false,
+    "editUrl": false
+  }
+}

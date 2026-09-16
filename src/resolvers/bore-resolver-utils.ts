@@ -21,7 +21,10 @@ export function createNamespaceResolver(namespaces: Namespaces): NamespaceResolv
  */
 export function getTextContent(node: Node | null): string | null {
   const trimmed = node?.textContent?.trim();
-  return trimmed || null;
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed;
 }
 
 /**

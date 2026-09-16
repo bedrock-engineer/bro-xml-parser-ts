@@ -25,8 +25,7 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.analysis).toBeDefined();
-    expect(bore.analysis?.analysisReportDate).toBeInstanceOf(Date);
-    expect(bore.analysis?.analysisReportDate?.toISOString().split('T')[0]).toBe('2020-03-03');
+    expect(bore.analysis?.analysisReportDate).toBe('2020-03-03');
     expect(bore.analysis?.analysisProcedure).toBe('geen');
   });
 

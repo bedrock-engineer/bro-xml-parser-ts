@@ -26,18 +26,18 @@ describe('BORE Parsing (Node)', () => {
     expect(bore.data.length).toBeGreaterThan(0);
 
     const firstLayer = bore.data[0];
-    expect(firstLayer.upperBoundary).toBeTypeOf('number');
-    expect(firstLayer.lowerBoundary).toBeTypeOf('number');
-    expect(firstLayer.geotechnicalSoilName).toBeTypeOf('string');
+    expect(firstLayer.upperBoundary).toBe(0);
+    expect(firstLayer.lowerBoundary).toBe(0.5);
+    expect(firstLayer.geotechnicalSoilName).toBe('siltigZand');
   });
 
   it('should extract bore metadata', () => {
     const xml = fixtures.bhrGt.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    expect(bore.finalBoreDepth).toBeTypeOf('number');
-    expect(bore.boreRockReached).toBeTypeOf('boolean');
-    expect(bore.boreHoleCompleted).toBeTypeOf('boolean');
+    expect(bore.finalBoreDepth).toBe(3);
+    expect(bore.boreRockReached).toBe(false);
+    expect(bore.boreHoleCompleted).toBe(true);
   });
 
   it('should include meta with schema version info', () => {
@@ -151,11 +151,9 @@ describe('BORE Parsing (Node)', () => {
       layer => layer.internalStructureIntact !== null && layer.internalStructureIntact !== undefined
     );
 
-    // This field may not be present in all files
-    // If present, it should be a boolean
-    if (layerWithStructure) {
-      expect(typeof layerWithStructure.internalStructureIntact).toBe('boolean');
-    }
+    expect(layerWithStructure).toBeDefined();
+    expect(layerWithStructure!.upperBoundary).toBe(1.5);
+    expect(layerWithStructure!.internalStructureIntact).toBe(true);
   });
 
   it('should extract fine soil consistency', () => {
@@ -191,57 +189,34 @@ describe('BORE Parsing (Node)', () => {
     const xml = fixtures.bhrGt.BHR000000380390();
     const bore = parser.parseBHRGT(xml);
 
-    // Boring dates
-    expect(bore.boringStartDate).toBeInstanceOf(Date);
-
-    // Boring procedure
-    expect(bore.boringProcedure).toBeTruthy();
+    expect(bore.boringStartDate).toBe('2024-04-09');
+    expect(bore.boringProcedure).toBe('SIKB2101vanafV3.3');
   });
 
   it('should extract sampler details', () => {
     const xml = fixtures.bhrGt.BHR000000380390();
     const bore = parser.parseBHRGT(xml);
 
-    // Sampler type should be extracted if present
-    if (bore.samplerType) {
-      expect(bore.samplerType).toBeTypeOf('string');
-    }
-
-    // Sampling quality
-    if (bore.samplingQuality) {
-      expect(bore.samplingQuality).toBeTypeOf('string');
-    }
+    expect(bore.samplerType).toBe('steekbus');
+    expect(bore.samplingQuality).toBe('klasseE');
   });
 
   it('should extract sample container dimensions', () => {
     const xml = fixtures.bhrGt.BHR000000380390();
     const bore = parser.parseBHRGT(xml);
 
-    // Container dimensions in mm
-    if (bore.sampleContainerDiameter) {
-      expect(bore.sampleContainerDiameter).toBeTypeOf('number');
-    }
-    if (bore.sampleContainerLength) {
-      expect(bore.sampleContainerLength).toBeTypeOf('number');
-    }
+    // Container dimensions (diameter in mm, length in m)
+    expect(bore.sampleContainerDiameter).toBe(67);
+    expect(bore.sampleContainerLength).toBe(0.4);
   });
 
   it('should extract description metadata', () => {
     const xml = fixtures.bhrGt.BHR000000380390();
     const bore = parser.parseBHRGT(xml);
 
-    // Description quality and location
-    if (bore.descriptionQuality) {
-      expect(bore.descriptionQuality).toBeTypeOf('string');
-    }
-    if (bore.descriptionLocation) {
-      expect(bore.descriptionLocation).toBeTypeOf('string');
-    }
-
-    // Continuously sampled flag
-    if (bore.continuouslySampled !== null) {
-      expect(bore.continuouslySampled).toBeTypeOf('boolean');
-    }
+    expect(bore.descriptionQuality).toBe('klasse2ongeroerd');
+    expect(bore.descriptionLocation).toBe('lab');
+    expect(bore.continuouslySampled).toBe(true);
   });
 
   // === Interval Arrays Tests ===
@@ -297,7 +272,7 @@ describe('BORE Parsing (Node)', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.registrationHistory).toBeDefined();
-    expect(bore.registrationHistory!.objectRegistrationTime).toBeInstanceOf(Date);
+    expect(typeof bore.registrationHistory!.objectRegistrationTime).toBe('string');
     expect(bore.registrationHistory!.registrationStatus).toBeTruthy();
     expect(bore.registrationHistory!.corrected).toBeTypeOf('boolean');
   });
@@ -307,13 +282,13 @@ describe('BORE Parsing (Node)', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.reportHistory).toBeDefined();
-    expect(bore.reportHistory!.reportStartDate).toBeInstanceOf(Date);
+    expect(typeof bore.reportHistory!.reportStartDate).toBe('string');
     expect(bore.reportHistory!.intermediateEvents).toBeDefined();
     expect(bore.reportHistory!.intermediateEvents.length).toBeGreaterThan(0);
 
     const event = bore.reportHistory!.intermediateEvents[0];
     expect(event.eventName).toBeTruthy();
-    expect(event.eventDate).toBeInstanceOf(Date);
+    expect(typeof event.eventDate).toBe('string');
   });
 
   it('should extract top-level metadata fields', () => {

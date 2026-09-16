@@ -19,7 +19,7 @@ import {
   createNamespaceResolver,
 } from "./bore-resolver-utils.js";
 
-import { parseFloat, parseJaNee } from "./type-resolvers.js";
+import { parseFloat, parseBoolean, parseDate } from "./type-resolvers.js";
 
 /**
  * Process BHR-G layer data from descriptiveBoreholeLog element
@@ -179,17 +179,17 @@ export function processBHRGRegistrationHistory(
   // Parse dates
   const objectRegistrationTimeStr = getText("./brocom:objectRegistrationTime");
   const registrationCompletionTimeStr = getText("./brocom:registrationCompletionTime");
+  const latestCorrectionTimeStr = getText("./brocom:latestCorrectionTime");
 
   return {
-    objectRegistrationTime: objectRegistrationTimeStr ? new Date(objectRegistrationTimeStr) : null,
+    objectRegistrationTime: parseDate(objectRegistrationTimeStr),
     registrationStatus: getText("./brocom:registrationStatus"),
-    registrationCompletionTime: registrationCompletionTimeStr
-      ? new Date(registrationCompletionTimeStr)
-      : null,
-    corrected: parseJaNee(getText("./brocom:corrected")),
-    underReview: parseJaNee(getText("./brocom:underReview")),
-    deregistered: parseJaNee(getText("./brocom:deregistered")),
-    reregistered: parseJaNee(getText("./brocom:reregistered")),
+    registrationCompletionTime: parseDate(registrationCompletionTimeStr),
+    latestCorrectionTime: parseDate(latestCorrectionTimeStr),
+    corrected: parseBoolean(getText("./brocom:corrected")),
+    underReview: parseBoolean(getText("./brocom:underReview")),
+    deregistered: parseBoolean(getText("./brocom:deregistered")),
+    reregistered: parseBoolean(getText("./brocom:reregistered")),
   };
 }
 
@@ -219,11 +219,11 @@ export function processBHRGReportHistory(
 
   for (const eventNode of eventNodes) {
     const getEventText = createXPathTextGetter(eventNode, adapter, namespaces);
-    const eventDateStr = getEventText("./bhrgcom:date/brocom:date");
+    const eventDateStr = getEventText("./bhrgcom:date");
 
     intermediateEvents.push({
       eventName: getEventText("./bhrgcom:name"),
-      eventDate: eventDateStr ? new Date(eventDateStr) : null,
+      eventDate: parseDate(eventDateStr),
     });
   }
 

@@ -98,21 +98,15 @@ describe('CPT Parsing (Node)', () => {
       const xml = fixtures.cpt.example();
       const cpt = parser.parseCPT(xml);
 
-      expect(cpt.researchReportDate).toBeInstanceOf(Date);
+      expect(typeof cpt.researchReportDate).toBe('string');
     });
 
     it('should extract conePenetrationTest phenomenonTime and resultTime', () => {
       const xml = fixtures.cpt.imbroa();
       const cpt = parser.parseCPT(xml);
 
-      expect(cpt.conePenetrationTestPhenomenonTime).toBeInstanceOf(Date);
-      expect(
-        cpt.conePenetrationTestPhenomenonTime?.toISOString().startsWith('2014-02-05')
-      ).toBe(true);
-      expect(cpt.conePenetrationTestResultTime).toBeInstanceOf(Date);
-      expect(
-        cpt.conePenetrationTestResultTime?.toISOString().startsWith('2014-02-05')
-      ).toBe(true);
+      expect(cpt.conePenetrationTestPhenomenonTime?.startsWith('2014-02-05')).toBe(true);
+      expect(cpt.conePenetrationTestResultTime?.startsWith('2014-02-05')).toBe(true);
     });
   });
 
@@ -124,8 +118,7 @@ describe('CPT Parsing (Node)', () => {
 
     it('should parse finalProcessingDate from example.xml', () => {
       const cpt = parser.parseCPT(fixtures.cpt.example());
-      expect(cpt.finalProcessingDate).toBeInstanceOf(Date);
-      expect(cpt.finalProcessingDate?.toISOString().startsWith('2019-04-23')).toBe(true);
+      expect(cpt.finalProcessingDate).toBe('2019-04-23');
     });
 
     it('should parse signal/interruption/expert correction flags from example.xml', () => {
@@ -138,7 +131,7 @@ describe('CPT Parsing (Node)', () => {
     it('should parse processing flags from CPT000000179849', () => {
       const cpt = parser.parseCPT(fixtures.cpt.imbro2());
       expect(cpt.stopCriterion).toBe('einddiepte');
-      expect(cpt.finalProcessingDate?.toISOString().startsWith('2020-05-19')).toBe(true);
+      expect(cpt.finalProcessingDate).toBe('2020-05-19');
       expect(cpt.signalProcessingPerformed).toBe(false);
       expect(cpt.interruptionProcessingPerformed).toBe(true);
       expect(cpt.expertCorrectionPerformed).toBe(false);
@@ -171,16 +164,14 @@ describe('CPT Parsing (Node)', () => {
     it('should parse horizontalPositioningDate and method from IMBRO/A file', () => {
       const cpt = parser.parseCPT(fixtures.cpt.imbroa());
 
-      expect(cpt.horizontalPositioningDate).toBeInstanceOf(Date);
-      expect(cpt.horizontalPositioningDate?.toISOString().startsWith('2014-02-05')).toBe(true);
+      expect(cpt.horizontalPositioningDate).toBe('2014-02-05');
       expect(cpt.horizontalPositioningMethod).toBe('onbekend');
     });
 
     it('should parse verticalPositioningDate and method from IMBRO/A file', () => {
       const cpt = parser.parseCPT(fixtures.cpt.imbroa());
 
-      expect(cpt.verticalPositioningDate).toBeInstanceOf(Date);
-      expect(cpt.verticalPositioningDate?.toISOString().startsWith('2014-02-05')).toBe(true);
+      expect(cpt.verticalPositioningDate).toBe('2014-02-05');
       expect(cpt.verticalPositioningMethod).toBe('onbekend');
     });
   });
@@ -189,8 +180,7 @@ describe('CPT Parsing (Node)', () => {
     it('should parse investigationDate from IMBRO/A file', () => {
       const cpt = parser.parseCPT(fixtures.cpt.imbroa());
 
-      expect(cpt.investigationDate).toBeInstanceOf(Date);
-      expect(cpt.investigationDate?.toISOString().startsWith('2014-02-05')).toBe(true);
+      expect(cpt.investigationDate).toBe('2014-02-05');
     });
 
     it('should parse removedLayers from IMBRO/A file', () => {
@@ -221,7 +211,7 @@ describe('CPT Parsing (Node)', () => {
       expect(cpt.registrationHistory).not.toBeNull();
       expect(cpt.registrationHistory?.registrationStatus).toBe('voltooid');
       expect(cpt.registrationHistory?.corrected).toBe(false);
-      expect(cpt.registrationHistory?.objectRegistrationTime).toBeInstanceOf(Date);
+      expect(typeof cpt.registrationHistory?.objectRegistrationTime).toBe('string');
     });
 
     it('should parse registrationHistory from example.xml', () => {
@@ -242,7 +232,7 @@ describe('CPT Parsing (Node)', () => {
 
       const test = cpt.dissipationTests[0];
       expect(test.penetrationLength).toBe(20.1);
-      expect(test.phenomenonTime).toBeInstanceOf(Date);
+      expect(typeof test.phenomenonTime).toBe('string');
       expect(test.measurements).toHaveLength(317);
 
       // First measurement

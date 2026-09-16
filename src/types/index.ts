@@ -176,7 +176,7 @@ export interface DissipationMeasurement {
  */
 export interface DissipationTest {
   penetrationLength: number;
-  phenomenonTime: Date | null;
+  phenomenonTime: string | null;
   measurements: Array<DissipationMeasurement>;
 }
 
@@ -214,13 +214,16 @@ export interface CPTData {
    */
   qualityRegime: QualityRegime | null;
 
-  researchReportDate: Date | null;
+  /** Party responsible for delivering the data to the BRO (bronhouder, KvK number or name) */
+  deliveryAccountableParty: string | null;
+
+  researchReportDate: string | null;
 
   // Measurement timing (OGC O&M timestamps on the conePenetrationTest observation)
   /** When the cone penetration test was physically performed in the field (om:phenomenonTime) */
-  conePenetrationTestPhenomenonTime: Date | null;
+  conePenetrationTestPhenomenonTime: string | null;
   /** When the cone penetration test result was produced (om:resultTime) */
-  conePenetrationTestResultTime: Date | null;
+  conePenetrationTestResultTime: string | null;
 
   // Location
   deliveredLocation: Location | null;
@@ -228,7 +231,7 @@ export interface CPTData {
 
   // Location provenance
   /** Date horizontal position was determined */
-  horizontalPositioningDate: Date | null;
+  horizontalPositioningDate: string | null;
   /** Method used to determine horizontal position (e.g., "onbekend", "GNSS") */
   horizontalPositioningMethod: string | null;
 
@@ -237,7 +240,7 @@ export interface CPTData {
   deliveredVerticalPositionDatum: string | null;
   deliveredVerticalPositionReferencePoint: string | null;
   /** Date vertical position was determined */
-  verticalPositioningDate: Date | null;
+  verticalPositioningDate: string | null;
   /** Method used to determine vertical position (e.g., "onbekend", "waterpassingKlasse2") */
   verticalPositioningMethod: string | null;
 
@@ -265,7 +268,7 @@ export interface CPTData {
 
   // Additional investigation
   /** Date of additional investigation (e.g. groundwater level measurement) */
-  investigationDate: Date | null;
+  investigationDate: string | null;
   /** Site conditions at time of investigation */
   conditions: string | null;
   /** Description of surface at CPT location */
@@ -275,7 +278,7 @@ export interface CPTData {
 
   // Processing flags
   /** Date of final processing */
-  finalProcessingDate: Date | null;
+  finalProcessingDate: string | null;
   /** Whether signal processing was performed */
   signalProcessingPerformed: boolean | null;
   /** Whether interruption processing was performed */
@@ -359,6 +362,12 @@ export interface BHRGTLayer {
 
   // Soil classification
   geotechnicalSoilName: string;
+  /** Soil name per NEN 5104 (IMBRO/A archive data; geotechnicalSoilName is often nil there) */
+  soilNameNEN5104?: string | null;
+  /** Gravel content classification per NEN 5104 (IMBRO/A) */
+  gravelContentClassNEN5104?: string | null;
+  /** Organic matter content classification per NEN 5104 (IMBRO/A) */
+  organicMatterContentClassNEN5104?: string | null;
 
   // Soil properties
   /** Tertiary soil constituent (e.g., "schelpMateriaal", "plantenresten") */
@@ -373,6 +382,12 @@ export interface BHRGTLayer {
   carbonateContentClass?: string | null;
   /** Sand median grain size classification */
   sandMedianClass?: string | null;
+  /** Gravel median grain size classification (e.g., "fijn", "middelgrof") */
+  gravelMedianClass?: string | null;
+  /** Depositional characteristic of the soil (e.g., "nietBepaald") */
+  geotechnicalDepositionalCharacteristic?: string | null;
+  /** Interbedding of other material in the soil (e.g., "kleiWeinigDikkeLaminae") */
+  interbedding?: string | null;
   /** Grain shape properties (for sand/gravel) */
   grainshape?: Grainshape;
 
@@ -381,6 +396,12 @@ export interface BHRGTLayer {
   slant?: boolean | null;
   /** Whether the layer is bedded/stratified */
   bedded?: boolean | null;
+  /** Bedding type of the layer (e.g., "dikGelamineerd") */
+  bedding?: string | null;
+  /** Whether the layer is a composite layer */
+  compositeLayer?: boolean | null;
+  /** Human activity type observed in the layer (e.g., "nietBepaald") */
+  activityType?: string | null;
   /** Whether the internal structure is intact (undisturbed) */
   internalStructureIntact?: boolean | null;
   /** Whether the soil is mixed */
@@ -438,7 +459,10 @@ export interface BHRGTData {
    */
   qualityRegime: QualityRegime | null;
 
-  researchReportDate: Date | null;
+  /** Party responsible for delivering the data to the BRO (bronhouder, KvK number or name) */
+  deliveryAccountableParty: string | null;
+
+  researchReportDate: string | null;
 
   // Location
   deliveredLocation: Location | null;
@@ -449,9 +473,17 @@ export interface BHRGTData {
   deliveredVerticalPositionDatum: string | null;
   deliveredVerticalPositionReferencePoint: string | null;
 
+  // Site characteristic
+  /** Soil use at the site (e.g., "akker", "grasland", "geenBodemgebruik") */
+  soilUse: string | null;
+
   // Bore metadata
   descriptionProcedure: string | null;
   groundwaterLevel: number | null;
+  /** Mean highest groundwater level in m relative to local reference (GHG) */
+  meanHighestGroundwaterLevel: number | null;
+  /** Mean lowest groundwater level in m relative to local reference (GLG) */
+  meanLowestGroundwaterLevel: number | null;
   boreRockReached: boolean | null;
   finalBoreDepth: number | null;
   finalSampleDepth: number | null;
@@ -459,9 +491,9 @@ export interface BHRGTData {
 
   // Boring execution details
   /** Start date of the boring operation */
-  boringStartDate: Date | null;
+  boringStartDate: string | null;
   /** End date of the boring operation */
-  boringEndDate: Date | null;
+  boringEndDate: string | null;
   /** Boring procedure standard used (e.g., "EN1997d2v2007") */
   boringProcedure: string | null;
   /** Boring technique used (e.g., "gestoken", "mechanischGestoken") */
@@ -472,6 +504,12 @@ export interface BHRGTData {
   subsurfaceContaminated: boolean | null;
   /** Stop criterion for boring */
   stopCriterion: string | null;
+  /** Whether a flushing medium was used during boring */
+  flushingMediumUsed: boolean | null;
+  /** Whether a temporary casing was used during boring */
+  temporaryCasingUsed: boolean | null;
+  /** Site preparation before boring (e.g., "geen") */
+  preparation: string | null;
 
   // Sampler details
   /** Type of sampler used */
@@ -517,7 +555,7 @@ export interface BHRGTData {
   /** Description location (field/lab) */
   descriptionLocation: string | null;
   /** Date of description report */
-  descriptionReportDate: Date | null;
+  descriptionReportDate: string | null;
   /** Described material type */
   describedMaterial: string | null;
   /** Whether sampling was continuous */
@@ -614,7 +652,7 @@ export interface BHRGData {
    */
   qualityRegime: QualityRegime | null;
 
-  researchReportDate: Date | null;
+  researchReportDate: string | null;
 
   // Location
   deliveredLocation: Location | null;
@@ -634,9 +672,9 @@ export interface BHRGData {
 
   // Boring execution details
   /** Start date of the boring operation */
-  boringStartDate: Date | null;
+  boringStartDate: string | null;
   /** End date of the boring operation */
-  boringEndDate: Date | null;
+  boringEndDate: string | null;
   /** Boring procedure standard used */
   boringProcedure: string | null;
   /** Boring technique used */
@@ -664,7 +702,7 @@ export interface BHRGData {
   /** Description location (field/lab) */
   descriptionLocation: string | null;
   /** Date of description report */
-  descriptionReportDate: Date | null;
+  descriptionReportDate: string | null;
   /** Described material type */
   describedMaterial: string | null;
   /** Whether sampling was continuous */
@@ -765,16 +803,18 @@ export interface NotDescribedInterval {
  */
 export interface IntermediateEvent {
   eventName: string | null;
-  eventDate: Date | null;
+  eventDate: string | null;
 }
 
 /**
  * Registration history - BRO administrative registration information
  */
 export interface RegistrationHistory {
-  objectRegistrationTime: Date | null;
+  objectRegistrationTime: string | null;
   registrationStatus: string | null;
-  registrationCompletionTime: Date | null;
+  registrationCompletionTime: string | null;
+  /** Time of the latest correction to the registered object */
+  latestCorrectionTime: string | null;
   corrected: boolean | null;
   underReview: boolean | null;
   deregistered: boolean | null;
@@ -785,8 +825,8 @@ export interface RegistrationHistory {
  * Report history - records when and how data was reported
  */
 export interface ReportHistory {
-  reportStartDate: Date | null;
-  reportEndDate: Date | null;
+  reportStartDate: string | null;
+  reportEndDate: string | null;
   intermediateEvents: Array<IntermediateEvent>;
 }
 
@@ -825,6 +865,8 @@ export interface OrganicMatterContentDetermination {
   determinationProcedure: string | null;
   determinationMethod: string | null;
   removedMaterial: string | null;
+  /** Whether a lutum (clay fraction) correction was applied to the result */
+  lutumCorrectionApplied: boolean | null;
   organicMatterContent: number | null; // percentage
 }
 
@@ -845,6 +887,8 @@ export interface VolumetricMassDensityOfSolidsDetermination {
   determinationProcedure: string | null;
   determinationMethod: string | null;
   liquidUsed: string | null;
+  /** Volume of the sample container used (e.g., "100ml") */
+  sampleContainerVolume: string | null;
   volumetricMassDensityOfSolids: number | null; // g/cm³
 }
 
@@ -867,6 +911,8 @@ export interface ParticleSizeDistributionDetermination {
 
   // Detailed distribution < 63μm (7 fractions)
   fraction0to2um?: number | null;
+  /** 2–32 µm fraction — only present in the coarser standardDistributionFractionSmaller63um group */
+  fraction2to32um?: number | null;
   fraction2to4um?: number | null;
   fraction4to8um?: number | null;
   fraction8to16um?: number | null;
@@ -902,6 +948,8 @@ export interface ParticleSizeDistributionDetermination {
 export interface PlasticityAtSpecificWaterContent {
   waterContent: number; // percentage
   numberOfFalls: number; // integer - Casagrande cup test
+  /** Cone penetration depth in mm (fall-cone method) */
+  penetrationDepth?: number | null;
 }
 
 /**
@@ -914,6 +962,8 @@ export interface ConsistencyLimitsDetermination {
   fractionLarger500um: number | null; // percentage
   usedMedium: string | null;
   performanceIrregularity: string | null;
+  /** Fall-cone apparatus type used (e.g., "zweedseConus30graden") */
+  conusType: string | null;
 
   // Calculated limits
   liquidLimit: number | null; // percentage (LL)
@@ -934,6 +984,18 @@ export interface HeightAtSpecificTime {
 }
 
 /**
+ * Stress/strain measurement at a specific time during a settlement step
+ * Columns of the StressAtSpecificSettlement time-series (oedometer/consolidation).
+ */
+export interface StressAtSpecificSettlement {
+  elapsedTime: number; // seconds
+  verticalStrain: number; // percentage
+  excessPoreWaterPressure: number | null; // kPa
+  verticalEffectiveStress: number | null; // kPa
+  horizontalEffectiveStress: number | null; // kPa
+}
+
+/**
  * Single loading step in settlement characteristics test
  * Represents one stress increment in oedometer/consolidation test
  */
@@ -945,6 +1007,21 @@ export interface SettlementDeterminationStep {
   stepType: string | null; // belastingstap, ontlastingstap
   verticalStress: number | null; // kPa
   heightChangeDuringSettlement: Array<HeightAtSpecificTime>;
+  /** Stress/strain time-series for the step (alternative to heightChangeDuringSettlement) */
+  stressChangeDuringSettlement?: Array<StressAtSpecificSettlement>;
+}
+
+/**
+ * Saturation stage preceding compression in the oedometer/settlement test
+ * Documents how the specimen was saturated before loading.
+ */
+export interface SaturationStageAtCompression {
+  porousDiscWet: boolean | null;
+  usedMedium: string | null; // e.g., "leidingwater"
+  backPressure: number | null; // kPa
+  constantHeight: boolean | null;
+  specimenHeightAfterwards: number | null; // mm
+  disturbanceInduced: boolean | null;
 }
 
 /**
@@ -962,6 +1039,8 @@ export interface SettlementCharacteristicsDetermination {
   apparatusDeformationApplied: boolean | null;
   bearingFrictionCorrectionApplied: boolean | null;
   irregularResult: boolean | null;
+  /** Saturation stage performed before compression (optional) */
+  saturationStageAtCompression?: SaturationStageAtCompression;
   determinationSteps: Array<SettlementDeterminationStep>;
 }
 
@@ -1063,6 +1142,15 @@ export interface ShearStressAtSpecificStrain {
 }
 
 /**
+ * Reconstituted/remoulded specimen preparation for a triaxial loading test
+ * Present when the specimen was made in the lab rather than taken intact.
+ */
+export interface SpecimenMadeForLoading {
+  makingMethod: string | null; // e.g., "samenstellenStampenVochtig"
+  dryVolumetricMassDensity: number | null; // g/cm³
+}
+
+/**
  * Load stage data for triaxial test
  * Documents the shearing/loading phase of the test
  */
@@ -1105,6 +1193,9 @@ export interface ShearStressChangeDuringLoadingDetermination {
   // Corrections
   membraneCorrection?: MembraneCorrection;
   drainageStripCorrection?: DrainageStripCorrection;
+
+  // Specimen preparation (remoulded specimens only)
+  madeSpecimenForLoading?: SpecimenMadeForLoading;
 
   // Test stages
   saturationStageAtLoading?: SaturationStageAtLoading;
@@ -1235,7 +1326,7 @@ export interface InvestigatedInterval {
  * Contains laboratory test results for soil samples
  */
 export interface BoreholeSampleAnalysis {
-  analysisReportDate: Date | null;
+  analysisReportDate: string | null;
   analysisProcedure: string | null;
   investigatedIntervals: Array<InvestigatedInterval>;
 }

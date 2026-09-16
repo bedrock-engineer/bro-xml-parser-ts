@@ -14,7 +14,7 @@
  *     resolver: resolvers.parseFloat
  *   },
  *   date: {
- *     xpath: './dscpt:researchReportDate/brocom:date',
+ *     xpath: './dscpt:researchReportDate',
  *     resolver: resolvers.parseDate
  *   },
  *   completed: {
@@ -32,7 +32,6 @@ export {
   parseBoolean,
   parseDate,
   parseQualityClass,
-  lowerText,
 } from "./resolvers/type-resolvers.js";
 
 // Re-export GML resolvers

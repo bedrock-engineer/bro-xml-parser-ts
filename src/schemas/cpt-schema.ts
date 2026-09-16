@@ -26,8 +26,12 @@ export const CPT_SCHEMA: Schema = {
     xpath: "brocom:qualityRegime",
   },
 
+  deliveryAccountableParty: {
+    xpath: "brocom:deliveryAccountableParty",
+  },
+
   researchReportDate: {
-    xpath: "./dscpt:researchReportDate/brocom:date",
+    xpath: "./dscpt:researchReportDate",
     resolver: typeResolvers.parseDate,
   },
 
@@ -61,7 +65,7 @@ export const CPT_SCHEMA: Schema = {
   },
 
   horizontalPositioningDate: {
-    xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningDate/brocom:date",
+    xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningDate",
     resolver: typeResolvers.parseDate,
   },
 
@@ -78,16 +82,14 @@ export const CPT_SCHEMA: Schema = {
 
   deliveredVerticalPositionDatum: {
     xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalDatum",
-    resolver: typeResolvers.lowerText,
   },
 
   deliveredVerticalPositionReferencePoint: {
     xpath: "./dscpt:deliveredVerticalPosition/cptcommon:localVerticalReferencePoint",
-    resolver: typeResolvers.lowerText,
   },
 
   verticalPositioningDate: {
-    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningDate/brocom:date",
+    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningDate",
     resolver: typeResolvers.parseDate,
   },
 
@@ -143,7 +145,7 @@ export const CPT_SCHEMA: Schema = {
   // === Additional Investigation ===
 
   investigationDate: {
-    xpath: "./dscpt:additionalInvestigation/cptcommon:investigationDate/brocom:date",
+    xpath: "./dscpt:additionalInvestigation/cptcommon:investigationDate",
     resolver: typeResolvers.parseDate,
   },
 
@@ -173,7 +175,7 @@ export const CPT_SCHEMA: Schema = {
   // === Processing Flags ===
 
   finalProcessingDate: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:finalProcessingDate/brocom:date",
+    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:finalProcessingDate",
     resolver: typeResolvers.parseDate,
   },
 

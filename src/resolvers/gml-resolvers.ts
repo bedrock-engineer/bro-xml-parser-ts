@@ -24,7 +24,21 @@ export function parseGMLLocation(_value: string | null, context: ResolverContext
   }
 
   const element = node as Element;
-  const srsName = element.getAttribute("srsName");
+  let srsName = element.getAttribute("srsName");
+  if (!srsName) {
+    // Some documents (e.g. BHR-GT deliveredLocation) put srsName on a nested
+    // gml:Point rather than on the location element itself.
+    const pointNode = adapter.evaluateXPath(node, ".//gml:Point", (prefix) =>
+      prefix ? (namespaces[prefix] ?? null) : null,
+    );
+    if (
+      pointNode &&
+      "getAttribute" in pointNode &&
+      typeof pointNode.getAttribute === "function"
+    ) {
+      srsName = (pointNode as Element).getAttribute("srsName");
+    }
+  }
   if (!srsName) {
     return null;
   }

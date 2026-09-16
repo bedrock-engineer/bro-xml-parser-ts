@@ -62,7 +62,9 @@ export class BrowserXMLAdapter implements XMLAdapter {
         message.includes("parse") ||
         message.includes("INVALID_EXPRESSION_ERR")
       ) {
-        throw new Error(`XPath evaluation failed: ${message} (query: ${query})`);
+        throw new Error(`XPath evaluation failed: ${message} (query: ${query})`, {
+          cause: error,
+        });
       }
 
       // For other errors, log and return null (element might just not exist)
@@ -111,7 +113,9 @@ export class BrowserXMLAdapter implements XMLAdapter {
         message.includes("parse") ||
         message.includes("INVALID_EXPRESSION_ERR")
       ) {
-        throw new Error(`XPath evaluation failed: ${message} (query: ${query})`);
+        throw new Error(`XPath evaluation failed: ${message} (query: ${query})`, {
+          cause: error,
+        });
       }
 
       // For other errors, log and return empty array (elements might just not exist)

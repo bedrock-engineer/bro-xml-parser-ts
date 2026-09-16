@@ -29,15 +29,6 @@ describe('Error Handling (Node)', () => {
     );
   });
 
-  it.skip('should throw on wrong document type', () => {
-    // TODO: Need a proper dispatch format bore file to test this
-    // Current testBorehole.xml uses registration format with prefixed namespaces
-    const boreDoc = fixtures.bore.registration();
-
-    expect(() => parser.parseCPT(boreDoc)).toThrow(BROParseError);
-    expect(() => parser.parseCPT(boreDoc)).toThrow(/Wrong document type/);
-  });
-
   it('should provide helpful error details', () => {
     const wrongVersion = fixtures.invalid.unsupportedVersion();
 

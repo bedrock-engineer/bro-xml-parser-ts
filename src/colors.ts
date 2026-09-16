@@ -11,7 +11,7 @@
  *
  * @example
  * ```typescript
- * import { BRO_SOIL_COLORS, getSoilColor } from '@bedrock-engineer/bro-xml';
+ * import { BRO_SOIL_COLORS, getSoilColor } from '@bedrock-engineer/bro-xml-parser';
  *
  * // Direct lookup
  * const hex = BRO_SOIL_COLORS['lichtBruin']; // '#b79a77'
@@ -93,21 +93,31 @@ const normalizedColorMap: Record<string, string> = Object.fromEntries(
 );
 
 /**
- * Get hex color for a BRO soil color name
+ * Get the hex color for a BRO soil color name.
  *
  * @param colorName - BRO color name (e.g., "lichtBruin", "donkerGrijs")
- * @param defaultColor - Optional fallback color if name not found (default: null)
- * @returns Hex color string or defaultColor if not found
+ * @returns Hex color string, or `null` if the name is not found
  *
  * @example
  * ```typescript
- * getSoilColor('lichtBruin');           // '#b79a77'
- * getSoilColor('LICHTBRUIN');           // '#b79a77' (case-insensitive)
- * getSoilColor('unknown');              // null
- * getSoilColor('unknown', '#808080');   // '#808080'
+ * getSoilColor('lichtBruin'); // '#b79a77'
+ * getSoilColor('LICHTBRUIN'); // '#b79a77' (case-insensitive)
+ * getSoilColor('unknown');    // null
  * ```
  */
 export function getSoilColor(colorName: string): string | null;
+/**
+ * Get the hex color for a BRO soil color name, falling back to a default.
+ *
+ * @param colorName - BRO color name (e.g., "lichtBruin", "donkerGrijs")
+ * @param defaultColor - Fallback color returned when the name is not found
+ * @returns Hex color string, or `defaultColor` if the name is not found
+ *
+ * @example
+ * ```typescript
+ * getSoilColor('unknown', '#808080'); // '#808080'
+ * ```
+ */
 export function getSoilColor(colorName: string, defaultColor: string): string;
 export function getSoilColor(colorName: string, defaultColor?: string): string | null {
   const normalized = colorName.toLowerCase();

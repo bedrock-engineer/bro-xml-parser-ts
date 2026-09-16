@@ -25,10 +25,14 @@ export const BORE_SCHEMA: Schema = {
     xpath: "brocom:qualityRegime",
   },
 
+  deliveryAccountableParty: {
+    xpath: "brocom:deliveryAccountableParty",
+  },
+
   // === Dates ===
 
   researchReportDate: {
-    xpath: "./dsbhrgt:reportHistory/dsbhrgt:reportStartDate/brocom:date",
+    xpath: "./dsbhrgt:reportHistory/dsbhrgt:reportStartDate",
     resolver: typeResolvers.parseDate,
   },
 
@@ -53,12 +57,10 @@ export const BORE_SCHEMA: Schema = {
 
   deliveredVerticalPositionDatum: {
     xpath: "./dsbhrgt:deliveredVerticalPosition/bhrgtcom:verticalDatum",
-    resolver: typeResolvers.lowerText,
   },
 
   deliveredVerticalPositionReferencePoint: {
     xpath: "./dsbhrgt:deliveredVerticalPosition/bhrgtcom:localVerticalReferencePoint",
-    resolver: typeResolvers.lowerText,
   },
 
   // === Boring Metadata ===
@@ -95,12 +97,12 @@ export const BORE_SCHEMA: Schema = {
   // === Boring Execution Details ===
 
   boringStartDate: {
-    xpath: "./dsbhrgt:boring/bhrgtcom:boringStartDate/brocom:date",
+    xpath: "./dsbhrgt:boring/bhrgtcom:boringStartDate",
     resolver: typeResolvers.parseDate,
   },
 
   boringEndDate: {
-    xpath: "./dsbhrgt:boring/bhrgtcom:boringEndDate/brocom:date",
+    xpath: "./dsbhrgt:boring/bhrgtcom:boringEndDate",
     resolver: typeResolvers.parseDate,
   },
 
@@ -124,6 +126,40 @@ export const BORE_SCHEMA: Schema = {
 
   stopCriterion: {
     xpath: "./dsbhrgt:boring/bhrgtcom:stopCriterion",
+  },
+
+  flushingMediumUsed: {
+    xpath: "./dsbhrgt:boring/bhrgtcom:flushingMediumUsed",
+    resolver: typeResolvers.parseBoolean,
+  },
+
+  temporaryCasingUsed: {
+    xpath: "./dsbhrgt:boring/bhrgtcom:temporaryCasingUsed",
+    resolver: typeResolvers.parseBoolean,
+  },
+
+  preparation: {
+    xpath: "./dsbhrgt:boring/bhrgtcom:preparation",
+  },
+
+  // === Site Characteristic ===
+
+  soilUse: {
+    xpath: "./dsbhrgt:siteCharacteristic/bhrgtcom:soilUse",
+  },
+
+  // === Groundwater Levels (descriptive borehole log) ===
+
+  meanHighestGroundwaterLevel: {
+    xpath:
+      "./dsbhrgt:boreholeSampleDescription/bhrgtcom:descriptiveBoreholeLog/bhrgtcom:meanHighestGroundwaterLevel",
+    resolver: typeResolvers.parseFloat,
+  },
+
+  meanLowestGroundwaterLevel: {
+    xpath:
+      "./dsbhrgt:boreholeSampleDescription/bhrgtcom:descriptiveBoreholeLog/bhrgtcom:meanLowestGroundwaterLevel",
+    resolver: typeResolvers.parseFloat,
   },
 
   // === Sampler Details ===
@@ -228,7 +264,7 @@ export const BORE_SCHEMA: Schema = {
   },
 
   descriptionReportDate: {
-    xpath: "./dsbhrgt:boreholeSampleDescription/bhrgtcom:descriptionReportDate/brocom:date",
+    xpath: "./dsbhrgt:boreholeSampleDescription/bhrgtcom:descriptionReportDate",
     resolver: typeResolvers.parseDate,
   },
 

@@ -29,12 +29,21 @@ export const fixtures = {
     BHR000000378222: () => loadFixture('bhr-gt', 'BHR000000378222.xml'),
     BHR000000380390: () => loadFixture('bhr-gt', 'BHR000000380390.xml'),
     BHR000000377186: () => loadFixture('bhr-gt', 'BHR000000377186.xml'),
+    // Zeeland IMBRO/A archive borehole: geotechnicalSoilName is nil, soil is
+    // described only via the NEN 5104 fields.
+    zeelandImbroA: () => loadFixture('bhr-gt', 'BHR000000351618.xml'),
   },
   bhrGtBma: {
     dispatch: () => loadFixture('BHR-GT-BMA', 'BHR000000336089.xml'),
     atterberg: () => loadFixture('BHR-GT-BMA', 'BHR000000374632.xml'),
     atterberg2: () => loadFixture('BHR-GT-BMA', 'BHR000000374647.xml'),
     settlementPermeability: () => loadFixture('BHR-GT-BMA', 'BHR000000377186.xml'),
+    // Oedometer with saturation stage + stressChangeDuringSettlement time-series and fall-cone Atterberg
+    oedometerSaturation: () => loadFixture('BHR-GT-BMA', 'BHR000000339288.xml'),
+    // Organic matter (lutum correction) + density-of-solids (sample container volume)
+    organicMatterDensity: () => loadFixture('BHR-GT-BMA', 'BHR000000336088.xml'),
+    // Triaxial test on a remoulded (made) specimen
+    triaxialMadeSpecimen: () => loadFixture('BHR-GT-BMA', 'BHR000000380389.xml'),
     bmbOnly1: () => loadFixture('BHR-GT-BMA', 'BHR000000336062.xml'),
     bmbOnly2: () => loadFixture('BHR-GT-BMA', 'BHR000000336085.xml'),
     bmbOnly3: () => loadFixture('BHR-GT-BMA', 'BHR000000336086.xml'),

@@ -62,7 +62,7 @@ export const CPT_METADATA_ONLY: Schema = {
   broId: { xpath: "brocom:broId" },
   qualityRegime: { xpath: "brocom:qualityRegime" },
   researchReportDate: {
-    xpath: "./dscpt:researchReportDate/brocom:date",
+    xpath: "./dscpt:researchReportDate",
     resolver: typeResolvers.parseDate,
   },
   deliveredLocation: {
@@ -118,7 +118,7 @@ export const BORE_METADATA_ONLY: Schema = {
   broId: { xpath: "brocom:broId" },
   qualityRegime: { xpath: "brocom:qualityRegime" },
   researchReportDate: {
-    xpath: "./dsbhrgt:reportHistory/dsbhrgt:reportStartDate/brocom:date",
+    xpath: "./dsbhrgt:reportHistory/dsbhrgt:reportStartDate",
     resolver: typeResolvers.parseDate,
   },
   deliveredLocation: {
@@ -176,7 +176,7 @@ export const BHRG_METADATA_ONLY: Schema = {
   broId: { xpath: "brocom:broId" },
   qualityRegime: { xpath: "brocom:qualityRegime" },
   researchReportDate: {
-    xpath: "./dsbhrg:researchReportDate/brocom:date",
+    xpath: "./dsbhrg:researchReportDate",
     resolver: typeResolvers.parseDate,
   },
   deliveredLocation: {

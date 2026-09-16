@@ -34,7 +34,7 @@ import { BROParseError } from "./types/index.js";
  *
  * Usage:
  * ```typescript
- * import { BROParser, XMLAdapter } from 'bro-parser';
+ * import { BROParser, XMLAdapter } from '@bedrock-engineer/bro-xml-parser';
  *
  * const parser = new BROParser(new XMLAdapter());
  * const cptData = parser.parseCPT(xmlString);
@@ -237,7 +237,7 @@ export class BROParser {
    *
    * @example
    * ```typescript
-   * import { BROParser, resolvers } from 'bro-parser';
+   * import { BROParser, resolvers } from '@bedrock-engineer/bro-xml-parser';
    *
    * const parser = new BROParser(new XMLAdapter());
    *

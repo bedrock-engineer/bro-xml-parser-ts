@@ -109,7 +109,7 @@ describe('BHRG Parsing (Node)', () => {
     const bhrg = parser.parseBHRG(xml);
 
     expect(bhrg.deliveredVerticalPositionOffset).toBe(5.50);
-    expect(bhrg.deliveredVerticalPositionDatum).toBe('nap');
+    expect(bhrg.deliveredVerticalPositionDatum).toBe('NAP');
     expect(bhrg.deliveredVerticalPositionReferencePoint).toBe('maaiveld');
   });
 
@@ -117,8 +117,7 @@ describe('BHRG Parsing (Node)', () => {
     const xml = fixtures.bhrG.dispatch();
     const bhrg = parser.parseBHRG(xml);
 
-    expect(bhrg.researchReportDate).toBeInstanceOf(Date);
-    expect(bhrg.researchReportDate?.toISOString().split('T')[0]).toBe('2024-01-10');
+    expect(bhrg.researchReportDate).toBe('2024-01-10');
   });
 
   it('should extract boundary determination methods', () => {
@@ -168,7 +167,7 @@ describe('BHRG Parsing (Node)', () => {
     const bhrg = parser.parseBHRG(xml);
 
     expect(bhrg.registrationHistory).toBeDefined();
-    expect(bhrg.registrationHistory!.objectRegistrationTime).toBeInstanceOf(Date);
+    expect(typeof bhrg.registrationHistory!.objectRegistrationTime).toBe('string');
     expect(bhrg.registrationHistory!.registrationStatus).toBeTruthy();
     expect(bhrg.registrationHistory!.corrected).toBeTypeOf('boolean');
   });

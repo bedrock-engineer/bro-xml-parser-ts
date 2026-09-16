@@ -5,7 +5,7 @@
  *
  * Usage:
  * ```typescript
- * import { BROParser, XMLAdapter } from 'bro-parser';
+ * import { BROParser, XMLAdapter } from '@bedrock-engineer/bro-xml-parser';
  *
  * const parser = new BROParser(new XMLAdapter());
  * const cptData = parser.parseCPT(xmlString);
@@ -58,6 +58,9 @@ export type {
   MembraneCorrection,
   DrainageStripCorrection,
   SaturationStageAtLoading,
+  SaturationStageAtCompression,
+  SpecimenMadeForLoading,
+  StressAtSpecificSettlement,
   VolumeChangeAtSpecificTime,
   ConsolidationStageAtLoading,
   LoadStage,

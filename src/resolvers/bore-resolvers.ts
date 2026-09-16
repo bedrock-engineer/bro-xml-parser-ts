@@ -48,7 +48,7 @@ import {
 } from "./bore-resolver-utils.js";
 
 // Import type resolvers
-import { parseBoolean, parseFloat, parseJaNee } from "./type-resolvers.js";
+import { parseBoolean, parseFloat, parseDate } from "./type-resolvers.js";
 
 /**
  * Parse dispersedInhomogeneity field
@@ -100,14 +100,45 @@ export const processBHRGTLayerData = createLayerParser<BHRGTLayer>({
     {
       xpath: "./bhrgtcom:anthropogenic",
       key: "anthropogenic",
-      transform: parseJaNee,
+      transform: parseBoolean,
     },
     {
       xpath: "./bhrgtcom:slant",
       key: "slant",
-      transform: parseJaNee,
+      transform: parseBoolean,
+    },
+    {
+      xpath: "./bhrgtcom:bedding",
+      key: "bedding",
+      omitIfEmpty: true,
+    },
+    {
+      xpath: "./bhrgtcom:compositeLayer",
+      key: "compositeLayer",
+      transform: parseBoolean,
+      omitIfEmpty: true,
+    },
+    {
+      xpath: "./bhrgtcom:activityType",
+      key: "activityType",
+      omitIfEmpty: true,
     },
     // Soil-level fields (inside <soil>)
+    {
+      xpath: "./bhrgtcom:soil/bhrgtcom:soilNameNEN5104",
+      key: "soilNameNEN5104",
+      omitIfEmpty: true,
+    },
+    {
+      xpath: "./bhrgtcom:soil/bhrgtcom:gravelContentClassNEN5104",
+      key: "gravelContentClassNEN5104",
+      omitIfEmpty: true,
+    },
+    {
+      xpath: "./bhrgtcom:soil/bhrgtcom:organicMatterContentClassNEN5104",
+      key: "organicMatterContentClassNEN5104",
+      omitIfEmpty: true,
+    },
     {
       xpath: "./bhrgtcom:soil/bhrgtcom:tertiaryConstituent",
       key: "tertiaryConstituent",
@@ -134,27 +165,42 @@ export const processBHRGTLayerData = createLayerParser<BHRGTLayer>({
       xpath: "./bhrgtcom:soil/bhrgtcom:sandMedianClass",
       key: "sandMedianClass",
     },
+    {
+      xpath: "./bhrgtcom:soil/bhrgtcom:gravelMedianClass",
+      key: "gravelMedianClass",
+      omitIfEmpty: true,
+    },
+    {
+      xpath: "./bhrgtcom:soil/bhrgtcom:geotechnicalDepositionalCharacteristic",
+      key: "geotechnicalDepositionalCharacteristic",
+      omitIfEmpty: true,
+    },
+    {
+      xpath: "./bhrgtcom:soil/bhrgtcom:interbedding",
+      key: "interbedding",
+      omitIfEmpty: true,
+    },
     // Layer structure properties (at layer level)
     {
       xpath: "./bhrgtcom:bedded",
       key: "bedded",
-      transform: parseJaNee,
+      transform: parseBoolean,
     },
     {
       xpath: "./bhrgtcom:internalStructureIntact",
       key: "internalStructureIntact",
-      transform: parseJaNee,
+      transform: parseBoolean,
     },
     // Soil structure properties (inside <soil>)
     {
       xpath: "./bhrgtcom:soil/bhrgtcom:mixed",
       key: "mixed",
-      transform: parseJaNee,
+      transform: parseBoolean,
     },
     {
       xpath: "./bhrgtcom:soil/bhrgtcom:mottled",
       key: "mottled",
-      transform: parseJaNee,
+      transform: parseBoolean,
     },
     // Fine-grained soil consistency
     {
@@ -206,6 +252,7 @@ const EMPTY_CONSISTENCY_LIMITS: ConsistencyLimitsDetermination = {
   fractionLarger500um: null,
   usedMedium: null,
   performanceIrregularity: null,
+  conusType: null,
   liquidLimit: null,
   plasticLimit: null,
   plasticityIndex: null,
@@ -309,6 +356,7 @@ function parseOrganicMatterContentDetermination(
     determinationProcedure: getText("./bhrgtcom:determinationProcedure"),
     determinationMethod: getText("./bhrgtcom:determinationMethod"),
     removedMaterial: getText("./bhrgtcom:removedMaterial"),
+    lutumCorrectionApplied: parseBoolean(getText("./bhrgtcom:lutumCorrectionApplied")),
     organicMatterContent: parseFloat(getText("./bhrgtcom:organicMatterContent")),
   };
 }
@@ -345,6 +393,7 @@ function parseVolumetricMassDensityOfSolidsDetermination(
     determinationProcedure: getText("./bhrgtcom:determinationProcedure"),
     determinationMethod: getText("./bhrgtcom:determinationMethod"),
     liquidUsed: getText("./bhrgtcom:usedMedium"),
+    sampleContainerVolume: getText("./bhrgtcom:sampleContainerVolume"),
     volumetricMassDensityOfSolids: parseFloat(getText("./bhrgtcom:volumetricMassDensitySolids")),
   };
 }
@@ -384,6 +433,19 @@ function parseParticleSizeDistributionDetermination(
       )
     : null;
 
+  // Coarser <63μm resolution — an alternative to detailedDistributionFractionSmaller63um.
+  // A sample carries one or the other; the shared 0-2/32-50/50-63 buckets fall back to this.
+  const standardSmallerNode = basicDistNode
+    ? findChildElement(
+        basicDistNode,
+        "./bhrgtcom:standardDistributionFractionSmaller63um",
+        adapter,
+        namespaces,
+      )
+    : null;
+  const standardSmallerBase =
+    "./bhrgtcom:basicParticleSizeDistribution/bhrgtcom:standardDistributionFractionSmaller63um";
+
   return {
     determinationProcedure: getText("./bhrgtcom:determinationProcedure"),
     determinationMethod: getText("./bhrgtcom:determinationMethod"),
@@ -408,6 +470,11 @@ function parseParticleSizeDistributionDetermination(
             "./bhrgtcom:basicParticleSizeDistribution/bhrgtcom:detailedDistributionFractionSmaller63um/bhrgtcom:fraction0to2um",
           ),
         )
+      : standardSmallerNode
+        ? parseFloat(getText(`${standardSmallerBase}/bhrgtcom:fraction0to2um`))
+        : null,
+    fraction2to32um: standardSmallerNode
+      ? parseFloat(getText(`${standardSmallerBase}/bhrgtcom:fraction2to32um`))
       : null,
     fraction2to4um: detailedNode
       ? parseFloat(
@@ -443,14 +510,18 @@ function parseParticleSizeDistributionDetermination(
             "./bhrgtcom:basicParticleSizeDistribution/bhrgtcom:detailedDistributionFractionSmaller63um/bhrgtcom:fraction32to50um",
           ),
         )
-      : null,
+      : standardSmallerNode
+        ? parseFloat(getText(`${standardSmallerBase}/bhrgtcom:fraction32to50um`))
+        : null,
     fraction50to63um: detailedNode
       ? parseFloat(
           getText(
             "./bhrgtcom:basicParticleSizeDistribution/bhrgtcom:detailedDistributionFractionSmaller63um/bhrgtcom:fraction50to63um",
           ),
         )
-      : null,
+      : standardSmallerNode
+        ? parseFloat(getText(`${standardSmallerBase}/bhrgtcom:fraction50to63um`))
+        : null,
 
     // Standard distribution > 63μm
     fraction63to90um: standardNode
@@ -597,9 +668,10 @@ function parseConsistencyLimitsDetermination(
     (_pNode, getPlasticityText) => {
       const waterContent = parseFloat(getPlasticityText("./bhrgtcom:waterContent"));
       const numberOfFalls = parseInt(getPlasticityText("./bhrgtcom:numberOfFalls") ?? "0", 10);
+      const penetrationDepth = parseFloat(getPlasticityText("./bhrgtcom:penetrationDepth"));
 
       return waterContent !== null && !isNaN(numberOfFalls)
-        ? { waterContent, numberOfFalls }
+        ? { waterContent, numberOfFalls, penetrationDepth }
         : null;
     },
     adapter,
@@ -612,6 +684,7 @@ function parseConsistencyLimitsDetermination(
     fractionLarger500um: parseFloat(getText("./bhrgtcom:fractionLarger500um")),
     usedMedium: getText("./bhrgtcom:usedMedium"),
     performanceIrregularity: getText("./bhrgtcom:performanceIrregularity"),
+    conusType: getText("./bhrgtcom:conusType"),
     liquidLimit: parseFloat(getText("./bhrgtcom:liquidLimit")),
     plasticLimit: parseFloat(getText("./bhrgtcom:plasticLimit")),
     plasticityIndex: parseFloat(getText("./bhrgtcom:plasticityIndex")),
@@ -664,6 +737,33 @@ function parseSettlementCharacteristicsDetermination(
         },
       );
 
+      // Optional alternative time-series: stress/strain during settlement (5 columns)
+      const stressChangeNode = findChildElement(
+        stepNode,
+        "./bhrgtcom:stressChangeDuringSettlement/bhrgtcom:values",
+        adapter,
+        namespaces,
+      );
+
+      const stressChangeDuringSettlement = stressChangeNode
+        ? parseCSVRows(stressChangeNode.textContent, (columns) => {
+            if (columns.length < 5) {
+              return null;
+            }
+            const elapsedTime = parseFloat(columns[0]);
+            const verticalStrain = parseFloat(columns[1]);
+            return elapsedTime !== null && verticalStrain !== null
+              ? {
+                  elapsedTime,
+                  verticalStrain,
+                  excessPoreWaterPressure: parseFloat(columns[2]),
+                  verticalEffectiveStress: parseFloat(columns[3]),
+                  horizontalEffectiveStress: parseFloat(columns[4]),
+                }
+              : null;
+          })
+        : undefined;
+
       return {
         stepNumber,
         wetPerformed: parseBoolean(getStepText("./bhrgtcom:wetPerformed")),
@@ -672,11 +772,32 @@ function parseSettlementCharacteristicsDetermination(
         stepType: getStepText("./bhrgtcom:stepType"),
         verticalStress: parseFloat(getStepText("./bhrgtcom:verticalStress")),
         heightChangeDuringSettlement,
+        ...(stressChangeDuringSettlement ? { stressChangeDuringSettlement } : {}),
       };
     },
     adapter,
     namespaces,
   );
+
+  // Optional saturation stage performed before compression
+  const saturationNode = findChildElement(
+    determinationNode,
+    "./bhrgtcom:saturationStageAtCompression",
+    adapter,
+    namespaces,
+  );
+  let saturationStageAtCompression: SettlementCharacteristicsDetermination["saturationStageAtCompression"];
+  if (saturationNode) {
+    const getSatText = createXPathTextGetter(saturationNode, adapter, namespaces);
+    saturationStageAtCompression = {
+      porousDiscWet: parseBoolean(getSatText("./bhrgtcom:porousDiscWet")),
+      usedMedium: getSatText("./bhrgtcom:usedMedium"),
+      backPressure: parseFloat(getSatText("./bhrgtcom:backPressure")),
+      constantHeight: parseBoolean(getSatText("./bhrgtcom:constantHeight")),
+      specimenHeightAfterwards: parseFloat(getSatText("./bhrgtcom:specimenHeightAfterwards")),
+      disturbanceInduced: parseBoolean(getSatText("./bhrgtcom:disturbanceInduced")),
+    };
+  }
 
   return {
     determinationProcedure: getText("./bhrgtcom:determinationProcedure"),
@@ -691,6 +812,7 @@ function parseSettlementCharacteristicsDetermination(
       getText("./bhrgtcom:bearingFrictionCorrectionApplied"),
     ),
     irregularResult: parseBoolean(getText("./bhrgtcom:irregularResult")),
+    ...(saturationStageAtCompression ? { saturationStageAtCompression } : {}),
     determinationSteps,
   };
 }
@@ -807,6 +929,21 @@ function parseShearStressChangeDuringLoadingDeterminations(
       cellDeformationApplied: parseBoolean(getText("./bhrgtcom:cellDeformationApplied")),
       stopCriterion: getText("./bhrgtcom:stopCriterion"),
     };
+
+    // Parse made specimen (optional nested object; only for remoulded specimens)
+    const madeSpecimenNode = findChildElement(
+      actualDeterminationNode,
+      "./bhrgtcom:madeSpecimenForLoading",
+      adapter,
+      namespaces,
+    );
+    if (madeSpecimenNode) {
+      const getMadeText = createXPathTextGetter(madeSpecimenNode, adapter, namespaces);
+      determination.madeSpecimenForLoading = {
+        makingMethod: getMadeText("./bhrgtcom:makingMethod"),
+        dryVolumetricMassDensity: parseFloat(getMadeText("./bhrgtcom:dryVolumetricMassDensity")),
+      };
+    }
 
     // Parse membrane correction (optional nested object)
     const membraneCorrectionNode = findChildElement(
@@ -1247,7 +1384,7 @@ const DETERMINATION_CONFIGS: Array<DeterminationConfig<unknown>> = [
  * Extracts laboratory analysis data including all investigated intervals
  * and their determination results.
  *
- * @param value - Not used (we work with the node directly)
+ * @param _value - Not used (we work with the node directly)
  * @param context - Resolver context containing the XML node and adapter
  * @returns BoreholeSampleAnalysis object or undefined if not present
  */
@@ -1282,15 +1419,7 @@ export function processBoreholeSampleAnalysis(
     nsResolver,
   );
 
-  let analysisReportDate: Date | null = null;
-  if (analysisReportDateNode?.textContent) {
-    const dateStr = analysisReportDateNode.textContent.trim();
-    try {
-      analysisReportDate = new Date(dateStr);
-    } catch {
-      analysisReportDate = null;
-    }
-  }
+  const analysisReportDate = parseDate(analysisReportDateNode?.textContent);
 
   const analysisProcedure = analysisProcedureNode?.textContent?.trim() ?? null;
 
@@ -1444,7 +1573,7 @@ export function processSampledIntervals(
       preTreatment: getText("./bhrgtcom:preTreatment"),
       samplingMethod: getText("./bhrgtcom:samplingMethod"),
       samplingQuality: getText("./bhrgtcom:samplingQuality"),
-      orientatedSampled: parseJaNee(getText("./bhrgtcom:orientatedSampled")),
+      orientatedSampled: parseBoolean(getText("./bhrgtcom:orientatedSampled")),
     };
 
     // Check for nested sampler element
@@ -1463,12 +1592,12 @@ export function processSampledIntervals(
         cuttingShoeOutsideDiameter: parseFloat(
           getSamplerText("./bhrgtcom:cuttingShoeOutsideDiameter"),
         ),
-        stockingUsed: parseJaNee(getSamplerText("./bhrgtcom:stockingUsed")),
-        rightAngledCuttingShoe: parseJaNee(getSamplerText("./bhrgtcom:rightAngledCuttingShoe")),
+        stockingUsed: parseBoolean(getSamplerText("./bhrgtcom:stockingUsed")),
+        rightAngledCuttingShoe: parseBoolean(getSamplerText("./bhrgtcom:rightAngledCuttingShoe")),
         taperAngle: parseFloat(getSamplerText("./bhrgtcom:taperAngle")),
-        lubricationFluidUsed: parseJaNee(getSamplerText("./bhrgtcom:lubricationFluidUsed")),
-        coreCatcherPresent: parseJaNee(getSamplerText("./bhrgtcom:coreCatcherPresent")),
-        pistonPresent: parseJaNee(getSamplerText("./bhrgtcom:pistonPresent")),
+        lubricationFluidUsed: parseBoolean(getSamplerText("./bhrgtcom:lubricationFluidUsed")),
+        coreCatcherPresent: parseBoolean(getSamplerText("./bhrgtcom:coreCatcherPresent")),
+        pistonPresent: parseBoolean(getSamplerText("./bhrgtcom:pistonPresent")),
       };
 
       interval.sampler = sampler;
@@ -1514,10 +1643,10 @@ export function processCompletedIntervals(
     intervals.push({
       beginDepth,
       endDepth,
-      permanentCasingPresent: parseJaNee(getText("./bhrgtcom:permanentCasingPresent")),
+      permanentCasingPresent: parseBoolean(getText("./bhrgtcom:permanentCasingPresent")),
       backfillMaterial: getText("./bhrgtcom:backfillMaterial"),
-      backfillMaterialWashed: parseJaNee(getText("./bhrgtcom:backfillMaterialWashed")),
-      backfillMaterialCertified: parseJaNee(getText("./bhrgtcom:backfillMaterialCertified")),
+      backfillMaterialWashed: parseBoolean(getText("./bhrgtcom:backfillMaterialWashed")),
+      backfillMaterialCertified: parseBoolean(getText("./bhrgtcom:backfillMaterialCertified")),
     });
   }
 
@@ -1589,17 +1718,17 @@ export function processRegistrationHistory(
   // Parse dates
   const objectRegistrationTimeStr = getText("./brocom:objectRegistrationTime");
   const registrationCompletionTimeStr = getText("./brocom:registrationCompletionTime");
+  const latestCorrectionTimeStr = getText("./brocom:latestCorrectionTime");
 
   return {
-    objectRegistrationTime: objectRegistrationTimeStr ? new Date(objectRegistrationTimeStr) : null,
+    objectRegistrationTime: parseDate(objectRegistrationTimeStr),
     registrationStatus: getText("./brocom:registrationStatus"),
-    registrationCompletionTime: registrationCompletionTimeStr
-      ? new Date(registrationCompletionTimeStr)
-      : null,
-    corrected: parseJaNee(getText("./brocom:corrected")),
-    underReview: parseJaNee(getText("./brocom:underReview")),
-    deregistered: parseJaNee(getText("./brocom:deregistered")),
-    reregistered: parseJaNee(getText("./brocom:reregistered")),
+    registrationCompletionTime: parseDate(registrationCompletionTimeStr),
+    latestCorrectionTime: parseDate(latestCorrectionTimeStr),
+    corrected: parseBoolean(getText("./brocom:corrected")),
+    underReview: parseBoolean(getText("./brocom:underReview")),
+    deregistered: parseBoolean(getText("./brocom:deregistered")),
+    reregistered: parseBoolean(getText("./brocom:reregistered")),
   };
 }
 
@@ -1625,8 +1754,8 @@ export function processReportHistory(
   const getText = createXPathTextGetter(historyNode, adapter, namespaces);
 
   // Parse dates - these elements are in the default namespace (no prefix)
-  const reportStartDateStr = getText("./dsbhrgt:reportStartDate/brocom:date");
-  const reportEndDateStr = getText("./dsbhrgt:reportEndDate/brocom:date");
+  const reportStartDateStr = getText("./dsbhrgt:reportStartDate");
+  const reportEndDateStr = getText("./dsbhrgt:reportEndDate");
 
   // Find intermediate events (in default namespace)
   const eventNodes = adapter.evaluateXPathAll(
@@ -1639,17 +1768,17 @@ export function processReportHistory(
 
   for (const eventNode of eventNodes) {
     const getEventText = createXPathTextGetter(eventNode, adapter, namespaces);
-    const eventDateStr = getEventText("./dsbhrgt:eventDate/brocom:date");
+    const eventDateStr = getEventText("./dsbhrgt:eventDate");
 
     intermediateEvents.push({
       eventName: getEventText("./dsbhrgt:eventName"),
-      eventDate: eventDateStr ? new Date(eventDateStr) : null,
+      eventDate: parseDate(eventDateStr),
     });
   }
 
   return {
-    reportStartDate: reportStartDateStr ? new Date(reportStartDateStr) : null,
-    reportEndDate: reportEndDateStr ? new Date(reportEndDateStr) : null,
+    reportStartDate: parseDate(reportStartDateStr),
+    reportEndDate: parseDate(reportEndDateStr),
     intermediateEvents,
   };
 }

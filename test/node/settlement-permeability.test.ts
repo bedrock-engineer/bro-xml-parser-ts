@@ -10,12 +10,20 @@ describe('Settlement & Permeability Determination Parsing', () => {
     parser = new BROParser(new NodeXMLAdapter());
   });
 
-  it('should parse BHR-GT with settlement and permeability data', () => {
+  it('should parse BHR-GT with the expected determination-type distribution', () => {
     const xml = fixtures.bhrGtBma.settlementPermeability();
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.broId).toBe('BHR000000377186');
-    expect(bore.analysis).toBeDefined();
+
+    const counts = { waterContent: 0, particleSize: 0, settlement: 0, permeability: 0 };
+    for (const interval of bore.analysis!.investigatedIntervals) {
+      if (interval.waterContentDetermination) counts.waterContent++;
+      if (interval.particleSizeDistributionDetermination) counts.particleSize++;
+      if (interval.settlementCharacteristicsDetermination) counts.settlement++;
+      if (interval.saturatedPermeabilityDetermination) counts.permeability++;
+    }
+    expect(counts).toEqual({ waterContent: 8, particleSize: 1, settlement: 2, permeability: 2 });
   });
 
   it('should extract 9 investigated intervals', () => {
@@ -27,12 +35,20 @@ describe('Settlement & Permeability Determination Parsing', () => {
   });
 
   describe('Settlement Characteristics (Oedometer Test)', () => {
-    it('should find settlement determination in fifth interval', () => {
+    it('should place settlement determinations in exactly intervals 5 and 6', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const fifthInterval = bore.analysis!.investigatedIntervals[5];
-      expect(fifthInterval.settlementCharacteristicsDetermination).toBeDefined();
+      const withSettlement = bore.analysis!.investigatedIntervals
+        .map((iv, i) => (iv.settlementCharacteristicsDetermination ? i : -1))
+        .filter(i => i >= 0);
+      // Exact set implies all other intervals (incl. the 4th) lack it
+      expect(withSettlement).toEqual([5, 6]);
+
+      expect(bore.analysis!.investigatedIntervals[5].beginDepth).toBe(2.59);
+      expect(
+        bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination
+      ).toBeDefined();
     });
 
     it('should extract settlement metadata', () => {
@@ -114,29 +130,28 @@ describe('Settlement & Permeability Determination Parsing', () => {
 
       const steps = bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination!.determinationSteps;
 
-      // All steps should have time-series data
-      for (const step of steps) {
-        expect(step.heightChangeDuringSettlement.length).toBeGreaterThan(0);
-      }
-    });
-
-    it('should handle intervals without settlement determination', () => {
-      const xml = fixtures.bhrGtBma.settlementPermeability();
-      const bore = parser.parseBHRGT(xml);
-
-      // Fourth interval doesn't have settlement determination
-      const fourthInterval = bore.analysis!.investigatedIntervals[4];
-      expect(fourthInterval.settlementCharacteristicsDetermination).toBeUndefined();
+      // Each step carries its own settlement time-series
+      expect(steps.map(step => step.heightChangeDuringSettlement.length)).toEqual([
+        131, 132, 132, 132, 132,
+      ]);
     });
   });
 
   describe('Saturated Permeability (Hydraulic Conductivity)', () => {
-    it('should find permeability determination in seventh interval', () => {
+    it('should place permeability determinations in exactly intervals 7 and 8', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const seventhInterval = bore.analysis!.investigatedIntervals[7];
-      expect(seventhInterval.saturatedPermeabilityDetermination).toBeDefined();
+      const withPermeability = bore.analysis!.investigatedIntervals
+        .map((iv, i) => (iv.saturatedPermeabilityDetermination ? i : -1))
+        .filter(i => i >= 0);
+      // Exact set implies all other intervals (incl. the 1st) lack it
+      expect(withPermeability).toEqual([7, 8]);
+
+      expect(bore.analysis!.investigatedIntervals[7].beginDepth).toBe(7.44);
+      expect(
+        bore.analysis!.investigatedIntervals[7].saturatedPermeabilityDetermination
+      ).toBeDefined();
     });
 
     it('should extract permeability metadata', () => {
@@ -175,44 +190,11 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const bore = parser.parseBHRGT(xml);
 
       const sp = bore.analysis!.investigatedIntervals[7].saturatedPermeabilityDetermination!;
-      expect(sp.saturatedPermeabilityAtSpecificDensity.length).toBeGreaterThan(0);
+      expect(sp.saturatedPermeabilityAtSpecificDensity).toHaveLength(1);
 
       const measurement = sp.saturatedPermeabilityAtSpecificDensity[0];
-      expect(measurement.dryVolumetricMassDensity).toBeDefined();
-      expect(measurement.saturatedPermeability).toBeDefined();
-      expect(measurement.saturatedPermeability).toBeGreaterThan(0);
+      expect(measurement.dryVolumetricMassDensity).toBe(1.7);
+      expect(measurement.saturatedPermeability).toBe(0.000015);
     });
-
-    it('should handle intervals without permeability determination', () => {
-      const xml = fixtures.bhrGtBma.settlementPermeability();
-      const bore = parser.parseBHRGT(xml);
-
-      // First interval doesn't have permeability determination
-      const firstInterval = bore.analysis!.investigatedIntervals[0];
-      expect(firstInterval.saturatedPermeabilityDetermination).toBeUndefined();
-    });
-  });
-
-  it('should parse intervals with multiple determination types', () => {
-    const xml = fixtures.bhrGtBma.settlementPermeability();
-    const bore = parser.parseBHRGT(xml);
-
-    // Check that different intervals can have different combinations
-    let hasWaterContent = 0;
-    let hasParticleSize = 0;
-    let hasSettlement = 0;
-    let hasPermeability = 0;
-
-    for (const interval of bore.analysis!.investigatedIntervals) {
-      if (interval.waterContentDetermination) hasWaterContent++;
-      if (interval.particleSizeDistributionDetermination) hasParticleSize++;
-      if (interval.settlementCharacteristicsDetermination) hasSettlement++;
-      if (interval.saturatedPermeabilityDetermination) hasPermeability++;
-    }
-
-    expect(hasWaterContent).toBeGreaterThan(0);
-    expect(hasParticleSize).toBeGreaterThan(0);
-    expect(hasSettlement).toBeGreaterThan(0);
-    expect(hasPermeability).toBeGreaterThan(0);
   });
 });

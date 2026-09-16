@@ -47,7 +47,7 @@ npm run test:coverage
 
 Test individual functions in isolation:
 
-- **Type resolvers** - parseFloat, parseInt, parseBoolean, parseDate, parseQualityClass, lowerText
+- **Type resolvers** - parseFloat, parseInt, parseBoolean, parseDate, parseQualityClass
 - **Version detection** - Schema version validation, error handling
 - **Core modules** - Schema parsing logic
 

@@ -10,6 +10,7 @@ import type {
 } from "../types/index.js";
 import { BROParseError } from "../types/index.js";
 import { SENTINEL } from "./constants.js";
+import { parseDate } from "./type-resolvers.js";
 
 /**
  * Parse CPT measurement data from embedded CSV
@@ -155,13 +156,10 @@ export function processCPTResult(
     });
 
   // BRO does not guarantee row order in the values block — some files (e.g.
-  // CPT000000200287) contain shuffled depth blocks. Sort by penetration
-  // length (depth as fallback) so consumers can draw depth profiles directly;
-  // the elapsedTime column still records acquisition order.
-  const sortKey = (m: CPTMeasurement): number =>
-    m.penetrationLength ?? m.depth ?? Number.POSITIVE_INFINITY;
-
-  return measurements.sort((a, b) => sortKey(a) - sortKey(b));
+  // CPT000000200287) contain shuffled depth blocks. Sort by penetration length
+  // (always present) so consumers can draw depth profiles directly; the
+  // elapsedTime column still records acquisition order.
+  return measurements.sort((a, b) => a.penetrationLength - b.penetrationLength);
 }
 
 /**
@@ -195,7 +193,7 @@ export function processDissipationTests(
       "om:phenomenonTime//gml:timePosition",
       nsResolver,
     );
-    const phenomenonTime = timeNode?.textContent ? new Date(timeNode.textContent) : null;
+    const phenomenonTime = parseDate(timeNode?.textContent);
 
     // Extract encoding
     const encodingNode = adapter.evaluateXPath(

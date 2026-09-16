@@ -28,7 +28,7 @@ export const BHRG_SCHEMA: Schema = {
   // === Dates ===
 
   researchReportDate: {
-    xpath: "./dsbhrg:researchReportDate/brocom:date",
+    xpath: "./dsbhrg:researchReportDate",
     resolver: typeResolvers.parseDate,
   },
 
@@ -53,12 +53,10 @@ export const BHRG_SCHEMA: Schema = {
 
   deliveredVerticalPositionDatum: {
     xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalDatum",
-    resolver: typeResolvers.lowerText,
   },
 
   deliveredVerticalPositionReferencePoint: {
     xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:localVerticalReferencePoint",
-    resolver: typeResolvers.lowerText,
   },
 
   // === Boring Metadata ===
@@ -90,12 +88,12 @@ export const BHRG_SCHEMA: Schema = {
   // === Boring Execution Details ===
 
   boringStartDate: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:boringStartDate/brocom:date",
+    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:boringStartDate",
     resolver: typeResolvers.parseDate,
   },
 
   boringEndDate: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:boringEndDate/brocom:date",
+    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:boringEndDate",
     resolver: typeResolvers.parseDate,
   },
 
@@ -157,7 +155,7 @@ export const BHRG_SCHEMA: Schema = {
 
   descriptionReportDate: {
     xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptionReportDate/brocom:date",
+      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptionReportDate",
     resolver: typeResolvers.parseDate,
   },
 

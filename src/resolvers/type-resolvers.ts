@@ -5,10 +5,23 @@
 import { SENTINEL } from "./constants.js";
 
 /**
+ * BRO uses two different missing-value conventions depending on the record
+ * type: CPT measurement CSVs use the -999999 sentinel, while the BHR-GT-BMA lab
+ * value tables (settlement/consolidation time-series) use the literal "NaN".
+ * The latter should resolve to null rather than being warned about as a parse
+ * error.
+ */
+function isMissingNumber(value: string): boolean {
+  return value.trim().toLowerCase() === "nan";
+}
+
+/**
  * Parse float, handle null values and -999999 sentinel
  */
 export function parseFloat(value: string | null | undefined): number | null {
-  if (!value || value.trim() === "" || value === String(SENTINEL)) {
+  // BRO encodes a missing numeric value as an empty string, the -999999
+  // sentinel, or the literal "NaN" (common in embedded measurement CSVs).
+  if (!value || value.trim() === "" || value === String(SENTINEL) || isMissingNumber(value)) {
     return null;
   }
 
@@ -26,11 +39,8 @@ export function parseFloat(value: string | null | undefined): number | null {
   }
 }
 
-/**
- * Parse integer
- */
 export function parseInt(value: string | null | undefined): number | null {
-  if (!value || value.trim() === "" || value === String(SENTINEL)) {
+  if (!value || value.trim() === "" || value === String(SENTINEL) || isMissingNumber(value)) {
     return null;
   }
 
@@ -48,9 +58,6 @@ export function parseInt(value: string | null | undefined): number | null {
   }
 }
 
-/**
- * Parse boolean (ja/nee or true/false)
- */
 export function parseBoolean(value: string | null | undefined): boolean | null {
   if (!value) {
     return null;
@@ -70,25 +77,49 @@ export function parseBoolean(value: string | null | undefined): boolean | null {
 }
 
 /**
- * Parse ISO date string to Date object
+ * BRO temporal lexical forms, ordered most-specific first.
+ *   xs:dateTime  YYYY-MM-DDThh:mm:ss(.sss)?(Z|±hh:mm)?
+ *   xs:date      YYYY-MM-DD
+ *   yearMonth    YYYY-MM
+ *   year         YYYY
  */
-export function parseDate(value: string | null): Date | null {
-  if (!value || value.trim() === "") {
+const BRO_DATE_FORMATS = [
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/,
+  /^\d{4}-\d{2}-\d{2}$/,
+  /^\d{4}-\d{2}$/,
+  /^\d{4}$/,
+];
+
+/**
+ * Normalize a BRO temporal value to a precision-preserving ISO 8601 string.
+ *
+ * BRO date/dateTime elements are a choice of full date (`YYYY-MM-DD`),
+ * year-month (`YYYY-MM`), year (`YYYY`), full `dateTime`, or a `voidReason`
+ * code (e.g. "onbekend") when the value is unknown. The exact lexical value is
+ * returned unchanged so no precision or timezone information is lost;
+ * `voidReason` codes and any unrecognized input yield `null`. Consumers can
+ * construct a `Date` (or `Temporal`) from the string when they need one — note
+ * that a date-only string parsed via `new Date()` is interpreted as UTC
+ * midnight.
+ *
+ * Unlike the numeric resolvers this does not warn on non-matching input,
+ * because `voidReason` is a legitimate and common value in archive data.
+ */
+export function parseDate(value: string | null | undefined): string | null {
+  if (!value) {
     return null;
   }
 
-  try {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      console.warn(`Failed to parse date value: "${value}"`);
-      return null;
-    }
-    return date;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`Failed to parse date value: "${value}" - ${message}`);
+  const trimmed = value.trim();
+  if (trimmed === "") {
     return null;
   }
+
+  if (BRO_DATE_FORMATS.some((format) => format.test(trimmed))) {
+    return trimmed;
+  }
+
+  return null;
 }
 
 /**
@@ -108,28 +139,4 @@ export function parseQualityClass(value: string | null): number | null {
 
   // Handle plain number
   return parseInt(value);
-}
-
-/**
- * Convert text to lowercase
- */
-export function lowerText(value: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-  return value.trim().toLowerCase();
-}
-
-export function parseJaNee(text: string | null): boolean | null {
-  if (!text) {
-    return null;
-  }
-  const lower = text.toLowerCase().trim();
-  if (lower === "ja") {
-    return true;
-  }
-  if (lower === "nee") {
-    return false;
-  }
-  return null;
 }

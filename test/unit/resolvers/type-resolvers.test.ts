@@ -1,11 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   parseFloat,
   parseInt,
   parseBoolean,
   parseDate,
   parseQualityClass,
-  lowerText,
 } from '@/resolvers/type-resolvers';
 
 describe('parseFloat', () => {
@@ -28,6 +27,22 @@ describe('parseFloat', () => {
   it('should handle invalid values', () => {
     expect(parseFloat('not a number')).toBeNull();
     expect(parseFloat('NaN')).toBeNull();
+  });
+
+  it('should treat the "NaN" missing-value marker as null without warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(parseFloat('NaN')).toBeNull();
+      expect(parseFloat(' nan ')).toBeNull();
+      expect(parseInt('NaN')).toBeNull();
+      expect(warn).not.toHaveBeenCalled();
+
+      // genuine garbage should still warn
+      expect(parseFloat('not a number')).toBeNull();
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 
@@ -75,20 +90,26 @@ describe('parseBoolean', () => {
 });
 
 describe('parseDate', () => {
-  it('should parse ISO date strings', () => {
-    const date = parseDate('2023-05-15');
-    expect(date).toBeInstanceOf(Date);
-    expect(date?.getFullYear()).toBe(2023);
-    expect(date?.getMonth()).toBe(4); // May = 4
-    expect(date?.getDate()).toBe(15);
+  it('should return full dates unchanged', () => {
+    expect(parseDate('2023-05-15')).toBe('2023-05-15');
   });
 
-  it('should parse ISO datetime strings', () => {
-    const date = parseDate('2023-05-15T14:30:00Z');
-    expect(date).toBeInstanceOf(Date);
+  it('should preserve partial-date precision', () => {
+    expect(parseDate('2023-05')).toBe('2023-05'); // yearMonth
+    expect(parseDate('2023')).toBe('2023'); // year
   });
 
-  it('should return null for invalid dates', () => {
+  it('should return dateTime strings unchanged', () => {
+    expect(parseDate('2023-05-15T14:30:00Z')).toBe('2023-05-15T14:30:00Z');
+    expect(parseDate('2019-04-17T13:25:00+02:00')).toBe('2019-04-17T13:25:00+02:00');
+  });
+
+  it('should trim surrounding whitespace', () => {
+    expect(parseDate('  2023-05-15  ')).toBe('2023-05-15');
+  });
+
+  it('should return null for voidReason codes and invalid input', () => {
+    expect(parseDate('onbekend')).toBeNull();
     expect(parseDate('not a date')).toBeNull();
     expect(parseDate(null)).toBeNull();
     expect(parseDate('')).toBeNull();
@@ -110,16 +131,5 @@ describe('parseQualityClass', () => {
   it('should return null for invalid values', () => {
     expect(parseQualityClass(null)).toBeNull();
     expect(parseQualityClass('')).toBeNull();
-  });
-});
-
-describe('lowerText', () => {
-  it('should convert to lowercase and trim', () => {
-    expect(lowerText('HELLO')).toBe('hello');
-    expect(lowerText('  World  ')).toBe('world');
-  });
-
-  it('should handle null', () => {
-    expect(lowerText(null)).toBeNull();
   });
 });

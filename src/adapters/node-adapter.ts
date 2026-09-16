@@ -44,7 +44,9 @@ export class NodeXMLAdapter implements XMLAdapter {
 
       // If it's an XPath syntax error or library error, throw with details
       if (message.includes("XPST") || message.includes("syntax") || message.includes("parse")) {
-        throw new Error(`XPath evaluation failed: ${message} (query: ${query})`);
+        throw new Error(`XPath evaluation failed: ${message} (query: ${query})`, {
+          cause: error,
+        });
       }
 
       // For other errors, log and return null (element might just not exist)
@@ -66,7 +68,9 @@ export class NodeXMLAdapter implements XMLAdapter {
 
       // If it's an XPath syntax error or library error, throw with details
       if (message.includes("XPST") || message.includes("syntax") || message.includes("parse")) {
-        throw new Error(`XPath evaluation failed: ${message} (query: ${query})`);
+        throw new Error(`XPath evaluation failed: ${message} (query: ${query})`, {
+          cause: error,
+        });
       }
 
       // For other errors, log and return empty array (elements might just not exist)
