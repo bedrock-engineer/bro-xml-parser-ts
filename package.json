@@ -1,6 +1,6 @@
 {
   "name": "@bedrock-engineer/bro-xml-parser",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Schema-driven parser for Dutch BRO (Basisregistratie Ondergrond) geotechnical and geological XML data",
   "type": "module",
   "main": "./dist/index.js",

@@ -8,6 +8,8 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-16
+
 ### Added
 
 - BHR-GT: additional layer and document-level fields, including NEN 5104 soil
@@ -72,4 +74,6 @@ While the major version is `0`, breaking changes are released as minor versions.
   structures previously parsed dates inline with `new Date()`, duplicating logic
   and carrying the same bugs; these now route through `parseDate`.
 
-[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.2.0...HEAD
+
+[0.2.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.1.7...v0.2.0
