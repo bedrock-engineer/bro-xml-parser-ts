@@ -15,35 +15,17 @@
  * onto each reflection's comment before GroupPlugin (RESOLVE_END, priority -100)
  * and CategoryPlugin (-200) run. `defaultCategory: "none"` in typedoc.json keeps
  * the un-categorized members of each group flat (no sub-heading).
+ *
+ * A type's group is derived by REACHABILITY from each `*Data` root (walking
+ * property types), not from a hardcoded name list: a type reachable from exactly
+ * one of CPTData / BHRGTData / BHRGData belongs to that domain; anything shared
+ * (reachable from several) or unreachable (parser, adapters, base interfaces,
+ * schema/resolver types) falls through to "General". This is self-maintaining -
+ * new domain types are placed automatically, the same way the lab-analysis
+ * subtree is discovered from BoreholeSampleAnalysis.
  */
 import { Comment, CommentTag, Converter, ReflectionKind } from "typedoc";
 import { MarkdownPageEvent } from "typedoc-plugin-markdown";
-
-/** Data-type buckets, keyed by exported symbol name. Anything not listed here
- * (the parser, adapters, shared histories/intervals, schema and resolver types,
- * colour helpers) falls through to "General". */
-const CPT = new Set([
-  "CPTData",
-  "CPTMeasurement",
-  "DissipationTest",
-  "DissipationMeasurement",
-  "RemovedLayer",
-]);
-const BHRGT = new Set([
-  "BHRGTData",
-  "BHRGTLayer",
-  "Grainshape",
-  "CompletedInterval",
-  "NotDescribedInterval",
-]);
-const BHRG = new Set(["BHRGData", "BHRGLayer"]);
-
-function groupFor(name) {
-  if (CPT.has(name)) return "CPT";
-  if (BHRGT.has(name)) return "BHR-GT";
-  if (BHRG.has(name)) return "BHR-G";
-  return "General";
-}
 
 /** @param {import("typedoc").Reflection} reflection */
 function addTag(reflection, tag, value) {
@@ -71,8 +53,16 @@ function referencedReflections(type, topLevel, out = []) {
 function collectReachable(seed, topLevel, acc) {
   if (!seed || acc.has(seed)) return acc;
   acc.add(seed);
+  // Interface/class properties.
   for (const child of seed.children ?? []) {
     for (const ref of referencedReflections(child.type, topLevel)) {
+      collectReachable(ref, topLevel, acc);
+    }
+  }
+  // Type-alias definition, e.g. a union of interfaces like
+  // `BHRGTLayer = BHRGTSoilLayer | BHRGTRockLayer` — follow into its members.
+  if (seed.type) {
+    for (const ref of referencedReflections(seed.type, topLevel)) {
       collectReachable(ref, topLevel, acc);
     }
   }
@@ -105,11 +95,31 @@ export function load(app) {
       const children = context.project.children ?? [];
       const topLevel = new Set(children);
 
-      const seed = children.find((c) => c.name === "BoreholeSampleAnalysis");
-      const lab = seed ? collectReachable(seed, topLevel, new Set()) : new Set();
+      const reachFrom = (name) => {
+        const seed = children.find((c) => c.name === name);
+        return seed ? collectReachable(seed, topLevel, new Set()) : new Set();
+      };
+      const cpt = reachFrom("CPTData");
+      const bhrgt = reachFrom("BHRGTData");
+      const bhrg = reachFrom("BHRGData");
+      const lab = reachFrom("BoreholeSampleAnalysis");
+
+      // A type belongs to a domain only if reachable from exactly one *Data root;
+      // shared (multiple) or unreachable (base/parser/schema) types -> General.
+      const groupFor = (reflection) => {
+        const hits =
+          (cpt.has(reflection) ? 1 : 0) +
+          (bhrgt.has(reflection) ? 1 : 0) +
+          (bhrg.has(reflection) ? 1 : 0);
+        if (hits !== 1) return "General";
+        if (cpt.has(reflection)) return "CPT";
+        if (bhrgt.has(reflection)) return "BHR-GT";
+        return "BHR-G";
+      };
 
       for (const reflection of children) {
         if (lab.has(reflection)) {
+          // Lab-analysis (BMA) interfaces: a "Lab analysis" category under BHR-GT.
           addTag(reflection, "@group", "BHR-GT");
           addTag(reflection, "@category", "Lab analysis");
         } else if (reflection.name === "resolvers") {
@@ -121,7 +131,7 @@ export function load(app) {
             addTag(child, "@group", "Resolvers");
           }
         } else {
-          addTag(reflection, "@group", groupFor(reflection.name));
+          addTag(reflection, "@group", groupFor(reflection));
         }
       }
     },
