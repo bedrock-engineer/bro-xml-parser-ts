@@ -2,6 +2,16 @@
  * Type definitions for BRO/XML parser
  */
 
+// The public data types are inferred from their Producer schemas — the schema is
+// the single source of truth for both parsing and types (`import type` only, so
+// this reads as an acyclic type-level dependency; erased at runtime).
+import type { Produced } from "../core/producer.js";
+import type { CPT_PRODUCER } from "../schemas/cpt-schema.js";
+import type { BORE_PRODUCER } from "../schemas/bore-schema.js";
+import type { BHRG_PRODUCER } from "../schemas/bhrg-schema.js";
+import type { GMW_PRODUCER } from "../schemas/gmw-schema.js";
+import type { GLD_PRODUCER } from "../schemas/gld-schema.js";
+
 /**
  * Namespace mapping (prefix -> URI)
  */
@@ -25,9 +35,9 @@ export interface ParseMeta {
   schemaNamespace: string;
 
   /**
-   * Data type detected (CPT, BHR-GT, BHR-G)
+   * Data type detected (CPT, BHR-GT, BHR-G, GMW, GLD)
    */
-  dataType: "CPT" | "BHR-GT" | "BHR-G";
+  dataType: "CPT" | "BHR-GT" | "BHR-G" | "GMW" | "GLD";
 
   /**
    * Warnings encountered during parsing
@@ -68,15 +78,23 @@ export interface ResolverContext {
 
 /**
  * Resolver function type
+ *
+ * `T` is the resolver's return type. It defaults to `unknown` so that a plain
+ * `ResolverFunction` (and therefore `Schema`) accepts any resolver regardless of
+ * what it produces — the full schemas (`CPT_SCHEMA`, ...) mix resolvers that
+ * return `number | null`, `boolean | null`, `Location | null`, arrays, etc.
+ * `parseCustom` recovers each concrete `T` from the resolver at the call site.
  */
-export type ResolverFunction = (value: string | null, context: ResolverContext) => unknown;
+export type ResolverFunction<T = unknown> = (value: string | null, context: ResolverContext) => T;
 
 /**
  * Schema field definition
+ *
+ * `T` mirrors the resolver's return type (see {@link ResolverFunction}).
  */
-export interface SchemaField {
+export interface SchemaField<T = unknown> {
   xpath: string;
-  resolver?: ResolverFunction;
+  resolver?: ResolverFunction<T>;
   attribute?: string;
   required?: boolean;
 }
@@ -85,6 +103,34 @@ export interface SchemaField {
  * Schema definition (field name -> field config)
  */
 export type Schema = Record<string, SchemaField>;
+
+/**
+ * Output type inferred from a custom schema `S`, as returned by
+ * {@link BROParser.parseCustom}.
+ *
+ * Each field's type is recovered from its resolver's return type; fields with no
+ * resolver yield the raw text (`string | null`). The `meta` block is always
+ * present.
+ *
+ * The conditional keys off a *required* `resolver` (`{ resolver: ... }`) rather
+ * than `SchemaField<infer T>`: because `resolver` is optional on `SchemaField`,
+ * a no-resolver field would give `infer` no candidate and widen to `unknown`.
+ * Matching a required `resolver` instead makes such fields fall to the
+ * `string | null` branch cleanly.
+ *
+ * @example
+ * ```ts
+ * const schema = {
+ *   broId:      { xpath: "brocom:broId" },               // string | null
+ *   finalDepth: { xpath: "...", resolver: parseFloat },  // number | null
+ * } satisfies Schema;
+ * type Out = ParsedSchema<typeof schema>;
+ * // { broId: string | null; finalDepth: number | null; meta: ParseMeta }
+ * ```
+ */
+export type ParsedSchema<S extends Schema> = {
+  [K in keyof S]: S[K] extends { resolver: ResolverFunction<infer T> } ? T : string | null;
+} & { meta: ParseMeta };
 
 /**
  * BRO quality regime
@@ -215,146 +261,12 @@ export interface BRORegistrationObject {
 }
 
 /**
- * Complete CPT data (metadata + measurements)
+ * Complete CPT data (metadata + measurements).
+ *
+ * Inferred from {@link CPT_PRODUCER}; `meta` (parse metadata) and the optional
+ * user-set `alias` are the only fields not produced from the XML.
  */
-export interface CPTData extends BRORegistrationObject {
-  /**
-   * Metadata about the parsed document (schema version, warnings)
-   */
-  meta: ParseMeta;
-
-  /**
-   * User-defined identifier (not parsed from XML)
-   *
-   * Useful for tracking data that doesn't have a broId yet,
-   * such as during data collection or before BRO registration.
-   *
-   * @example
-   * ```typescript
-   * const cpt = parser.parseCPT(xmlString);
-   * cpt.alias = "Site A - Test 1";
-   * ```
-   */
-  alias?: string;
-
-  /** KvK number of the operator that carried out the research */
-  researchOperator: string | null;
-
-  researchReportDate: string | null;
-
-  // Measurement timing (OGC O&M timestamps on the conePenetrationTest observation)
-  /** When the cone penetration test was physically performed in the field (om:phenomenonTime) */
-  conePenetrationTestPhenomenonTime: string | null;
-  /** When the cone penetration test result was produced (om:resultTime) */
-  conePenetrationTestResultTime: string | null;
-
-  // Location
-  deliveredLocation: Location | null;
-  standardizedLocation: Location | null;
-  /** Coordinate transformation applied to the standardized location (e.g. "RDNAPTRANS2018") */
-  coordinateTransformation: string | null;
-
-  // Location provenance
-  /** Date horizontal position was determined */
-  horizontalPositioningDate: string | null;
-  /** Method used to determine horizontal position (e.g., "onbekend", "GNSS") */
-  horizontalPositioningMethod: string | null;
-  /** KvK number of the operator that determined the horizontal position */
-  horizontalPositioningOperator: string | null;
-
-  // Vertical position
-  deliveredVerticalPositionOffset: number | null;
-  deliveredVerticalPositionDatum: string | null;
-  deliveredVerticalPositionReferencePoint: string | null;
-  /** Water depth at the CPT location (m), when the survey was performed over water */
-  waterDepth: number | null;
-  /** Date vertical position was determined */
-  verticalPositioningDate: string | null;
-  /** Method used to determine vertical position (e.g., "onbekend", "waterpassingKlasse2") */
-  verticalPositioningMethod: string | null;
-  /** KvK number of the operator that determined the vertical position */
-  verticalPositioningOperator: string | null;
-
-  // Survey context
-  /** Delivery context (e.g., "publiekeTaak", "archiefoverdracht") */
-  deliveryContext: string | null;
-  /** Survey purpose (e.g., "waterkering", "onbekend") */
-  surveyPurpose: string | null;
-  /** Whether additional investigation was performed alongside the CPT */
-  additionalInvestigationPerformed: boolean | null;
-
-  // Test metadata
-  cptStandard: string | null;
-  /** CPT method used (e.g., "elektrisch", "mechanisch") */
-  cptMethod: string | null;
-  /** Stop criterion for the test */
-  stopCriterion: string | null;
-  /** Azimuth orientation of the sensor (degrees from north) */
-  sensorAzimuth: number | null;
-  dissipationtestPerformed: boolean | null;
-  qualityClass: number | null;
-  predrilledDepth: number | null;
-  finalDepth: number | null;
-  groundwaterLevel: number | null;
-
-  // Additional investigation
-  /** Date of additional investigation (e.g. groundwater level measurement) */
-  investigationDate: string | null;
-  /** Site conditions at time of investigation */
-  conditions: string | null;
-  /** Description of surface at CPT location */
-  surfaceDescription: string | null;
-  /** Layers removed before CPT (e.g. asphalt, gravel fill) - affects depth interpretation */
-  removedLayers: Array<RemovedLayer>;
-
-  // Processing flags
-  /** Date of final processing */
-  finalProcessingDate: string | null;
-  /** Whether signal processing was performed */
-  signalProcessingPerformed: boolean | null;
-  /** Whether interruption processing was performed */
-  interruptionProcessingPerformed: boolean | null;
-  /** Whether expert correction was performed */
-  expertCorrectionPerformed: boolean | null;
-
-  // Equipment specifications
-  cptDescription: string | null;
-  cptType: string | null;
-  coneSurfaceArea: number | null;
-  coneDiameter: number | null;
-  coneSurfaceQuotient: number | null;
-  coneToFrictionSleeveDistance: number | null;
-  coneToFrictionSleeveSurfaceArea: number | null;
-  coneToFrictionSleeveSurfaceQuotient: number | null;
-
-  // Zero-load measurements (before/after calibration)
-  zlmConeResistanceBefore: number | null;
-  zlmConeResistanceAfter: number | null;
-  zlmInclinationEwBefore: number | null;
-  zlmInclinationEwAfter: number | null;
-  zlmInclinationNsBefore: number | null;
-  zlmInclinationNsAfter: number | null;
-  zlmInclinationResultantBefore: number | null;
-  zlmInclinationResultantAfter: number | null;
-  zlmLocalFrictionBefore: number | null;
-  zlmLocalFrictionAfter: number | null;
-  zlmPorePressureU1Before: number | null;
-  zlmPorePressureU2Before: number | null;
-  zlmPorePressureU3Before: number | null;
-  zlmPorePressureU1After: number | null;
-  zlmPorePressureU2After: number | null;
-  zlmPorePressureU3After: number | null;
-  /** Electrical conductivity before test (mS/m) - zero-load calibration */
-  zlmElectricalConductivityBefore: number | null;
-  /** Electrical conductivity after test (mS/m) - zero-load calibration */
-  zlmElectricalConductivityAfter: number | null;
-
-  // Measurement data
-  data: Array<CPTMeasurement>;
-
-  // Dissipation tests (pore pressure decay at specific depths)
-  dissipationTests: Array<DissipationTest>;
-}
+export type CPTData = { meta: ParseMeta; alias?: string } & Produced<typeof CPT_PRODUCER>;
 
 /**
  * Grain shape properties for sand/gravel fractions
@@ -567,188 +479,15 @@ export interface BHRGTRockLayer extends BHRGTLayerBase {
 export type BHRGTLayer = BHRGTSoilLayer | BHRGTRockLayer;
 
 /**
- * Complete Bore data (metadata + layers)
+ * Complete Bore data (metadata + layers).
  *
- * Note: BHRGTData represents BHR-GT-BMB (Boormonsterbeschrijving - visual/textural description)
- * For laboratory analysis data, see the optional `analysis` field (BHR-GT-BMA)
+ * Represents BHR-GT-BMB (Boormonsterbeschrijving — visual/textural description);
+ * laboratory analysis (BHR-GT-BMA) is the optional `analysis` field.
+ *
+ * Inferred from {@link BORE_PRODUCER}; `meta` (parse metadata) and the optional
+ * user-set `alias` are the only fields not produced from the XML.
  */
-export interface BHRGTData extends BRORegistrationObject {
-  /**
-   * Metadata about the parsed document (schema version, warnings)
-   */
-  meta: ParseMeta;
-
-  /**
-   * User-defined identifier (not parsed from XML)
-   *
-   * Useful for tracking data that doesn't have a broId yet,
-   * such as during data collection or before BRO registration.
-   *
-   * @example
-   * ```typescript
-   * const bore = parser.parseBHRGT(xmlString);
-   * bore.alias = "Borehole 7 - North Field";
-   * ```
-   */
-  alias?: string;
-
-  researchReportDate: string | null;
-
-  // Location
-  deliveredLocation: Location | null;
-  standardizedLocation: Location | null;
-
-  // Vertical position
-  deliveredVerticalPositionOffset: number | null;
-  deliveredVerticalPositionDatum: string | null;
-  deliveredVerticalPositionReferencePoint: string | null;
-
-  // Site characteristic
-  /** Soil use at the site (e.g., "akker", "grasland", "geenBodemgebruik") */
-  soilUse: string | null;
-  /** Position of the borehole on the ground body (e.g. "kruin", "talud") */
-  positionOnGroundBody: string | null;
-  /** Temporary change at the site at time of drilling (e.g. "geen") */
-  temporaryChange: string | null;
-
-  // Bore metadata
-  descriptionProcedure: string | null;
-  groundwaterLevel: number | null;
-  /** Mean highest groundwater level in m relative to local reference (GHG) */
-  meanHighestGroundwaterLevel: number | null;
-  /** Mean lowest groundwater level in m relative to local reference (GLG) */
-  meanLowestGroundwaterLevel: number | null;
-  boreRockReached: boolean | null;
-  finalBoreDepth: number | null;
-  finalSampleDepth: number | null;
-  /** Final depth reached during site preparation (m) */
-  finalDepthPreparation: number | null;
-  /** Final depth reached by excavation (m) */
-  finalDepthExcavation: number | null;
-  /** Final depth reached with a temporary casing (m) */
-  finalDepthTemporaryCasing: number | null;
-  boreHoleCompleted: boolean | null;
-
-  // Boring execution details
-  /** Start date of the boring operation */
-  boringStartDate: string | null;
-  /** End date of the boring operation */
-  boringEndDate: string | null;
-  /** Boring procedure standard used (e.g., "EN1997d2v2007") */
-  boringProcedure: string | null;
-  /** Boring technique used (e.g., "gestoken", "mechanischGestoken") */
-  boringTechnique: string | null;
-  /** Whether the trajectory was excavated */
-  trajectoryExcavated: boolean | null;
-  /** Whether the subsurface is contaminated */
-  subsurfaceContaminated: boolean | null;
-  /** Stop criterion for boring */
-  stopCriterion: string | null;
-  /** Whether a flushing medium was used during boring */
-  flushingMediumUsed: boolean | null;
-  /** Flushing additive used during boring (e.g. "geen"), when a flushing medium was used */
-  flushingAdditive: string | null;
-  /** Whether a temporary casing was used during boring */
-  temporaryCasingUsed: boolean | null;
-  /** Site preparation before boring (e.g., "geen") */
-  preparation: string | null;
-  /** KvK number of the operator that carried out the research */
-  researchOperator: string | null;
-
-  // Sampler details
-  /** Type of sampler used */
-  samplerType: string | null;
-  /** Sampling procedure standard */
-  samplingProcedure: string | null;
-  /** Sampling method used */
-  samplingMethod: string | null;
-  /** Sampling quality assessment */
-  samplingQuality: string | null;
-  /** Whether the sample was orientated */
-  orientatedSampled: boolean | null;
-
-  // Sample container
-  /** Sample container diameter in mm */
-  sampleContainerDiameter: number | null;
-  /** Sample container length in mm */
-  sampleContainerLength: number | null;
-
-  // Sampler equipment details
-  /** Piston presence in sampler */
-  pistonPresent: boolean | null;
-  /** Core catcher presence */
-  coreCatcherPresent: boolean | null;
-  /** Stocking used in sampling */
-  stockingUsed: boolean | null;
-  /** Lubrication fluid used */
-  lubricationFluidUsed: boolean | null;
-  /** Right-angled cutting shoe */
-  rightAngledCuttingShoe: boolean | null;
-  /** Cutting shoe inside diameter in mm */
-  cuttingShoeInsideDiameter: number | null;
-  /** Cutting shoe outside diameter in mm */
-  cuttingShoeOutsideDiameter: number | null;
-  /** Taper angle of cutting shoe */
-  taperAngle: number | null;
-
-  // Description metadata
-  /** Whether the borehole log was checked */
-  boreholeLogChecked: boolean | null;
-  /** Description quality assessment */
-  descriptionQuality: string | null;
-  /** Description location (field/lab) */
-  descriptionLocation: string | null;
-  /** Date of description report */
-  descriptionReportDate: string | null;
-  /** Described material type */
-  describedMaterial: string | null;
-  /** Whether sampling was continuous */
-  continuouslySampled: boolean | null;
-  /** Sample moistness during description */
-  sampleMoistness: string | null;
-
-  // Visual description data (BHR-GT-BMB)
-  data: Array<BHRGTLayer>;
-
-  // Laboratory analysis data (BHR-GT-BMA) - optional
-  analysis?: BoreholeSampleAnalysis;
-
-  // Boring interval details
-  /** Array of bored intervals with technique and diameter */
-  boredIntervals: Array<BoredInterval>;
-  /** Array of sampled intervals with method and quality */
-  sampledIntervals: Array<SampledInterval>;
-  /** Array of completed/backfilled intervals */
-  completedIntervals: Array<CompletedInterval>;
-  /** Array of intervals not described (with reason) */
-  notDescribedIntervals: Array<NotDescribedInterval>;
-  /** Array of post-sedimentary discontinuities in the descriptive log */
-  postSedimentaryDiscontinuities: Array<PostSedimentaryDiscontinuity>;
-  /** Array of excavated layers (removed by excavation) */
-  excavatedLayers: Array<ExcavatedLayer>;
-  /** Boring velocity profile (elapsed time vs depth) */
-  boringVelocity: Array<BoringVelocityMeasurement>;
-
-  // Fluid mud layer (optional, single)
-  /** Fluid mud (slib) layer at the borehole, when present */
-  fluidMudLayer?: FluidMudLayer;
-
-  // Administrative history (registrationHistory inherited from BRORegistrationObject)
-  /** Report history with events */
-  reportHistory: ReportHistory | null;
-
-  // Additional top-level metadata
-  /** Delivery context (e.g., "publiekeTaak") */
-  deliveryContext: string | null;
-  /** Survey purpose (e.g., "bouwwerk") */
-  surveyPurpose: string | null;
-  /** Discipline (e.g., "geotechniek") */
-  discipline: string | null;
-  /** Survey procedure standard (e.g., "EN1997d2v2007") */
-  surveyProcedure: string | null;
-  /** Whether site characteristics were determined */
-  siteCharacteristicDetermined: boolean | null;
-}
+export type BHRGTData = { meta: ParseMeta; alias?: string } & Produced<typeof BORE_PRODUCER>;
 
 /** Munsell colour notation (BHR-G soil colour) */
 export interface MunsellColour {
@@ -970,121 +709,12 @@ export interface BHRGLayer {
 }
 
 /**
- * Complete BHR-G (Geological Borehole) data (metadata + layers)
+ * Complete BHR-G (Geological Borehole) data (metadata + layers).
+ *
+ * Inferred from {@link BHRG_PRODUCER}; `meta` (parse metadata) and the optional
+ * user-set `alias` are the only fields not produced from the XML.
  */
-export interface BHRGData extends BRORegistrationObject {
-  /**
-   * Metadata about the parsed document (schema version, warnings)
-   */
-  meta: ParseMeta;
-
-  /**
-   * User-defined identifier (not parsed from XML)
-   */
-  alias?: string;
-
-  researchReportDate: string | null;
-
-  // Location
-  deliveredLocation: Location | null;
-  standardizedLocation: Location | null;
-
-  // Vertical position
-  deliveredVerticalPositionOffset: number | null;
-  deliveredVerticalPositionDatum: string | null;
-  deliveredVerticalPositionReferencePoint: string | null;
-  /** Water depth at the borehole location (m), when the survey was over water */
-  waterDepth: number | null;
-  /** Date vertical position was determined */
-  verticalPositioningDate: string | null;
-  /** Method used to determine vertical position */
-  verticalPositioningMethod: string | null;
-  /** KvK number of the operator that determined the vertical position */
-  verticalPositioningOperator: string | null;
-
-  // Site characteristic
-  /** Landscape element at the site */
-  landscapeElement: string | null;
-  /** Hydrological setting at the site */
-  hydrologicalSetting: string | null;
-  /** Current geomorphological process at the site */
-  currentProcess: string | null;
-
-  // Bore metadata
-  descriptionProcedure: string | null;
-  /** Tool used for the sample description */
-  utensil: string | null;
-  boreRockReached: boolean | null;
-  finalBoreDepth: number | null;
-  finalSampleDepth: number | null;
-  boreHoleCompleted: string | null; // Note: BHR-G uses string values like "onbekend"
-
-  // Boring execution details
-  /** Start date of the boring operation */
-  boringStartDate: string | null;
-  /** End date of the boring operation */
-  boringEndDate: string | null;
-  /** Boring procedure standard used */
-  boringProcedure: string | null;
-  /** Boring technique used */
-  boringTechnique: string | null;
-  /** Whether the trajectory was excavated */
-  trajectoryExcavated: boolean | null;
-  /** Whether the subsurface is contaminated */
-  subsurfaceContaminated: boolean | null;
-  /** Stop criterion for boring */
-  stopCriterion: string | null;
-  /** Whether a flushing additive was used (raw code) */
-  flushingAdditiveUsed: string | null;
-
-  // Sampling details
-  /** Sampling procedure standard */
-  samplingProcedure: string | null;
-  /** Sampling method used */
-  samplingMethod: string | null;
-  /** Sampling quality assessment */
-  samplingQuality: string | null;
-
-  // Description metadata
-  /** Description quality assessment */
-  descriptionQuality: string | null;
-  /** Described samples quality */
-  describedSamplesQuality: string | null;
-  /** Description location (field/lab) */
-  descriptionLocation: string | null;
-  /** Date of description report */
-  descriptionReportDate: string | null;
-  /** Described material type */
-  describedMaterial: string | null;
-  /** Whether sampling was continuous */
-  continuouslySampled: boolean | null;
-  /** Sample moistness during description */
-  sampleMoistness: string | null;
-
-  data: Array<BHRGLayer>;
-
-  // Boring interval details
-  /** Array of bored intervals with technique and diameter */
-  boredIntervals: Array<BoredInterval>;
-  /** Array of sampled intervals with method and quality */
-  sampledIntervals: Array<SampledInterval>;
-
-  // Administrative history (registrationHistory inherited from BRORegistrationObject)
-  /** Report history with events */
-  reportHistory: ReportHistory | null;
-
-  // Additional top-level metadata
-  /** Delivery context (e.g., "archiefoverdracht") */
-  deliveryContext: string | null;
-  /** Survey purpose */
-  surveyPurpose: string | null;
-  /** Discipline (e.g., "geologie") */
-  discipline: string | null;
-  /** Survey procedure standard */
-  surveyProcedure: string | null;
-  /** NITG code (legacy identifier) */
-  nitgCode: string | null;
-}
+export type BHRGData = { meta: ParseMeta; alias?: string } & Produced<typeof BHRG_PRODUCER>;
 
 /**
  * Bored interval - records boring technique and diameter at specific depth ranges
@@ -1791,15 +1421,6 @@ export interface BoreholeSampleAnalysis {
 }
 
 /**
- * Configuration for determination type parsing in registry pattern
- */
-export interface DeterminationConfig<T> {
-  xpath: string;
-  propertyName: keyof InvestigatedInterval;
-  parser: (node: Node, adapter: XMLAdapter, namespaces: Namespaces) => T;
-}
-
-/**
  * Union type for all BRO data types
  *
  * Use the `meta.dataType` field to discriminate between types:
@@ -1810,12 +1431,207 @@ export interface DeterminationConfig<T> {
  * }
  * ```
  */
-export type BROData = CPTData | BHRGTData | BHRGData;
+export type BROData = CPTData | BHRGTData | BHRGData | GMWData | GLDData;
 
 /**
  * BRO file type identifier
  */
-export type BROFileType = "CPT" | "BHR-GT" | "BHR-G";
+export type BROFileType = "CPT" | "BHR-GT" | "BHR-G" | "GMW" | "GLD";
+
+// ===========================================================================
+// GLD (Grondwaterstandonderzoek / groundwater level research, dsgld/1.0)
+// ===========================================================================
+
+/**
+ * Reference to the GMW monitoring tube a groundwater level research pertains to.
+ */
+export interface GroundwaterMonitoringTubeRef {
+  /** broId of the groundwater monitoring well (GMW) */
+  broId: string | null;
+  /** Tube number within that well */
+  tubeNumber: number | null;
+}
+
+/**
+ * A single time-value measurement point in a GLD observation series
+ * (a WaterML2 `MeasurementTVP`).
+ */
+export interface GLDObservationPoint {
+  /** Timestamp of the measurement (precision-preserving ISO string) */
+  time: string | null;
+  /** Measured groundwater level value */
+  value: number | null;
+  /** Unit of measure (the `uom` attribute, e.g. "m") */
+  unit: string | null;
+  /** Status quality-control qualifier for this point (e.g. "goedgekeurd") */
+  qualifier: string | null;
+}
+
+/**
+ * A single groundwater level observation - a WaterML2 measurement time-series
+ * plus its metadata and processing provenance.
+ */
+export interface GLDObservation {
+  /** gml:id of the observation */
+  observationId: string | null;
+  /** Observation type (code list, e.g. "reguliereMeting", "controlemeting") */
+  observationType: string | null;
+  /** Processing status of the series (code list, e.g. "voorlopig", "volledigBeoordeeld") */
+  status: string | null;
+  /** Start of the observation period (precision-preserving ISO string) */
+  beginPosition: string | null;
+  /** End of the observation period */
+  endPosition: string | null;
+  /** When the result was produced */
+  resultTime: string | null;
+  /** Air-pressure compensation type used (code list) */
+  airPressureCompensationType: string | null;
+  /** Evaluation procedure (code list) */
+  evaluationProcedure: string | null;
+  /** The measurement points of the series */
+  points: Array<GLDObservationPoint>;
+}
+
+/**
+ * Complete GLD (groundwater level research) data.
+ *
+ * Inferred from {@link GLD_PRODUCER}; `meta` (parse metadata) and the optional
+ * user-set `alias` are the only fields not produced from the XML.
+ */
+export type GLDData = { meta: ParseMeta; alias?: string } & Produced<typeof GLD_PRODUCER>;
+
+// ===========================================================================
+// GMW (Grondwatermonitoringput / Groundwater Monitoring Well, dsgmw/1.1)
+// ===========================================================================
+
+/**
+ * A single electrode on a geo-electrical (geo-ohm) cable.
+ *
+ * Geo-ohm cables carry electrodes at known depths, used to measure the
+ * electrical resistivity of the surrounding ground (e.g. for salt/fresh
+ * groundwater interface monitoring).
+ */
+export interface Electrode {
+  /** Sequence number of the electrode on its cable */
+  electrodeNumber: number | null;
+  /** Filler/packing material around the electrode (code list) */
+  electrodePackingMaterial: string | null;
+  /** Whether the electrode is in use (code list, e.g. "ja"/"nee"/"onbekend") */
+  electrodeStatus: string | null;
+  /** Vertical position of the electrode, in metres relative to the vertical datum */
+  electrodePosition: number | null;
+}
+
+/**
+ * A geo-electrical (geo-ohm) cable running along a monitoring tube.
+ */
+export interface GeoOhmCable {
+  /** Sequence number of the cable within the tube */
+  cableNumber: number | null;
+  /** Whether the cable is in use ("ja"/"nee"/"onbekend") */
+  cableInUse: string | null;
+  /** Electrodes carried by this cable */
+  electrodes: Array<Electrode>;
+}
+
+/**
+ * A monitoring tube (peilbuis) within a groundwater monitoring well.
+ *
+ * A well ({@link GMWData}) has one or more tubes; each tube has its own screen,
+ * materials, dimensions and optional geo-ohm cables. Fields from the XSD's
+ * `materialUsed`, `screen`, `plainTubePart`, `sedimentSump` and `insertedPart`
+ * sub-structures are flattened onto this object for ergonomics.
+ */
+export interface MonitoringTube {
+  /** Tube sequence number within the well (1-based) */
+  tubeNumber: number | null;
+  /** Tube type (code list, e.g. "standaardbuis") */
+  tubeType: string | null;
+  /** Whether an artesian well cap is present */
+  artesianWellCapPresent: boolean | null;
+  /** Whether a sediment sump is present */
+  sedimentSumpPresent: boolean | null;
+  /** Number of geo-ohm cables on this tube */
+  numberOfGeoOhmCables: number | null;
+  /** Outer diameter at the top of the tube, in millimetres */
+  tubeTopDiameter: number | null;
+  /** Whether the tube has a variable diameter over its length */
+  variableDiameter: boolean | null;
+  /** Tube status (code list, e.g. "gebruiksklaar") */
+  tubeStatus: string | null;
+  /** Position of the top of the tube, in metres relative to the vertical datum */
+  tubeTopPosition: number | null;
+  /** How the tube-top position was determined (code list) */
+  tubeTopPositioningMethod: string | null;
+  /** Whether a part was inserted into the tube */
+  tubePartInserted: boolean | null;
+  /** Whether the tube is in use ("ja"/"nee"/"onbekend") */
+  tubeInUse: string | null;
+
+  // materialUsed
+  /** Packing material around the tube (code list) */
+  tubePackingMaterial: string | null;
+  /** Tube material (code list, e.g. "peHighDensity") */
+  tubeMaterial: string | null;
+  /** Glue used to join tube parts (code list) */
+  glue: string | null;
+
+  // screen
+  /** Length of the screen (filter) section, in metres */
+  screenLength: number | null;
+  /** Filter sock material (code list) */
+  sockMaterial: string | null;
+  /** Screen protection (code list) */
+  screenProtection: string | null;
+  /** Position of the top of the screen, in metres relative to the vertical datum */
+  screenTopPosition: number | null;
+  /** Position of the bottom of the screen, in metres relative to the vertical datum */
+  screenBottomPosition: number | null;
+
+  // plainTubePart
+  /** Length of the plain (non-screened) tube part, in metres */
+  plainTubePartLength: number | null;
+
+  // sedimentSump
+  /** Length of the sediment sump, in metres (null if no sump) */
+  sedimentSumpLength: number | null;
+
+  // insertedPart (present when tubePartInserted is true)
+  /** Length of the inserted part, in metres */
+  insertedPartLength: number | null;
+  /** Diameter of the inserted part, in millimetres */
+  insertedPartDiameter: number | null;
+  /** Material of the inserted part (code list) */
+  insertedPartMaterial: string | null;
+
+  /** Geo-ohm cables on this tube */
+  geoOhmCables: Array<GeoOhmCable>;
+}
+
+/**
+ * An intermediate event in a well's history (a change after construction).
+ *
+ * The XSD attaches an `eventData` diff describing exactly what changed; that
+ * detailed per-event diff is intentionally not expanded here - this exposes the
+ * event log (what happened, and when). The changed fields themselves are the
+ * same properties modelled on {@link MonitoringTube} / {@link GMWData}.
+ */
+export interface GMWIntermediateEvent {
+  /** Event name (code list, e.g. "nieuweInmetingPosities") */
+  eventName: string | null;
+  /** Date the event took place (precision-preserving ISO string) */
+  eventDate: string | null;
+}
+
+/**
+ * Complete GMW (groundwater monitoring well) data.
+ *
+ * The registration object carries well-level metadata plus one or more
+ * {@link MonitoringTube}s. Inferred from {@link GMW_PRODUCER}; `meta` (parse
+ * metadata) and the optional user-set `alias` are the only fields not produced
+ * from the XML.
+ */
+export type GMWData = { meta: ParseMeta; alias?: string } & Produced<typeof GMW_PRODUCER>;
 
 /**
  * Parse error with context

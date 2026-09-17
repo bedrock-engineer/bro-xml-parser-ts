@@ -37,27 +37,7 @@ export {
 // Re-export GML resolvers
 export { parseGMLLocation } from "./resolvers/gml-resolvers.js";
 
-// Re-export measurement resolvers
-export { processCPTResult } from "./resolvers/measurement-resolver.js";
-
-// Re-export bore resolvers (BHR-GT)
-export {
-  processBHRGTLayerData,
-  processBoreholeSampleAnalysis,
-  processBoredIntervals,
-  processSampledIntervals,
-  processCompletedIntervals,
-  processNotDescribedIntervals,
-  processReportHistory,
-} from "./resolvers/bore-resolvers.js";
-
 // Registration history is shared across all registration types.
-export { processRegistrationHistory } from "./resolvers/bore-resolver-utils.js";
+export { processRegistrationHistory } from "./resolvers/registration-history.js";
 
-// Re-export BHR-G resolvers
-export {
-  processBHRGLayerData,
-  processBHRGBoredIntervals,
-  processBHRGSampledIntervals,
-  processBHRGReportHistory,
-} from "./resolvers/bhrg-resolvers.js";
+// All data types are fully declarative (Producer DSL) — no hand-rolled resolvers to re-export.

@@ -8,7 +8,7 @@
 
 import { BROParseError } from "../types/index.js";
 
-export type DataType = "CPT" | "BHR-GT" | "BHR-G";
+export type DataType = "CPT" | "BHR-GT" | "BHR-G" | "GMW" | "GLD";
 
 /**
  * Schema version info
@@ -73,6 +73,29 @@ const KNOWN_VERSIONS: Record<DataType, Array<SchemaVersionInfo>> = {
       description: "Dispatch BHR-G schema version 3.0",
     },
   ],
+  GMW: [
+    {
+      namespace: "http://www.broservices.nl/xsd/dsgmw/1.1",
+      version: "1.1",
+      majorVersion: 1,
+      description: "Dispatch GMW schema version 1.1",
+    },
+    // Older known versions
+    {
+      namespace: "http://www.broservices.nl/xsd/dsgmw/1.0",
+      version: "1.0",
+      majorVersion: 1,
+      description: "Dispatch GMW schema version 1.0",
+    },
+  ],
+  GLD: [
+    {
+      namespace: "http://www.broservices.nl/xsd/dsgld/1.0",
+      version: "1.0",
+      majorVersion: 1,
+      description: "Dispatch GLD schema version 1.0",
+    },
+  ],
 };
 
 /**
@@ -91,6 +114,8 @@ export const SUPPORTED_VERSIONS = {
   CPT: getSupportedVersion("CPT"),
   "BHR-GT": getSupportedVersion("BHR-GT"),
   "BHR-G": getSupportedVersion("BHR-G"),
+  GMW: getSupportedVersion("GMW"),
+  GLD: getSupportedVersion("GLD"),
 } as const;
 
 /**
@@ -134,6 +159,12 @@ function detectDataTypeFromNamespace(namespace: string): DataType | null {
   if (namespace.includes("/dsbhrg/")) {
     return "BHR-G";
   }
+  if (namespace.includes("/dsgmw/")) {
+    return "GMW";
+  }
+  if (namespace.includes("/dsgld/")) {
+    return "GLD";
+  }
   return null;
 }
 
@@ -148,6 +179,10 @@ function getParserMethodName(dataType: DataType): string {
       return "parseBHRGT";
     case "BHR-G":
       return "parseBHRG";
+    case "GMW":
+      return "parseGMW";
+    case "GLD":
+      return "parseGLD";
   }
 }
 
@@ -272,6 +307,8 @@ export function detectAndValidateVersion(
       CPT: SUPPORTED_VERSIONS.CPT.namespace,
       "BHR-GT": SUPPORTED_VERSIONS["BHR-GT"].namespace,
       "BHR-G": SUPPORTED_VERSIONS["BHR-G"].namespace,
+      GMW: SUPPORTED_VERSIONS.GMW.namespace,
+      GLD: SUPPORTED_VERSIONS.GLD.namespace,
     },
     hint: "This does not appear to be a supported BRO XML document.",
   });

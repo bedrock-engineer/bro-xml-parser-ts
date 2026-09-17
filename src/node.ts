@@ -42,6 +42,15 @@ export type {
   FractionDistribution,
   Mottle,
   ThinStratum,
+  GMWData,
+  MonitoringTube,
+  GeoOhmCable,
+  Electrode,
+  GMWIntermediateEvent,
+  GLDData,
+  GLDObservation,
+  GLDObservationPoint,
+  GroundwaterMonitoringTubeRef,
   BROData,
   BRORegistrationObject,
   BROFileType,
@@ -49,6 +58,7 @@ export type {
   ParseMeta,
   Schema,
   SchemaField,
+  ParsedSchema,
   ResolverFunction,
   ResolverContext,
   Namespaces,
@@ -112,9 +122,11 @@ export { BROParseError } from "./types/index.js";
 export { SUPPORTED_VERSIONS } from "./core/version-detector.js";
 export type { DataType } from "./core/version-detector.js";
 
-export { CPT_SCHEMA } from "./schemas/cpt-schema.js";
-export { BORE_SCHEMA } from "./schemas/bore-schema.js";
-export { BHRG_SCHEMA } from "./schemas/bhrg-schema.js";
+export { CPT_PRODUCER } from "./schemas/cpt-schema.js";
+export { BORE_PRODUCER } from "./schemas/bore-schema.js";
+export { BHRG_PRODUCER } from "./schemas/bhrg-schema.js";
+export { GMW_PRODUCER } from "./schemas/gmw-schema.js";
+export { GLD_PRODUCER } from "./schemas/gld-schema.js";
 
 export { BRO_NAMESPACES, KNOWN_BRO_PREFIXES } from "./namespaces.js";
 

@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 const fixturesDir = join(__dirname, '../fixtures');
 
 export function loadFixture(
-  category: 'cpt' | 'bhr-gt' | 'bhr-g' | 'BHR-GT-BMA' | 'invalid',
+  category: 'cpt' | 'bhr-gt' | 'bhr-g' | 'BHR-GT-BMA' | 'gmw' | 'gld' | 'invalid',
   filename: string
 ): string {
   const path = join(fixturesDir, category, filename);
@@ -52,6 +52,23 @@ export const fixtures = {
   bhrG: {
     dispatch: () => loadFixture('bhr-g', 'test_geological_borehole.xml'),
     dispatch2: () => loadFixture('bhr-g', 'BHR000000398575.xml'),
+  },
+  gmw: {
+    // Single-tube well with full screen/plainTube/sedimentSump (GMW_PPO).
+    singleTube: () => loadFixture('gmw', 'GMW000000048066.xml'),
+    // Single tube with an intermediateEvent (well-history event log).
+    withEvent: () => loadFixture('gmw', 'GMW000000012500.xml'),
+    // Two-tube well (monitoring-tube array).
+    multiTube: () => loadFixture('gmw', 'GMW000000040000.xml'),
+    // Synthetic: exercises the optional insertedPart + geoOhmCable/electrode
+    // branches, which are rare in public data. Hand-built from the dsgmw/1.1 XSD.
+    synthetic: () => loadFixture('gmw', 'GMW-synthetic-geoohm.xml'),
+  },
+  gld: {
+    // Real GLD trimmed to the first observation with its first 5 (of 3059) points.
+    withObservations: () => loadFixture('gld', 'GLD000000010000.trimmed.xml'),
+    // Tiny real GLD: registered, has a monitoringPoint but no observations yet.
+    noObservations: () => loadFixture('gld', 'GLD000000030000.xml'),
   },
   invalid: {
     unsupportedVersion: () => loadFixture('invalid', 'unsupported-version.xml'),

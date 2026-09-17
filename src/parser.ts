@@ -12,9 +12,11 @@ import {
   getVersionInfo,
   type VersionDetectionResult,
 } from "./core/version-detector.js";
-import { CPT_SCHEMA } from "./schemas/cpt-schema.js";
-import { BORE_SCHEMA } from "./schemas/bore-schema.js";
-import { BHRG_SCHEMA } from "./schemas/bhrg-schema.js";
+import { CPT_PRODUCER } from "./schemas/cpt-schema.js";
+import { BORE_PRODUCER } from "./schemas/bore-schema.js";
+import { BHRG_PRODUCER } from "./schemas/bhrg-schema.js";
+import { GMW_PRODUCER } from "./schemas/gmw-schema.js";
+import { GLD_PRODUCER } from "./schemas/gld-schema.js";
 import { BRO_NAMESPACES } from "./namespaces.js";
 import type {
   XMLAdapter,
@@ -22,9 +24,12 @@ import type {
   CPTData,
   BHRGTData,
   BHRGData,
+  GMWData,
+  GLDData,
   BROData,
   ParseMeta,
   Schema,
+  ParsedSchema,
   BROFileType,
 } from "./types/index.js";
 import { BROParseError } from "./types/index.js";
@@ -105,9 +110,10 @@ export class BROParser {
     const versionResult = detectAndValidateVersion(doc, "CPT");
     const meta = this.createMeta(versionResult);
 
-    const data = this.parser.parse(doc, CPT_SCHEMA, "dispatchDocument") as Omit<CPTData, "meta">;
+    const { value, warnings } = this.parser.produce(doc, CPT_PRODUCER, "dispatchDocument");
+    meta.warnings.push(...warnings);
 
-    return { meta, ...data };
+    return { meta, ...value };
   }
 
   /**
@@ -138,9 +144,10 @@ export class BROParser {
     const versionResult = detectAndValidateVersion(doc, "BHR-GT");
     const meta = this.createMeta(versionResult);
 
-    const data = this.parser.parse(doc, BORE_SCHEMA, "dispatchDocument") as Omit<BHRGTData, "meta">;
+    const { value, warnings } = this.parser.produce(doc, BORE_PRODUCER, "dispatchDocument");
+    meta.warnings.push(...warnings);
 
-    return { meta, ...data };
+    return { meta, ...value };
   }
 
   /**
@@ -171,9 +178,81 @@ export class BROParser {
     const versionResult = detectAndValidateVersion(doc, "BHR-G");
     const meta = this.createMeta(versionResult);
 
-    const data = this.parser.parse(doc, BHRG_SCHEMA, "dispatchDocument") as Omit<BHRGData, "meta">;
+    const { value, warnings } = this.parser.produce(doc, BHRG_PRODUCER, "dispatchDocument");
+    meta.warnings.push(...warnings);
 
-    return { meta, ...data };
+    return { meta, ...value };
+  }
+
+  /**
+   * Parse GMW (groundwater monitoring well) data from BRO/XML string
+   *
+   * Extracts well metadata and its monitoring tubes following the IMBRO GMW
+   * schema (dsgmw/1.1). Works on the public dispatch document (`GMW_PPO`) as
+   * well as the `GMW_PO` / `GMW_O` variants, which share one leaf surface.
+   *
+   * @param xmlText - BRO/XML document as string
+   * @returns Parsed GMW data with metadata and monitoring tubes
+   * @throws {BROParseError} If parsing fails or required fields are missing
+   *
+   * @example
+   * ```typescript
+   * const parser = new BROParser(new XMLAdapter());
+   * const gmw = parser.parseGMW(xmlString);
+   *
+   * console.log(gmw.broId);                         // "GMW000000048066"
+   * console.log(gmw.numberOfMonitoringTubes);       // 1
+   * console.log(gmw.monitoringTubes[0].screenLength); // 1.0
+   * console.log(gmw.meta.schemaVersion);            // "1.1"
+   * ```
+   */
+  parseGMW(xmlText: string): GMWData {
+    const doc = this.adapter.parseXML(xmlText);
+
+    const versionResult = detectAndValidateVersion(doc, "GMW");
+    const meta = this.createMeta(versionResult);
+
+    const { value, warnings } = this.parser.produce(doc, GMW_PRODUCER, "dispatchDocument");
+    meta.warnings.push(...warnings);
+
+    return { meta, ...value };
+  }
+
+  /**
+   * Parse GLD (groundwater level research) data from BRO/XML string
+   *
+   * Extracts the monitoring-point reference, monitoring-net membership and the
+   * groundwater level observation time-series following the IMBRO GLD schema
+   * (dsgld/1.0).
+   *
+   * Note: full GLD dispatch documents can be very large (years of time-series
+   * measurements). Consider requesting a bounded observation period from the BRO
+   * REST API before parsing.
+   *
+   * @param xmlText - BRO/XML document as string
+   * @returns Parsed GLD data with metadata and observation series
+   * @throws {BROParseError} If parsing fails or required fields are missing
+   *
+   * @example
+   * ```typescript
+   * const parser = new BROParser(new XMLAdapter());
+   * const gld = parser.parseGLD(xmlString);
+   *
+   * console.log(gld.broId);                       // "GLD000000010000"
+   * console.log(gld.monitoringPoint?.broId);      // "GMW000000020142"
+   * console.log(gld.observations[0].points.length); // 8760
+   * ```
+   */
+  parseGLD(xmlText: string): GLDData {
+    const doc = this.adapter.parseXML(xmlText);
+
+    const versionResult = detectAndValidateVersion(doc, "GLD");
+    const meta = this.createMeta(versionResult);
+
+    const { value, warnings } = this.parser.produce(doc, GLD_PRODUCER, "dispatchDocument");
+    meta.warnings.push(...warnings);
+
+    return { meta, ...value };
   }
 
   /**
@@ -221,6 +300,10 @@ export class BROParser {
         return this.parseBHRGT(xmlText);
       case "BHR-G":
         return this.parseBHRG(xmlText);
+      case "GMW":
+        return this.parseGMW(xmlText);
+      case "GLD":
+        return this.parseGLD(xmlText);
     }
   }
 
@@ -230,39 +313,46 @@ export class BROParser {
    * This allows you to extract only the fields you need, which can be
    * more efficient and gives you full control over the output structure.
    *
+   * The return type is inferred from the schema: each field's type comes from
+   * its resolver's return type, and fields with no resolver are the raw text
+   * (`string | null`). Author schemas with `satisfies Schema` (or pass an inline
+   * literal) so the field types are preserved for inference — a `: Schema`
+   * annotation erases them and every field collapses to `string | null`.
+   *
    * @param xmlText - BRO/XML document as string
    * @param schema - Custom schema defining fields to extract
    * @param dataType - The BRO data type (for version validation)
-   * @returns Object with extracted fields matching your schema
+   * @returns Object with extracted fields matching your schema, plus `meta`
    *
    * @example
    * ```typescript
-   * import { BROParser, resolvers } from '@bedrock-engineer/bro-xml-parser';
+   * import { BROParser, resolvers, type Schema } from '@bedrock-engineer/bro-xml-parser';
    *
    * const parser = new BROParser(new XMLAdapter());
    *
    * // Define only the fields you need
    * const mySchema = {
-   *   id: { xpath: 'brocom:broId' },
+   *   id: { xpath: 'brocom:broId' },                                    // string | null
    *   depth: {
    *     xpath: './/cptcommon:finalDepth',
-   *     resolver: resolvers.parseFloat
+   *     resolver: resolvers.parseFloat,                                 // number | null
    *   },
    *   location: {
    *     xpath: './dscpt:deliveredLocation/cptcommon:location',
-   *     resolver: resolvers.parseGMLLocation
-   *   }
-   * };
+   *     resolver: resolvers.parseGMLLocation,                           // Location | null
+   *   },
+   * } satisfies Schema;
    *
    * const result = parser.parseCustom(xmlText, mySchema, 'CPT');
-   * // { id: "CPT000000099543", depth: 25.5, location: { x: 155000, y: 463000, epsg: "EPSG:28992" } }
+   * result.depth;    // number | null — inferred, no casts
+   * result.location; // Location | null
    * ```
    */
-  parseCustom(
+  parseCustom<const S extends Schema>(
     xmlText: string,
-    schema: Schema,
+    schema: S,
     dataType?: BROFileType,
-  ): Record<string, unknown> & { meta: ParseMeta } {
+  ): ParsedSchema<S> {
     const doc = this.adapter.parseXML(xmlText);
 
     // Validate version if dataType is provided
@@ -288,7 +378,7 @@ export class BROParser {
 
     const data = this.parser.parse(doc, schema, "dispatchDocument");
 
-    return { meta, ...data };
+    return { meta, ...data } as ParsedSchema<S>;
   }
 
   /**

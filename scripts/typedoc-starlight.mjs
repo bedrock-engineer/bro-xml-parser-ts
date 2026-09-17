@@ -102,6 +102,8 @@ export function load(app) {
       const cpt = reachFrom("CPTData");
       const bhrgt = reachFrom("BHRGTData");
       const bhrg = reachFrom("BHRGData");
+      const gmw = reachFrom("GMWData");
+      const gld = reachFrom("GLDData");
       const lab = reachFrom("BoreholeSampleAnalysis");
 
       // A type belongs to a domain only if reachable from exactly one *Data root;
@@ -110,11 +112,15 @@ export function load(app) {
         const hits =
           (cpt.has(reflection) ? 1 : 0) +
           (bhrgt.has(reflection) ? 1 : 0) +
-          (bhrg.has(reflection) ? 1 : 0);
+          (bhrg.has(reflection) ? 1 : 0) +
+          (gmw.has(reflection) ? 1 : 0) +
+          (gld.has(reflection) ? 1 : 0);
         if (hits !== 1) return "General";
         if (cpt.has(reflection)) return "CPT";
         if (bhrgt.has(reflection)) return "BHR-GT";
-        return "BHR-G";
+        if (bhrg.has(reflection)) return "BHR-G";
+        if (gmw.has(reflection)) return "GMW";
+        return "GLD";
       };
 
       for (const reflection of children) {

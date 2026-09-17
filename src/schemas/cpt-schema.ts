@@ -1,394 +1,244 @@
 /**
- * CPT (Cone Penetration Test) schema definition
+ * CPT (Cone Penetration Test) schema.
  *
- * Defines 44 metadata fields for CPT data.
- * Each field specifies:
- * - xpath: location in XML document
- * - resolver: function to convert/parse value (optional)
- * - attribute: which property to extract (optional, defaults to textContent)
- * - required: whether field is mandatory (optional, defaults to false)
+ * Maps the dscpt/1.1 registration object to {@link CPTData}. Most of the ~60
+ * metadata fields are scalars; the embedded measurement CSV (`data`) and the
+ * dissipation-test time-series (`dissipationTests`) are {@link custom} producers
+ * driven by a {@link NodeLens}.
+ *
+ * Field coverage is verified against the official XSD with
+ * `npm run check:xsd-coverage`.
  */
 
-import type { Schema } from "../types/index.js";
-import { COMMON_REGISTRATION_FIELDS } from "./common-fields.js";
-import * as typeResolvers from "../resolvers/type-resolvers.js";
-import * as gmlResolvers from "../resolvers/gml-resolvers.js";
-import * as measurementResolvers from "../resolvers/measurement-resolver.js";
-import * as cptResolvers from "../resolvers/cpt-resolvers.js";
-import { processRegistrationHistory } from "../resolvers/bore-resolver-utils.js";
-
-export const CPT_SCHEMA: Schema = {
-  // === Core Identification (shared brocom fields) ===
-  ...COMMON_REGISTRATION_FIELDS,
-
-  researchOperator: {
-    xpath: "./dscpt:researchOperator",
-  },
-
-  researchReportDate: {
-    xpath: "./dscpt:researchReportDate",
-    resolver: typeResolvers.parseDate,
-  },
-
-  // Measurement timing (OGC O&M timestamps on the conePenetrationTest observation)
-  conePenetrationTestPhenomenonTime: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrationTest/om:phenomenonTime/gml:TimeInstant/gml:timePosition",
-    resolver: typeResolvers.parseDate,
-  },
-
-  conePenetrationTestResultTime: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrationTest/om:resultTime/gml:TimeInstant/gml:timePosition",
-    resolver: typeResolvers.parseDate,
-  },
-
-  cptStandard: {
-    xpath: "./dscpt:cptStandard",
-  },
-
-  // === Location ===
-
-  deliveredLocation: {
-    xpath: "./dscpt:deliveredLocation/cptcommon:location",
-    resolver: gmlResolvers.parseGMLLocation,
-  },
-
-  standardizedLocation: {
-    xpath: "./dscpt:standardizedLocation/brocom:location",
-    resolver: gmlResolvers.parseGMLLocation,
-  },
-
-  coordinateTransformation: {
-    xpath: "./dscpt:standardizedLocation/brocom:coordinateTransformation",
-  },
-
-  horizontalPositioningDate: {
-    xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningDate",
-    resolver: typeResolvers.parseDate,
-  },
-
-  horizontalPositioningMethod: {
-    xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningMethod",
-  },
-
-  horizontalPositioningOperator: {
-    xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningOperator",
-  },
-
-  // === Vertical Position ===
-
-  deliveredVerticalPositionOffset: {
-    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:offset",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  deliveredVerticalPositionDatum: {
-    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalDatum",
-  },
-
-  deliveredVerticalPositionReferencePoint: {
-    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:localVerticalReferencePoint",
-  },
-
-  waterDepth: {
-    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:waterDepth",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  verticalPositioningDate: {
-    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningDate",
-    resolver: typeResolvers.parseDate,
-  },
-
-  verticalPositioningMethod: {
-    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningMethod",
-  },
-
-  verticalPositioningOperator: {
-    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningOperator",
-  },
-
-  // === Survey Context ===
-
-  deliveryContext: {
-    xpath: "./dscpt:deliveryContext",
-  },
-
-  surveyPurpose: {
-    xpath: "./dscpt:surveyPurpose",
-  },
-
-  additionalInvestigationPerformed: {
-    xpath: "./dscpt:additionalInvestigationPerformed",
-    resolver: typeResolvers.parseBoolean,
-  },
-
-  // === Test Metadata ===
-
-  cptMethod: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:cptMethod",
-  },
-
-  stopCriterion: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:stopCriterion",
-  },
-
-  sensorAzimuth: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:sensorAzimuth",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  dissipationtestPerformed: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:dissipationTestPerformed",
-    resolver: typeResolvers.parseBoolean,
-  },
-
-  qualityClass: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:qualityClass",
-    resolver: typeResolvers.parseQualityClass,
-  },
-
-  groundwaterLevel: {
-    xpath: "./dscpt:additionalInvestigation/cptcommon:groundwaterLevel",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  // === Additional Investigation ===
-
-  investigationDate: {
-    xpath: "./dscpt:additionalInvestigation/cptcommon:investigationDate",
-    resolver: typeResolvers.parseDate,
-  },
-
-  conditions: {
-    xpath: "./dscpt:additionalInvestigation/cptcommon:conditions",
-  },
-
-  surfaceDescription: {
-    xpath: "./dscpt:additionalInvestigation/cptcommon:surfaceDescription",
-  },
-
-  removedLayers: {
-    xpath: ".",
-    resolver: cptResolvers.processRemovedLayers,
-  },
-
-  predrilledDepth: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:predrilledDepth",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  finalDepth: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  // === Processing Flags ===
-
-  finalProcessingDate: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:finalProcessingDate",
-    resolver: typeResolvers.parseDate,
-  },
-
-  signalProcessingPerformed: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:procedure/cptcommon:signalProcessingPerformed",
-    resolver: typeResolvers.parseBoolean,
-  },
-
-  interruptionProcessingPerformed: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:procedure/cptcommon:interruptionProcessingPerformed",
-    resolver: typeResolvers.parseBoolean,
-  },
-
-  expertCorrectionPerformed: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:procedure/cptcommon:expertCorrectionPerformed",
-    resolver: typeResolvers.parseBoolean,
-  },
-
-  // === Equipment Specifications ===
-
-  cptDescription: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:description",
-  },
-
-  cptType: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:conePenetrometerType",
-  },
-
-  coneSurfaceArea: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:coneSurfaceArea",
-    resolver: typeResolvers.parseInt,
-  },
-
-  coneDiameter: {
-    xpath: "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:coneDiameter",
-    resolver: typeResolvers.parseInt,
-  },
-
-  coneSurfaceQuotient: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:coneSurfaceQuotient",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  coneToFrictionSleeveDistance: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:coneToFrictionSleeveDistance",
-    resolver: typeResolvers.parseInt,
-  },
-
-  coneToFrictionSleeveSurfaceArea: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:frictionSleeveSurfaceArea",
-    resolver: typeResolvers.parseInt,
-  },
-
-  coneToFrictionSleeveSurfaceQuotient: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:frictionSleeveSurfaceQuotient",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  // === Zero-Load Measurements (Equipment Calibration) ===
-
-  // Cone Resistance
-  zlmConeResistanceBefore: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:coneResistanceBefore",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  zlmConeResistanceAfter: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:coneResistanceAfter",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  // Inclination East-West
-  zlmInclinationEwBefore: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:inclinationEWBefore",
-    resolver: typeResolvers.parseInt,
-  },
-
-  zlmInclinationEwAfter: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:inclinationEWAfter",
-    resolver: typeResolvers.parseInt,
-  },
-
-  // Inclination North-South
-  zlmInclinationNsBefore: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:inclinationNSBefore",
-    resolver: typeResolvers.parseInt,
-  },
-
-  zlmInclinationNsAfter: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:inclinationNSAfter",
-    resolver: typeResolvers.parseInt,
-  },
-
-  // Inclination Resultant
-  zlmInclinationResultantBefore: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:inclinationResultantBefore",
-    resolver: typeResolvers.parseInt,
-  },
-
-  zlmInclinationResultantAfter: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:inclinationResultantAfter",
-    resolver: typeResolvers.parseInt,
-  },
-
-  // Local Friction
-  zlmLocalFrictionBefore: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:localFrictionBefore",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  zlmLocalFrictionAfter: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:localFrictionAfter",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  // Pore Pressure U1
-  zlmPorePressureU1Before: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:porePressureU1Before",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  zlmPorePressureU1After: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:porePressureU1After",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  // Pore Pressure U2
-  zlmPorePressureU2Before: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:porePressureU2Before",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  zlmPorePressureU2After: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:porePressureU2After",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  // Pore Pressure U3
-  zlmPorePressureU3Before: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:porePressureU3Before",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  zlmPorePressureU3After: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:porePressureU3After",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  // Electrical Conductivity
-  zlmElectricalConductivityBefore: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:electricalConductivityBefore",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  zlmElectricalConductivityAfter: {
-    xpath:
-      "./dscpt:conePenetrometerSurvey/cptcommon:conePenetrometer/cptcommon:zeroLoadMeasurement/cptcommon:electricalConductivityAfter",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  // === Measurement Data ===
-
-  data: {
-    xpath: "./dscpt:conePenetrometerSurvey",
-    resolver: measurementResolvers.processCPTResult,
-  },
-
-  // === Dissipation Tests ===
-
-  dissipationTests: {
-    xpath: "./dscpt:conePenetrometerSurvey",
-    resolver: measurementResolvers.processDissipationTests,
-  },
-
-  // === Administrative History ===
-
-  registrationHistory: {
-    xpath: ".",
-    resolver: processRegistrationHistory,
-  },
-};
+import type { NodeLens } from "../core/producer.js";
+import type { CPTMeasurement, DissipationMeasurement } from "../types/index.js";
+import {
+  object_,
+  array,
+  custom,
+  scalar,
+  text,
+  date,
+  number_,
+  integer,
+  boolean_,
+} from "../core/producer.js";
+import {
+  COMMON_REGISTRATION_PRODUCERS,
+  REGISTRATION_HISTORY,
+  gmlLocation,
+} from "./common-fields.js";
+import { decodeColumns, col, type ColumnSpec } from "../core/columns.js";
+import { parseQualityClass, parseFloat } from "../resolvers/type-resolvers.js";
+
+const SURVEY = "./dscpt:conePenetrometerSurvey";
+const CONE = `${SURVEY}/cptcommon:conePenetrometer`;
+const ZLM = `${CONE}/cptcommon:zeroLoadMeasurement`;
+const VPOS = "./dscpt:deliveredVerticalPosition";
+
+/** Fixed columns of a dissipation-test time-series. */
+const DISSIPATION_COLUMNS: Array<ColumnSpec> = [
+  { name: "elapsedTime", parse: col.num },
+  { name: "coneResistance", parse: col.num, optional: true },
+  { name: "porePressureU1", parse: col.num, optional: true },
+  { name: "porePressureU2", parse: col.num, optional: true },
+  { name: "porePressureU3", parse: col.num, optional: true },
+];
+
+/**
+ * Parse the embedded measurement CSV from the `conePenetrometerSurvey` node.
+ *
+ * The `parameters` element flags (ja/nee) which columns are present, in
+ * document order; the CSV in `values` always carries every column, so the
+ * decode spec maps only the flagged positions (others are skipped with `null`).
+ * Rows are then sorted by penetration length (BRO does not guarantee depth order
+ * in the values block).
+ */
+function parseMeasurements(lens: NodeLens): Array<CPTMeasurement> {
+  const enc = (attr: string, fallback: string): string =>
+    lens.attr(`.//swe:encoding/swe:TextEncoding/@${attr}`) ?? fallback;
+  const decimalSeparator = enc("decimalSeparator", ".");
+  if (decimalSeparator !== ".") {
+    console.warn(`Non-standard decimal separator: ${decimalSeparator} (expected ".")`);
+  }
+
+  // A spec entry per parameter position, in document order: a column for the
+  // "ja" positions, `null` (skip) for the rest. Scope to the first `parameters`
+  // block — dissipation tests carry their own values/encoding.
+  const parameters = lens.all(".//cptcommon:parameters")[0];
+  const spec: Array<ColumnSpec | null> = (parameters ? parameters.all("./*") : []).map((param) => {
+    const columnName = param.name();
+    const included = (param.text() ?? "").toLowerCase() === "ja";
+    return columnName && included ? { name: columnName, parse: col.num } : null;
+  });
+  if (spec.every((c) => c === null)) {
+    return [];
+  }
+
+  const rows = decodeColumns<CPTMeasurement>(lens.textAt(".//cptcommon:values"), spec, {
+    rowSeparator: enc("blockSeparator", ";"),
+    colSeparator: enc("tokenSeparator", ","),
+  })
+    // Drop all-null rows.
+    .filter((m) => Object.values(m).some((v) => v !== null && v !== undefined));
+
+  return rows.sort((a, b) => a.penetrationLength - b.penetrationLength);
+}
+
+/**
+ * A dissipation test's pore-pressure decay CSV. Kept custom because the row/col
+ * separators are read from the test's own `swe:TextEncoding`.
+ */
+const DISSIPATION_MEASUREMENTS = custom<Array<DissipationMeasurement>>({
+  produce: (test) => {
+    const enc = "./cptcommon:disResult/swe:encoding/swe:TextEncoding";
+    return decodeColumns<DissipationMeasurement>(
+      test.textAt("./cptcommon:disResult/cptcommon:values"),
+      DISSIPATION_COLUMNS,
+      {
+        rowSeparator: test.attr(`${enc}/@blockSeparator`) ?? ";",
+        colSeparator: test.attr(`${enc}/@tokenSeparator`) ?? ",",
+      },
+    );
+  },
+});
+
+/**
+ * One dissipation test (pore-pressure decay time-series at a fixed depth), a
+ * sibling of the cone-penetration test inside `conePenetrometerSurvey`.
+ */
+const DISSIPATION_TEST = object_({
+  fields: {
+    penetrationLength: scalar<number>({
+      at: "./cptcommon:penetrationLength",
+      decode: (raw) => parseFloat(raw) ?? 0,
+    }),
+    phenomenonTime: date("./om:phenomenonTime//gml:timePosition"),
+    measurements: DISSIPATION_MEASUREMENTS,
+  },
+});
+
+export const CPT_PRODUCER = object_({
+  fields: {
+    // === Core identification (shared brocom fields) ===
+    ...COMMON_REGISTRATION_PRODUCERS,
+
+    researchOperator: text("./dscpt:researchOperator"),
+    researchReportDate: date("./dscpt:researchReportDate"),
+
+    // Measurement timing (OGC O&M timestamps on the conePenetrationTest observation)
+    conePenetrationTestPhenomenonTime: date(
+      `${SURVEY}/cptcommon:conePenetrationTest/om:phenomenonTime/gml:TimeInstant/gml:timePosition`,
+    ),
+    conePenetrationTestResultTime: date(
+      `${SURVEY}/cptcommon:conePenetrationTest/om:resultTime/gml:TimeInstant/gml:timePosition`,
+    ),
+    cptStandard: text("./dscpt:cptStandard"),
+
+    // === Location ===
+    deliveredLocation: gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
+    standardizedLocation: gmlLocation("./dscpt:standardizedLocation/brocom:location"),
+    coordinateTransformation: text("./dscpt:standardizedLocation/brocom:coordinateTransformation"),
+    horizontalPositioningDate: date("./dscpt:deliveredLocation/cptcommon:horizontalPositioningDate"),
+    horizontalPositioningMethod: text(
+      "./dscpt:deliveredLocation/cptcommon:horizontalPositioningMethod",
+    ),
+    horizontalPositioningOperator: text(
+      "./dscpt:deliveredLocation/cptcommon:horizontalPositioningOperator",
+    ),
+
+    // === Vertical position ===
+    deliveredVerticalPositionOffset: number_(`${VPOS}/cptcommon:offset`),
+    deliveredVerticalPositionDatum: text(`${VPOS}/cptcommon:verticalDatum`),
+    deliveredVerticalPositionReferencePoint: text(`${VPOS}/cptcommon:localVerticalReferencePoint`),
+    waterDepth: number_(`${VPOS}/cptcommon:waterDepth`),
+    verticalPositioningDate: date(`${VPOS}/cptcommon:verticalPositioningDate`),
+    verticalPositioningMethod: text(`${VPOS}/cptcommon:verticalPositioningMethod`),
+    verticalPositioningOperator: text(`${VPOS}/cptcommon:verticalPositioningOperator`),
+
+    // === Survey context ===
+    deliveryContext: text("./dscpt:deliveryContext"),
+    surveyPurpose: text("./dscpt:surveyPurpose"),
+    additionalInvestigationPerformed: boolean_("./dscpt:additionalInvestigationPerformed"),
+
+    // === Test metadata ===
+    cptMethod: text(`${SURVEY}/cptcommon:cptMethod`),
+    stopCriterion: text(`${SURVEY}/cptcommon:stopCriterion`),
+    sensorAzimuth: number_(`${SURVEY}/cptcommon:sensorAzimuth`),
+    dissipationtestPerformed: boolean_(`${SURVEY}/cptcommon:dissipationTestPerformed`),
+    qualityClass: scalar({
+      at: `${SURVEY}/cptcommon:qualityClass`,
+      decode: parseQualityClass,
+    }),
+    groundwaterLevel: number_("./dscpt:additionalInvestigation/cptcommon:groundwaterLevel"),
+
+    // === Additional investigation ===
+    investigationDate: date("./dscpt:additionalInvestigation/cptcommon:investigationDate"),
+    conditions: text("./dscpt:additionalInvestigation/cptcommon:conditions"),
+    surfaceDescription: text("./dscpt:additionalInvestigation/cptcommon:surfaceDescription"),
+    removedLayers: array({
+      each: "./dscpt:additionalInvestigation/cptcommon:removedLayer",
+      item: object_({
+        fields: {
+          sequenceNumber: integer("./cptcommon:sequenceNumber"),
+          upperBoundary: number_("./cptcommon:upperBoundary"),
+          lowerBoundary: number_("./cptcommon:lowerBoundary"),
+          description: text("./cptcommon:description"),
+        },
+      }),
+    }),
+    predrilledDepth: number_(`${SURVEY}/cptcommon:trajectory/cptcommon:predrilledDepth`),
+    finalDepth: number_(`${SURVEY}/cptcommon:trajectory/cptcommon:finalDepth`),
+
+    // === Processing flags ===
+    finalProcessingDate: date(`${SURVEY}/cptcommon:finalProcessingDate`),
+    signalProcessingPerformed: boolean_(
+      `${SURVEY}/cptcommon:procedure/cptcommon:signalProcessingPerformed`,
+    ),
+    interruptionProcessingPerformed: boolean_(
+      `${SURVEY}/cptcommon:procedure/cptcommon:interruptionProcessingPerformed`,
+    ),
+    expertCorrectionPerformed: boolean_(
+      `${SURVEY}/cptcommon:procedure/cptcommon:expertCorrectionPerformed`,
+    ),
+
+    // === Equipment specifications ===
+    cptDescription: text(`${CONE}/cptcommon:description`),
+    cptType: text(`${CONE}/cptcommon:conePenetrometerType`),
+    coneSurfaceArea: integer(`${CONE}/cptcommon:coneSurfaceArea`),
+    coneDiameter: integer(`${CONE}/cptcommon:coneDiameter`),
+    coneSurfaceQuotient: number_(`${CONE}/cptcommon:coneSurfaceQuotient`),
+    coneToFrictionSleeveDistance: integer(`${CONE}/cptcommon:coneToFrictionSleeveDistance`),
+    coneToFrictionSleeveSurfaceArea: integer(`${CONE}/cptcommon:frictionSleeveSurfaceArea`),
+    coneToFrictionSleeveSurfaceQuotient: number_(`${CONE}/cptcommon:frictionSleeveSurfaceQuotient`),
+
+    // === Zero-load measurements (equipment calibration) ===
+    zlmConeResistanceBefore: number_(`${ZLM}/cptcommon:coneResistanceBefore`),
+    zlmConeResistanceAfter: number_(`${ZLM}/cptcommon:coneResistanceAfter`),
+    zlmInclinationEwBefore: integer(`${ZLM}/cptcommon:inclinationEWBefore`),
+    zlmInclinationEwAfter: integer(`${ZLM}/cptcommon:inclinationEWAfter`),
+    zlmInclinationNsBefore: integer(`${ZLM}/cptcommon:inclinationNSBefore`),
+    zlmInclinationNsAfter: integer(`${ZLM}/cptcommon:inclinationNSAfter`),
+    zlmInclinationResultantBefore: integer(`${ZLM}/cptcommon:inclinationResultantBefore`),
+    zlmInclinationResultantAfter: integer(`${ZLM}/cptcommon:inclinationResultantAfter`),
+    zlmLocalFrictionBefore: number_(`${ZLM}/cptcommon:localFrictionBefore`),
+    zlmLocalFrictionAfter: number_(`${ZLM}/cptcommon:localFrictionAfter`),
+    zlmPorePressureU1Before: number_(`${ZLM}/cptcommon:porePressureU1Before`),
+    zlmPorePressureU1After: number_(`${ZLM}/cptcommon:porePressureU1After`),
+    zlmPorePressureU2Before: number_(`${ZLM}/cptcommon:porePressureU2Before`),
+    zlmPorePressureU2After: number_(`${ZLM}/cptcommon:porePressureU2After`),
+    zlmPorePressureU3Before: number_(`${ZLM}/cptcommon:porePressureU3Before`),
+    zlmPorePressureU3After: number_(`${ZLM}/cptcommon:porePressureU3After`),
+    zlmElectricalConductivityBefore: number_(`${ZLM}/cptcommon:electricalConductivityBefore`),
+    zlmElectricalConductivityAfter: number_(`${ZLM}/cptcommon:electricalConductivityAfter`),
+
+    // === Measurement data (embedded CSV) ===
+    data: custom({ at: SURVEY, produce: parseMeasurements }),
+
+    // === Dissipation tests ===
+    dissipationTests: array({ at: SURVEY, each: ".//cptcommon:dissipationTest", item: DISSIPATION_TEST }),
+
+    // === Administrative history ===
+    registrationHistory: REGISTRATION_HISTORY,
+  },
+});

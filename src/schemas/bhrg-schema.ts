@@ -1,266 +1,409 @@
 /**
- * BHR-G (Geological Borehole) schema definition
+ * BHR-G (Geologische boring / geological borehole) schema.
  *
- * Defines metadata fields for BHR-G data following BRO structure.
- * Each field specifies:
- * - xpath: location in XML document
- * - resolver: function to convert/parse value (optional)
- * - attribute: which property to extract (optional, defaults to textContent)
- * - required: whether field is mandatory (optional, defaults to false)
+ * Maps the dsbhrg/3.1 registration object to {@link BHRGData}. The bulk is the
+ * descriptive borehole log: an array of soil layers, each carrying a large
+ * flattened soil surface plus nested sub-structures (Munsell colour,
+ * sand/shell/gravel/peat fractions, fraction distribution, chunks, mottles, thin
+ * strata). Optional soil codes that should be *absent* (not `null`) when
+ * unspecified use `presence: "omit"`; repeatable code lists use an array with
+ * `presence: "omit"` so the key appears only when non-empty.
+ *
+ * Field coverage is verified against the official XSD with
+ * `npm run check:xsd-coverage`.
  */
 
-import type { Schema } from "../types/index.js";
-import { COMMON_REGISTRATION_FIELDS } from "./common-fields.js";
-import * as typeResolvers from "../resolvers/type-resolvers.js";
-import * as gmlResolvers from "../resolvers/gml-resolvers.js";
-import * as bhrgResolvers from "../resolvers/bhrg-resolvers.js";
-import { processRegistrationHistory } from "../resolvers/bore-resolver-utils.js";
+import type { Producer } from "../core/producer.js";
+import { object_, array, text, date, number_, boolean_ } from "../core/producer.js";
+import {
+  COMMON_REGISTRATION_PRODUCERS,
+  REGISTRATION_HISTORY,
+  gmlLocation,
+} from "./common-fields.js";
 
-export const BHRG_SCHEMA: Schema = {
-  // === Core Identification (shared brocom fields) ===
-  ...COMMON_REGISTRATION_FIELDS,
+const REQUIRED = { presence: "required" } as const;
+const OMIT = { presence: "omit" } as const;
 
-  // === Dates ===
+/** Mount an object/array producer at a relative path, keyed only when present. */
+function optional<T>(producer: Producer<T>, at: string): Producer<T> {
+  return { ...producer, at, presence: "omit" };
+}
 
-  researchReportDate: {
-    xpath: "./dsbhrg:researchReportDate",
-    resolver: typeResolvers.parseDate,
+/** A repeatable code list: array of the matched elements' text, omitted if empty. */
+function codeList(each: string): Producer<Array<string | null>> {
+  return array({ each, item: text(), presence: "omit" });
+}
+
+// === Nested soil sub-structures (fields relative to each sub-structure node) ===
+
+const MUNSELL_COLOUR = object_({
+  fields: {
+    munsellHue: text("./bhrgcom:munsellHue"),
+    munsellValue: text("./bhrgcom:munsellValue"),
+    munsellChroma: text("./bhrgcom:munsellChroma"),
   },
+});
 
-  // === Location ===
-
-  deliveredLocation: {
-    xpath: "./dsbhrg:deliveredLocation/bhrgcom:location",
-    resolver: gmlResolvers.parseGMLLocation,
+const SAND_FRACTION = object_({
+  fields: {
+    darkGrainContentClass: text("./bhrgcom:darkGrainContentClass"),
+    darkGrainContentClassArchive: text("./bhrgcom:darkGrainContentClassArchive"),
+    angularity: text("./bhrgcom:angularity"),
+    sandMedianClass: text("./bhrgcom:sandMedianClass"),
+    sandSorting: text("./bhrgcom:sandSorting"),
+    variegation: text("./bhrgcom:variegation"),
+    anomalouslyCoarseContentClass: text("./bhrgcom:anomalouslyCoarseContentClass"),
+    anomalouslyCoarseContentClassArchive: text("./bhrgcom:anomalouslyCoarseContentClassArchive"),
+    granuleContentClass: text("./bhrgcom:granuleContentClass"),
+    granuleContentClassArchive: text("./bhrgcom:granuleContentClassArchive"),
+    estimatedMedian: number_("./bhrgcom:estimatedMedian"),
+    sandConstituents: array({
+      each: "./bhrgcom:sandConstituent",
+      item: object_({
+        fields: {
+          grainColour: text("./bhrgcom:grainColour"),
+          percentageClass: text("./bhrgcom:percentageClass"),
+          archiveClass: text("./bhrgcom:archiveClass"),
+        },
+      }),
+    }),
   },
+});
 
-  standardizedLocation: {
-    xpath: "./dsbhrg:standardizedLocation/brocom:location",
-    resolver: gmlResolvers.parseGMLLocation,
+const SHELL_FRACTION = object_({
+  fields: {
+    gritContentClass: text("./bhrgcom:gritContentClass"),
+    fragmentContentClass: text("./bhrgcom:fragmentContentClass"),
+    remainsContentClass: text("./bhrgcom:remainsContentClass"),
+    wholeContentClass: text("./bhrgcom:wholeContentClass"),
+    doublets: text("./bhrgcom:doublets"),
+    thickWalledContentClass: text("./bhrgcom:thickWalledContentClass"),
+    thinWalledContentClass: text("./bhrgcom:thinWalledContentClass"),
+    inSitu: text("./bhrgcom:inSitu"),
+    weatheringDegree: text("./bhrgcom:weatheringDegree"),
+    shellConstituents: array({
+      each: "./bhrgcom:shellConstituent",
+      item: object_({
+        fields: {
+          shellTaxon: text("./bhrgcom:shellTaxon"),
+          relativeAbundance: text("./bhrgcom:relativeAbundance"),
+          relativeAbundanceClass: text("./bhrgcom:relativeAbundanceClass"),
+          relativeAbundanceClassArchive: text("./bhrgcom:relativeAbundanceClassArchive"),
+        },
+      }),
+    }),
   },
+});
 
-  // === Vertical Position ===
-
-  deliveredVerticalPositionOffset: {
-    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:offset",
-    resolver: typeResolvers.parseFloat,
+const GRAVEL_FRACTION = object_({
+  fields: {
+    gravelMedianClass: text("./bhrgcom:gravelMedianClass"),
+    angularity: text("./bhrgcom:angularity"),
+    fineGravelContentClass: text("./bhrgcom:fineGravelContentClass"),
+    mediumCoarseGravelContentClass: text("./bhrgcom:mediumCoarseGravelContentClass"),
+    veryCoarseGravelContentClass: text("./bhrgcom:veryCoarseGravelContentClass"),
+    ventifactPresent: text("./bhrgcom:ventifactPresent"),
+    sphericity: text("./bhrgcom:sphericity"),
+    variegation: text("./bhrgcom:variegation"),
+    gravelProvenance: text("./bhrgcom:gravelProvenance"),
+    estimatedMedian: number_("./bhrgcom:estimatedMedian"),
+    gravelConstituents: array({
+      each: "./bhrgcom:gravelConstituent",
+      item: object_({
+        fields: {
+          gravelType: text("./bhrgcom:gravelType"),
+          fractionProportion: number_("./bhrgcom:fractionProportion"),
+          archiveClass: text("./bhrgcom:archiveClass"),
+        },
+      }),
+    }),
   },
+});
 
-  deliveredVerticalPositionDatum: {
-    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalDatum",
+const PEAT_FRACTION = object_({
+  fields: {
+    peatType: text("./bhrgcom:peatType"),
+    peatConstituents: array({
+      each: "./bhrgcom:peatConstituent",
+      item: object_({
+        fields: {
+          plantRemainType: text("./bhrgcom:plantRemainType"),
+          percentageClass: text("./bhrgcom:percentageClass"),
+          archiveClass: text("./bhrgcom:archiveClass"),
+        },
+      }),
+    }),
   },
+});
 
-  deliveredVerticalPositionReferencePoint: {
-    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:localVerticalReferencePoint",
+const FRACTION_DISTRIBUTION = object_({
+  fields: {
+    fractionDistributionComplete: text("./bhrgcom:fractionDistributionComplete"),
+    estimatedMassProportionOrganicMatter: number_("./bhrgcom:estimatedMassProportionOrganicMatter"),
+    estimatedMassProportionShellMatter: number_("./bhrgcom:estimatedMassProportionShellMatter"),
+    estimatedVolumeProportionShellMatter: number_("./bhrgcom:estimatedVolumeProportionShellMatter"),
+    estimatedMassProportionShell: number_("./bhrgcom:estimatedMassProportionShell"),
+    estimatedMassProportionGravel: number_("./bhrgcom:estimatedMassProportionGravel"),
+    estimatedVolumeProportionGravel: number_("./bhrgcom:estimatedVolumeProportionGravel"),
+    fineFractionDistributionOrganicSoil: optional(
+      object_({
+        fields: {
+          estimatedMassProportionSand: number_("./bhrgcom:estimatedMassProportionSand"),
+          estimatedMassProportionSilt: number_("./bhrgcom:estimatedMassProportionSilt"),
+          estimatedMassProportionLutum: number_("./bhrgcom:estimatedMassProportionLutum"),
+        },
+      }),
+      "./bhrgcom:fineFractionDistributionOrganicSoil",
+    ),
+    fineFractionDistributionShellySoil: optional(
+      object_({
+        fields: {
+          estimatedVolumeProportionSand: number_("./bhrgcom:estimatedVolumeProportionSand"),
+          estimatedVolumeProportionSilt: number_("./bhrgcom:estimatedVolumeProportionSilt"),
+          estimatedVolumeProportionLutum: number_("./bhrgcom:estimatedVolumeProportionLutum"),
+        },
+      }),
+      "./bhrgcom:fineFractionDistributionShellySoil",
+    ),
   },
+});
 
-  waterDepth: {
-    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:waterDepth",
-    resolver: typeResolvers.parseFloat,
+const THIN_STRATUM = object_({
+  fields: {
+    layerProportion: number_("./bhrgcom:layerProportion"),
+    layerProportionClass: text("./bhrgcom:layerProportionClass"),
+    layerProportionClassArchive: text("./bhrgcom:layerProportionClassArchive"),
+    stratumThicknessClass: text("./bhrgcom:stratumThicknessClass"),
+    geologicalOrigin: text("./bhrgcom:geologicalOrigin"),
   },
+});
 
-  verticalPositioningDate: {
-    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningDate",
-    resolver: typeResolvers.parseDate,
+const CHUNK = object_({
+  fields: {
+    soilType: text("./bhrgcom:soilType"),
+    sizeClass: text("./bhrgcom:sizeClass"),
+    percentageClass: text("./bhrgcom:percentageClass"),
+    archiveClass: text("./bhrgcom:archiveClass"),
+    colour: text("./bhrgcom:colour"),
+    geologicalOrigin: text("./bhrgcom:geologicalOrigin"),
+    cemented: text("./bhrgcom:cemented"),
   },
+});
 
-  verticalPositioningMethod: {
-    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningMethod",
+const MOTTLE = object_({
+  fields: {
+    colour: text("./bhrgcom:colour"),
+    density: text("./bhrgcom:density"),
+    inBands: text("./bhrgcom:inBands"),
   },
+});
 
-  verticalPositioningOperator: {
-    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningOperator",
+// === One descriptive-log layer (fields relative to bhrgcom:Layer) ===
+
+const LAYER = object_({
+  fields: {
+    upperBoundary: number_("./bhrgcom:upperBoundary", REQUIRED),
+    lowerBoundary: number_("./bhrgcom:lowerBoundary", REQUIRED),
+    soilNameNEN5104: text("./bhrgcom:soil/bhrgcom:soilNameNEN5104", REQUIRED),
+
+    // Layer-level (outside <soil>)
+    upperBoundaryDetermination: text("./bhrgcom:upperBoundaryDetermination"),
+    lowerBoundaryDetermination: text("./bhrgcom:lowerBoundaryDetermination"),
+    anthropogenic: text("./bhrgcom:anthropogenic"),
+    rooted: text("./bhrgcom:rooted"),
+    postSedimentary: text("./bhrgcom:postSedimentary", OMIT),
+    horizonCode: text("./bhrgcom:horizonCode", OMIT),
+    humanTrace: text("./bhrgcom:humanTrace", OMIT),
+    geologicalOrigin: text("./bhrgcom:geologicalOrigin", OMIT),
+    bioturbated: text("./bhrgcom:bioturbated", OMIT),
+    structure: codeList("./bhrgcom:structure"),
+    verticalTrend: codeList("./bhrgcom:verticalTrend"),
+    archeologicalConstituents: codeList(
+      "./bhrgcom:archeologicalConstituent/bhrgcom:constituentType",
+    ),
+    thinStrata: array({ each: "./bhrgcom:thinStratum", item: THIN_STRATUM, presence: "omit" }),
+
+    // Soil-level (inside <soil>)
+    color: text("./bhrgcom:soil/bhrgcom:colour", OMIT),
+    organicMatterContentClassNEN5104: text(
+      "./bhrgcom:soil/bhrgcom:organicMatterContentClassNEN5104",
+    ),
+    gravelContentClass: text("./bhrgcom:soil/bhrgcom:gravelContentClass"),
+    carbonateContentClass: text("./bhrgcom:soil/bhrgcom:carbonateContentClass"),
+    sandMedianClass: text("./bhrgcom:soil/bhrgcom:sandMedianClass"),
+    geologicalSoilName: text("./bhrgcom:soil/bhrgcom:geologicalSoilName", OMIT),
+    shellMatterContentClass: text("./bhrgcom:soil/bhrgcom:shellMatterContentClass", OMIT),
+    micaContentClass: text("./bhrgcom:soil/bhrgcom:micaContentClass", OMIT),
+    micaContentClassArchive: text("./bhrgcom:soil/bhrgcom:micaContentClassArchive", OMIT),
+    shellMatterContentClassArchive: text(
+      "./bhrgcom:soil/bhrgcom:shellMatterContentClassArchive",
+      OMIT,
+    ),
+    glauconiteContentClass: text("./bhrgcom:soil/bhrgcom:glauconiteContentClass", OMIT),
+    glauconiteContentClassArchive: text(
+      "./bhrgcom:soil/bhrgcom:glauconiteContentClassArchive",
+      OMIT,
+    ),
+    sedimentaryPhenomenon: text("./bhrgcom:soil/bhrgcom:sedimentaryPhenomenon", OMIT),
+    veryCoarseFractionContentClass: codeList(
+      "./bhrgcom:soil/bhrgcom:veryCoarseFractionContentClass",
+    ),
+    veryCoarseFractionContentClassArchive: codeList(
+      "./bhrgcom:soil/bhrgcom:veryCoarseFractionContentClassArchive",
+    ),
+    animalFossils: codeList("./bhrgcom:soil/bhrgcom:animalFossil/bhrgcom:animalFossilType"),
+
+    // Nested soil sub-structures (present only when the node exists)
+    munsellColour: optional(MUNSELL_COLOUR, "./bhrgcom:soil/bhrgcom:munsellColour"),
+    sandFraction: optional(SAND_FRACTION, "./bhrgcom:soil/bhrgcom:sandFraction"),
+    shellFraction: optional(SHELL_FRACTION, "./bhrgcom:soil/bhrgcom:shellFraction"),
+    gravelFraction: optional(GRAVEL_FRACTION, "./bhrgcom:soil/bhrgcom:gravelFraction"),
+    peatFraction: optional(PEAT_FRACTION, "./bhrgcom:soil/bhrgcom:peatFraction"),
+    fractionDistribution: optional(FRACTION_DISTRIBUTION, "./bhrgcom:soil/bhrgcom:fractionDistribution"),
+    chunks: array({ each: "./bhrgcom:soil/bhrgcom:chunk", item: CHUNK, presence: "omit" }),
+    mottles: array({ each: "./bhrgcom:soil/bhrgcom:mottle", item: MOTTLE, presence: "omit" }),
   },
+});
 
-  // === Site Characteristic ===
+const BORING = "./dsbhrg:boring/bhrgcom:Boring";
+const SAMPLE_DESC =
+  "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription";
+const LOG = `${SAMPLE_DESC}/bhrgcom:descriptiveBoreholeLog/bhrgcom:DescriptiveBoreholeLog`;
 
-  landscapeElement: {
-    xpath: "./dsbhrg:siteCharacteristic/bhrgcom:landscapeElement",
+/** Report history: an event log; the first event's date stands in for start/end. */
+/**
+ * Report history. BHR-G carries only an `event` list (no explicit report
+ * start/end), so both dates are taken from the first event via `event[1]`.
+ */
+const REPORT_HISTORY = object_({
+  at: "./dsbhrg:reportHistory",
+  fields: {
+    reportStartDate: date("./bhrgcom:event[1]/bhrgcom:date"),
+    reportEndDate: date("./bhrgcom:event[1]/bhrgcom:date"),
+    intermediateEvents: array({
+      each: "./bhrgcom:event",
+      item: object_({
+        fields: {
+          eventName: text("./bhrgcom:name"),
+          eventDate: date("./bhrgcom:date"),
+        },
+      }),
+    }),
   },
+});
 
-  hydrologicalSetting: {
-    xpath: "./dsbhrg:siteCharacteristic/bhrgcom:hydrologicalSetting",
+export const BHRG_PRODUCER = object_({
+  fields: {
+    // === Core identification (shared brocom fields) ===
+    ...COMMON_REGISTRATION_PRODUCERS,
+
+    researchReportDate: date("./dsbhrg:researchReportDate"),
+
+    // === Location ===
+    deliveredLocation: gmlLocation("./dsbhrg:deliveredLocation/bhrgcom:location"),
+    standardizedLocation: gmlLocation("./dsbhrg:standardizedLocation/brocom:location"),
+
+    // === Vertical position ===
+    deliveredVerticalPositionOffset: number_("./dsbhrg:deliveredVerticalPosition/bhrgcom:offset"),
+    deliveredVerticalPositionDatum: text(
+      "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalDatum",
+    ),
+    deliveredVerticalPositionReferencePoint: text(
+      "./dsbhrg:deliveredVerticalPosition/bhrgcom:localVerticalReferencePoint",
+    ),
+    waterDepth: number_("./dsbhrg:deliveredVerticalPosition/bhrgcom:waterDepth"),
+    verticalPositioningDate: date(
+      "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningDate",
+    ),
+    verticalPositioningMethod: text(
+      "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningMethod",
+    ),
+    verticalPositioningOperator: text(
+      "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningOperator",
+    ),
+
+    // === Site characteristic ===
+    landscapeElement: text("./dsbhrg:siteCharacteristic/bhrgcom:landscapeElement"),
+    hydrologicalSetting: text("./dsbhrg:siteCharacteristic/bhrgcom:hydrologicalSetting"),
+    currentProcess: text("./dsbhrg:siteCharacteristic/bhrgcom:currentProcess"),
+
+    // === Boring metadata ===
+    descriptionProcedure: text(`${SAMPLE_DESC}/bhrgcom:descriptionProcedure`),
+    utensil: text(`${SAMPLE_DESC}/bhrgcom:utensil`),
+    boreRockReached: boolean_(`${BORING}/bhrgcom:rockReached`),
+    finalBoreDepth: number_(`${BORING}/bhrgcom:finalDepthBoring`),
+    finalSampleDepth: number_(`${BORING}/bhrgcom:finalDepthSampling`),
+    boreHoleCompleted: text(`${BORING}/bhrgcom:boreholeCompleted`),
+
+    // === Boring execution details ===
+    boringStartDate: date(`${BORING}/bhrgcom:boringStartDate`),
+    boringEndDate: date(`${BORING}/bhrgcom:boringEndDate`),
+    boringProcedure: text(`${BORING}/bhrgcom:boringProcedure`),
+    boringTechnique: text(
+      `${BORING}/bhrgcom:boredInterval/bhrgcom:BoredInterval/bhrgcom:boringTechnique`,
+    ),
+    trajectoryExcavated: boolean_(`${BORING}/bhrgcom:trajectoryExcavated`),
+    subsurfaceContaminated: boolean_(`${BORING}/bhrgcom:subsurfaceContaminated`),
+    stopCriterion: text(`${BORING}/bhrgcom:stopCriterion`),
+    flushingAdditiveUsed: text(`${BORING}/bhrgcom:flushingAdditiveUsed`),
+
+    // === Sampling details ===
+    samplingProcedure: text(`${BORING}/bhrgcom:samplingProcedure`),
+    samplingMethod: text(
+      `${BORING}/bhrgcom:sampledInterval/bhrgcom:SampledInterval/bhrgcom:samplingMethod`,
+    ),
+    samplingQuality: text(
+      `${BORING}/bhrgcom:sampledInterval/bhrgcom:SampledInterval/bhrgcom:samplingQuality`,
+    ),
+
+    // === Description metadata ===
+    descriptionQuality: text(`${LOG}/bhrgcom:descriptionQuality`),
+    describedSamplesQuality: text(`${LOG}/bhrgcom:describedSamplesQuality`),
+    descriptionLocation: text(`${LOG}/bhrgcom:descriptionLocation`),
+    descriptionReportDate: date(`${SAMPLE_DESC}/bhrgcom:descriptionReportDate`),
+    describedMaterial: text(`${LOG}/bhrgcom:describedMaterial`),
+    continuouslySampled: boolean_(`${LOG}/bhrgcom:continuouslySampled`),
+    sampleMoistness: text(`${LOG}/bhrgcom:sampleMoistness`),
+
+    // === Layer data ===
+    data: array({ at: LOG, each: ".//bhrgcom:layer/bhrgcom:Layer", item: LAYER }),
+
+    // === Boring interval arrays ===
+    boredIntervals: array({
+      each: `${BORING}/bhrgcom:boredInterval/bhrgcom:BoredInterval`,
+      item: object_({
+        fields: {
+          beginDepth: number_("./bhrgcom:beginDepth", REQUIRED),
+          endDepth: number_("./bhrgcom:endDepth", REQUIRED),
+          boringTechnique: text("./bhrgcom:boringTechnique"),
+          boredDiameter: number_("./bhrgcom:boredDiameter"),
+        },
+      }),
+    }),
+    sampledIntervals: array({
+      each: `${BORING}/bhrgcom:sampledInterval/bhrgcom:SampledInterval`,
+      item: object_({
+        fields: {
+          beginDepth: number_("./bhrgcom:beginDepth", REQUIRED),
+          endDepth: number_("./bhrgcom:endDepth", REQUIRED),
+          preTreatment: text("./bhrgcom:preTreatment"),
+          samplingMethod: text("./bhrgcom:samplingMethod"),
+          samplingQuality: text("./bhrgcom:samplingQuality"),
+          // Not present in BHR-G (only BHR-GT) — always null.
+          orientatedSampled: boolean_("./bhrgcom:orientatedSampled"),
+        },
+      }),
+    }),
+
+    // === Administrative history ===
+    registrationHistory: REGISTRATION_HISTORY,
+    reportHistory: REPORT_HISTORY,
+
+    // === Additional top-level metadata ===
+    deliveryContext: text("./dsbhrg:deliveryContext"),
+    surveyPurpose: text("./dsbhrg:surveyPurpose"),
+    discipline: text("./dsbhrg:discipline"),
+    surveyProcedure: text("./dsbhrg:surveyProcedure"),
+    nitgCode: text("./dsbhrg:NITGCode"),
   },
-
-  currentProcess: {
-    xpath: "./dsbhrg:siteCharacteristic/bhrgcom:currentProcess",
-  },
-
-  // === Boring Metadata ===
-
-  descriptionProcedure: {
-    xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptionProcedure",
-  },
-
-  utensil: {
-    xpath: "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:utensil",
-  },
-
-  boreRockReached: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:rockReached",
-    resolver: typeResolvers.parseBoolean,
-  },
-
-  finalBoreDepth: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:finalDepthBoring",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  finalSampleDepth: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:finalDepthSampling",
-    resolver: typeResolvers.parseFloat,
-  },
-
-  boreHoleCompleted: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:boreholeCompleted",
-  },
-
-  // === Boring Execution Details ===
-
-  boringStartDate: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:boringStartDate",
-    resolver: typeResolvers.parseDate,
-  },
-
-  boringEndDate: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:boringEndDate",
-    resolver: typeResolvers.parseDate,
-  },
-
-  boringProcedure: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:boringProcedure",
-  },
-
-  boringTechnique: {
-    xpath:
-      "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:boredInterval/bhrgcom:BoredInterval/bhrgcom:boringTechnique",
-  },
-
-  trajectoryExcavated: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:trajectoryExcavated",
-    resolver: typeResolvers.parseBoolean,
-  },
-
-  subsurfaceContaminated: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:subsurfaceContaminated",
-    resolver: typeResolvers.parseBoolean,
-  },
-
-  stopCriterion: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:stopCriterion",
-  },
-
-  flushingAdditiveUsed: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:flushingAdditiveUsed",
-  },
-
-  // === Sampling Details ===
-
-  samplingProcedure: {
-    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:samplingProcedure",
-  },
-
-  samplingMethod: {
-    xpath:
-      "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:sampledInterval/bhrgcom:SampledInterval/bhrgcom:samplingMethod",
-  },
-
-  samplingQuality: {
-    xpath:
-      "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:sampledInterval/bhrgcom:SampledInterval/bhrgcom:samplingQuality",
-  },
-
-  // === Description Metadata ===
-
-  descriptionQuality: {
-    xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptiveBoreholeLog/bhrgcom:DescriptiveBoreholeLog/bhrgcom:descriptionQuality",
-  },
-
-  describedSamplesQuality: {
-    xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptiveBoreholeLog/bhrgcom:DescriptiveBoreholeLog/bhrgcom:describedSamplesQuality",
-  },
-
-  descriptionLocation: {
-    xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptiveBoreholeLog/bhrgcom:DescriptiveBoreholeLog/bhrgcom:descriptionLocation",
-  },
-
-  descriptionReportDate: {
-    xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptionReportDate",
-    resolver: typeResolvers.parseDate,
-  },
-
-  describedMaterial: {
-    xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptiveBoreholeLog/bhrgcom:DescriptiveBoreholeLog/bhrgcom:describedMaterial",
-  },
-
-  continuouslySampled: {
-    xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptiveBoreholeLog/bhrgcom:DescriptiveBoreholeLog/bhrgcom:continuouslySampled",
-    resolver: typeResolvers.parseBoolean,
-  },
-
-  sampleMoistness: {
-    xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptiveBoreholeLog/bhrgcom:DescriptiveBoreholeLog/bhrgcom:sampleMoistness",
-  },
-
-  // === Layer Data ===
-
-  data: {
-    xpath:
-      "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptiveBoreholeLog/bhrgcom:DescriptiveBoreholeLog",
-    resolver: bhrgResolvers.processBHRGLayerData,
-  },
-
-  // === Boring Interval Arrays ===
-
-  boredIntervals: {
-    xpath: ".", // Use current context - resolver will find all bored intervals
-    resolver: bhrgResolvers.processBHRGBoredIntervals,
-  },
-
-  sampledIntervals: {
-    xpath: ".", // Use current context - resolver will find all sampled intervals
-    resolver: bhrgResolvers.processBHRGSampledIntervals,
-  },
-
-  // === Administrative History ===
-
-  registrationHistory: {
-    xpath: ".", // Use current context - resolver will find registration history
-    resolver: processRegistrationHistory,
-  },
-
-  reportHistory: {
-    xpath: ".", // Use current context - resolver will find report history
-    resolver: bhrgResolvers.processBHRGReportHistory,
-  },
-
-  // === Additional Top-Level Metadata ===
-
-  deliveryContext: {
-    xpath: "./dsbhrg:deliveryContext",
-  },
-
-  surveyPurpose: {
-    xpath: "./dsbhrg:surveyPurpose",
-  },
-
-  discipline: {
-    xpath: "./dsbhrg:discipline",
-  },
-
-  surveyProcedure: {
-    xpath: "./dsbhrg:surveyProcedure",
-  },
-
-  nitgCode: {
-    xpath: "./dsbhrg:NITGCode",
-  },
-};
+});

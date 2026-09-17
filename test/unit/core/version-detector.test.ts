@@ -38,6 +38,22 @@ describe('detectAndValidateVersion', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
+  it('should accept valid GMW version 1.1', () => {
+    const doc = createMockDocument(SUPPORTED_VERSIONS.GMW.namespace);
+    const result = detectAndValidateVersion(doc, 'GMW');
+    expect(result.version).toBe('1.1');
+    expect(result.dataType).toBe('GMW');
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('should accept valid GLD version 1.0', () => {
+    const doc = createMockDocument(SUPPORTED_VERSIONS.GLD.namespace);
+    const result = detectAndValidateVersion(doc, 'GLD');
+    expect(result.version).toBe('1.0');
+    expect(result.dataType).toBe('GLD');
+    expect(result.warnings).toHaveLength(0);
+  });
+
   it('should parse same major version with warning', () => {
     // CPT 1.0 is same major version as supported 1.1
     const doc = createMockDocument('http://www.broservices.nl/xsd/dscpt/1.0');

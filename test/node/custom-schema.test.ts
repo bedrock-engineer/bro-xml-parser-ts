@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, expectTypeOf } from 'vitest';
 import { BROParser } from '@/parser';
 import { NodeXMLAdapter } from '@/adapters/node-adapter';
 import { fixtures } from '@test/helpers/fixture-loader';
 import * as resolvers from '@/resolvers';
 import * as presets from '@/schema-presets';
-import type { Schema } from '@/types/index';
+import type { Schema, ParseMeta, Location } from '@/types/index';
 
 /**
  * `parseCustom` returns `{ meta, ...data }` where `data` has exactly the keys
@@ -36,6 +36,11 @@ describe('Custom Schema Parsing', () => {
 
     it('LOCATION_ONLY preset extracts only location fields with exact coordinates', () => {
       const result = parser.parseCustom(fixtures.cpt.example(), presets.CPT_LOCATION_ONLY, 'CPT');
+
+      // Preset field types are inferred (authored with `satisfies Schema`).
+      expectTypeOf(result.broId).toEqualTypeOf<string | null>();
+      expectTypeOf(result.deliveredLocation).toEqualTypeOf<Location | null>();
+      expectTypeOf(result.deliveredVerticalPositionOffset).toEqualTypeOf<number | null>();
 
       expectExactKeys(result, presets.CPT_LOCATION_ONLY);
       expect(result.broId).toBe('CPT000000099543');
@@ -69,8 +74,10 @@ describe('Custom Schema Parsing', () => {
       expect((result.deliveredLocation as { epsg: string }).epsg).toBe('EPSG:28992');
     });
 
-    it('fully custom schema extracts exactly the declared fields with exact values', () => {
-      const mySchema: Schema = {
+    it('fully custom schema infers field types from resolvers (no manual annotation)', () => {
+      // `satisfies Schema` preserves each field's literal type so `parseCustom`
+      // can infer the return type; a `: Schema` annotation would erase it.
+      const mySchema = {
         id: { xpath: 'brocom:broId' },
         depth: {
           xpath: './dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth',
@@ -80,13 +87,16 @@ describe('Custom Schema Parsing', () => {
           xpath: './dscpt:researchReportDate',
           resolver: resolvers.parseDate,
         },
-      };
+      } satisfies Schema;
 
-      const result = parser.parseCustom<{
-        id: string;
-        depth: number;
-        reportDate: string;
-      }>(fixtures.cpt.example(), mySchema, 'CPT');
+      // No type argument — the output type is inferred from the schema.
+      const result = parser.parseCustom(fixtures.cpt.example(), mySchema, 'CPT');
+
+      // Inference: resolver return types flow through, no-resolver fields are raw text.
+      expectTypeOf(result.id).toEqualTypeOf<string | null>();
+      expectTypeOf(result.depth).toEqualTypeOf<number | null>();
+      expectTypeOf(result.reportDate).toEqualTypeOf<string | null>();
+      expectTypeOf(result.meta).toEqualTypeOf<ParseMeta>();
 
       expectExactKeys(result, mySchema);
       expect(result.id).toBe('CPT000000099543');

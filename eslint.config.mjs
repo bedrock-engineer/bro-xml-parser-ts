@@ -31,7 +31,7 @@ export default defineConfig(
           format: ["camelCase"],
           leadingUnderscore: "allow",
           filter: {
-            regex: "^(CPT|BHR-G|BHR-GT)$",
+            regex: "^(CPT|BHR-G|BHR-GT|GMW|GLD)$",
             match: false,
           },
         },

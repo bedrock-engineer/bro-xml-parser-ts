@@ -1,7 +1,11 @@
 /**
  * Schema presets for common extraction patterns
  *
- * These presets can be used directly or extended for custom needs.
+ * These presets can be used directly or extended for custom needs. They are
+ * authored with `satisfies Schema` (rather than a `: Schema` annotation) so each
+ * field's literal type is preserved — that lets `parseCustom` infer a precise
+ * return type from the preset instead of collapsing every field to
+ * `string | null`.
  *
  * @example
  * ```typescript
@@ -11,12 +15,13 @@
  *
  * // Use a preset directly
  * const locationData = parser.parseCustom(xml, presets.CPT_LOCATION_ONLY, 'CPT');
+ * locationData.deliveredLocation; // Location | null — inferred
  *
- * // Or extend a preset
+ * // Or extend a preset (keep `satisfies Schema` to preserve inference)
  * const mySchema = {
  *   ...presets.CPT_METADATA_ONLY,
- *   customField: { xpath: './my/custom/path' }
- * };
+ *   customField: { xpath: './my/custom/path' },
+ * } satisfies Schema;
  * ```
  */
 
@@ -31,15 +36,15 @@ import * as gmlResolvers from "./resolvers/gml-resolvers.js";
 /**
  * CPT: Just the BRO ID and quality regime
  */
-export const CPT_ID_ONLY: Schema = {
+export const CPT_ID_ONLY = {
   broId: { xpath: "brocom:broId" },
   qualityRegime: { xpath: "brocom:qualityRegime" },
-};
+} satisfies Schema;
 
 /**
  * CPT: Location data only (delivered and standardized coordinates)
  */
-export const CPT_LOCATION_ONLY: Schema = {
+export const CPT_LOCATION_ONLY = {
   broId: { xpath: "brocom:broId" },
   deliveredLocation: {
     xpath: "./dscpt:deliveredLocation/cptcommon:location",
@@ -53,12 +58,12 @@ export const CPT_LOCATION_ONLY: Schema = {
     xpath: "./dscpt:deliveredVerticalPosition/cptcommon:offset",
     resolver: typeResolvers.parseFloat,
   },
-};
+} satisfies Schema;
 
 /**
  * CPT: Basic metadata without measurement data
  */
-export const CPT_METADATA_ONLY: Schema = {
+export const CPT_METADATA_ONLY = {
   broId: { xpath: "brocom:broId" },
   qualityRegime: { xpath: "brocom:qualityRegime" },
   researchReportDate: {
@@ -78,7 +83,7 @@ export const CPT_METADATA_ONLY: Schema = {
     xpath: "./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth",
     resolver: typeResolvers.parseFloat,
   },
-};
+} satisfies Schema;
 
 // ============================================================================
 // BHR-GT (Geotechnical Borehole) Presets
@@ -87,15 +92,15 @@ export const CPT_METADATA_ONLY: Schema = {
 /**
  * BHR-GT: Just the BRO ID and quality regime
  */
-export const BORE_ID_ONLY: Schema = {
+export const BORE_ID_ONLY = {
   broId: { xpath: "brocom:broId" },
   qualityRegime: { xpath: "brocom:qualityRegime" },
-};
+} satisfies Schema;
 
 /**
  * BHR-GT: Location data only
  */
-export const BORE_LOCATION_ONLY: Schema = {
+export const BORE_LOCATION_ONLY = {
   broId: { xpath: "brocom:broId" },
   deliveredLocation: {
     xpath: "./dsbhrgt:deliveredLocation/bhrgtcom:location",
@@ -109,12 +114,12 @@ export const BORE_LOCATION_ONLY: Schema = {
     xpath: "./dsbhrgt:deliveredVerticalPosition/bhrgtcom:offset",
     resolver: typeResolvers.parseFloat,
   },
-};
+} satisfies Schema;
 
 /**
  * BHR-GT: Basic metadata without layer data
  */
-export const BORE_METADATA_ONLY: Schema = {
+export const BORE_METADATA_ONLY = {
   broId: { xpath: "brocom:broId" },
   qualityRegime: { xpath: "brocom:qualityRegime" },
   researchReportDate: {
@@ -136,7 +141,7 @@ export const BORE_METADATA_ONLY: Schema = {
     xpath: "./dsbhrgt:boring/bhrgtcom:rockReached",
     resolver: typeResolvers.parseBoolean,
   },
-};
+} satisfies Schema;
 
 // ============================================================================
 // BHR-G (Geological Borehole) Presets
@@ -145,15 +150,15 @@ export const BORE_METADATA_ONLY: Schema = {
 /**
  * BHR-G: Just the BRO ID and quality regime
  */
-export const BHRG_ID_ONLY: Schema = {
+export const BHRG_ID_ONLY = {
   broId: { xpath: "brocom:broId" },
   qualityRegime: { xpath: "brocom:qualityRegime" },
-};
+} satisfies Schema;
 
 /**
  * BHR-G: Location data only
  */
-export const BHRG_LOCATION_ONLY: Schema = {
+export const BHRG_LOCATION_ONLY = {
   broId: { xpath: "brocom:broId" },
   deliveredLocation: {
     xpath: "./dsbhrg:deliveredLocation/bhrgcom:location",
@@ -167,12 +172,12 @@ export const BHRG_LOCATION_ONLY: Schema = {
     xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:offset",
     resolver: typeResolvers.parseFloat,
   },
-};
+} satisfies Schema;
 
 /**
  * BHR-G: Basic metadata without layer data
  */
-export const BHRG_METADATA_ONLY: Schema = {
+export const BHRG_METADATA_ONLY = {
   broId: { xpath: "brocom:broId" },
   qualityRegime: { xpath: "brocom:qualityRegime" },
   researchReportDate: {
@@ -195,4 +200,4 @@ export const BHRG_METADATA_ONLY: Schema = {
     xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:rockReached",
     resolver: typeResolvers.parseBoolean,
   },
-};
+} satisfies Schema;
