@@ -10,24 +10,15 @@
  */
 
 import type { Schema } from "../types/index.js";
+import { COMMON_REGISTRATION_FIELDS } from "./common-fields.js";
 import * as typeResolvers from "../resolvers/type-resolvers.js";
 import * as gmlResolvers from "../resolvers/gml-resolvers.js";
 import * as boreResolvers from "../resolvers/bore-resolvers.js";
+import { processRegistrationHistory } from "../resolvers/bore-resolver-utils.js";
 
 export const BORE_SCHEMA: Schema = {
-  // === Core Identification ===
-
-  broId: {
-    xpath: "brocom:broId",
-  },
-
-  qualityRegime: {
-    xpath: "brocom:qualityRegime",
-  },
-
-  deliveryAccountableParty: {
-    xpath: "brocom:deliveryAccountableParty",
-  },
+  // === Core Identification (shared brocom fields) ===
+  ...COMMON_REGISTRATION_FIELDS,
 
   // === Dates ===
 
@@ -89,6 +80,21 @@ export const BORE_SCHEMA: Schema = {
     resolver: typeResolvers.parseFloat,
   },
 
+  finalDepthPreparation: {
+    xpath: "./dsbhrgt:boring/bhrgtcom:finalDepthPreparation",
+    resolver: typeResolvers.parseFloat,
+  },
+
+  finalDepthExcavation: {
+    xpath: "./dsbhrgt:boring/bhrgtcom:finalDepthExcavation",
+    resolver: typeResolvers.parseFloat,
+  },
+
+  finalDepthTemporaryCasing: {
+    xpath: "./dsbhrgt:boring/bhrgtcom:finalDepthTemporaryCasing",
+    resolver: typeResolvers.parseFloat,
+  },
+
   boreHoleCompleted: {
     xpath: "./dsbhrgt:boring/bhrgtcom:boreholeCompleted",
     resolver: typeResolvers.parseBoolean,
@@ -133,6 +139,10 @@ export const BORE_SCHEMA: Schema = {
     resolver: typeResolvers.parseBoolean,
   },
 
+  flushingAdditive: {
+    xpath: "./dsbhrgt:boring/bhrgtcom:flushingAdditive",
+  },
+
   temporaryCasingUsed: {
     xpath: "./dsbhrgt:boring/bhrgtcom:temporaryCasingUsed",
     resolver: typeResolvers.parseBoolean,
@@ -146,6 +156,19 @@ export const BORE_SCHEMA: Schema = {
 
   soilUse: {
     xpath: "./dsbhrgt:siteCharacteristic/bhrgtcom:soilUse",
+  },
+
+  positionOnGroundBody: {
+    xpath: "./dsbhrgt:siteCharacteristic/bhrgtcom:positionOnGroundBody",
+  },
+
+  temporaryChange: {
+    xpath: "./dsbhrgt:siteCharacteristic/bhrgtcom:temporaryChange",
+  },
+
+  researchOperator: {
+    xpath: "./dsbhrgt:researchOperator",
+    resolver: boreResolvers.resolveOrganisationId,
   },
 
   // === Groundwater Levels (descriptive borehole log) ===
@@ -320,11 +343,31 @@ export const BORE_SCHEMA: Schema = {
     resolver: boreResolvers.processNotDescribedIntervals,
   },
 
+  postSedimentaryDiscontinuities: {
+    xpath: ".", // Use current context - resolver will find all discontinuities
+    resolver: boreResolvers.processPostSedimentaryDiscontinuities,
+  },
+
+  excavatedLayers: {
+    xpath: ".", // Use current context - resolver will find all excavated layers
+    resolver: boreResolvers.processExcavatedLayers,
+  },
+
+  boringVelocity: {
+    xpath: ".", // Use current context - resolver will find the boring velocity profile
+    resolver: boreResolvers.processBoringVelocity,
+  },
+
+  fluidMudLayer: {
+    xpath: ".", // Use current context - resolver will find the fluid mud layer
+    resolver: boreResolvers.processFluidMudLayer,
+  },
+
   // === Administrative History ===
 
   registrationHistory: {
     xpath: ".", // Use current context - resolver will find registration history
-    resolver: boreResolvers.processRegistrationHistory,
+    resolver: processRegistrationHistory,
   },
 
   reportHistory: {

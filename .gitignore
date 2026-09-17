@@ -30,6 +30,9 @@ coverage
 test-results
 playwright-report
 
+# XSD coverage checker output (regenerable; fetches live from schema.broservices.nl)
+scripts/xsd-coverage-out
+
 # Temporary files
 *.tmp
 .cache

@@ -1,4 +1,10 @@
-import type { XMLAdapter, Namespaces } from "../types/index.js";
+import type {
+  XMLAdapter,
+  Namespaces,
+  ResolverContext,
+  RegistrationHistory,
+} from "../types/index.js";
+import { parseDate, parseBoolean } from "./type-resolvers.js";
 
 type XPathTextGetter = (xpath: string) => string | null;
 type NamespaceResolver = (prefix: string | null) => string | null;
@@ -129,7 +135,7 @@ export function extractArray<T>(
 /**
  * Configuration for optional layer fields
  */
-interface OptionalLayerField<T> {
+export interface OptionalLayerField<T> {
   /** XPath to the field element */
   xpath: string;
   /** Property name on the result object */
@@ -242,27 +248,10 @@ export function createLayerParser<T extends { upperBoundary: number; lowerBounda
       } as T;
 
       // Extract optional fields
-      for (const field of config.optionalFields) {
-        const fieldNode = adapter.evaluateXPath(layerNode, field.xpath, nsResolver);
-        const textContent = fieldNode?.textContent?.trim() ?? null;
-
-        if (field.transform) {
-          // Apply custom transform function
-          const transformed = field.transform(textContent);
-          if (field.omitIfEmpty && (transformed === null || transformed === undefined)) {
-            continue;
-          }
-          (layer as Record<string, unknown>)[field.key as string] = transformed;
-        } else if (field.omitIfEmpty) {
-          // Only set property if value exists
-          if (textContent) {
-            (layer as Record<string, unknown>)[field.key as string] = textContent;
-          }
-        } else {
-          // Always set, using null for missing values
-          (layer as Record<string, unknown>)[field.key as string] = textContent;
-        }
-      }
+      Object.assign(
+        layer,
+        extractOptionalFields(config.optionalFields, layerNode, adapter, namespaces),
+      );
 
       // Call post-process callback for complex nested fields
       if (config.postProcess) {
@@ -274,6 +263,50 @@ export function createLayerParser<T extends { upperBoundary: number; lowerBounda
 
     return layers;
   };
+}
+
+/**
+ * Extract a set of optional fields into a typed `Partial<T>` the caller can
+ * spread into a layer object (or Object.assign onto one).
+ *
+ * Shared by createLayerParser and bespoke layer parsers so the omitIfEmpty /
+ * transform semantics stay identical everywhere. The only assertion is where a
+ * field's `transform` (typed `=> unknown`) or the raw text is committed to its
+ * declared property type - the inherent XML-to-typed-value boundary.
+ */
+export function extractOptionalFields<T>(
+  fields: Array<OptionalLayerField<T>>,
+  layerNode: Node,
+  adapter: XMLAdapter,
+  namespaces: Namespaces,
+): Partial<T> {
+  const nsResolver = createNamespaceResolver(namespaces);
+  const out: Partial<T> = {};
+
+  const set = (key: keyof T, value: unknown): void => {
+    out[key] = value as T[keyof T];
+  };
+
+  for (const field of fields) {
+    const fieldNode = adapter.evaluateXPath(layerNode, field.xpath, nsResolver);
+    const textContent = fieldNode?.textContent?.trim() ?? null;
+
+    if (field.transform) {
+      const transformed = field.transform(textContent);
+      if (field.omitIfEmpty && (transformed === null || transformed === undefined)) {
+        continue;
+      }
+      set(field.key, transformed);
+    } else if (field.omitIfEmpty) {
+      if (textContent) {
+        set(field.key, textContent);
+      }
+    } else {
+      set(field.key, textContent);
+    }
+  }
+
+  return out;
 }
 
 /**
@@ -388,4 +421,46 @@ export function parseCSVRows<T>(
   }
 
   return results;
+}
+
+/**
+ * Parse the BRO registration history.
+ *
+ * Shared by every registration type (CPT, BHR-GT, BHR-G): the `registrationHistory`
+ * element is a direct child of the registration object and its children are all
+ * `brocom:*`, identical across domains - only the container's ds-namespace differs,
+ * which we sidestep with a namespace-agnostic local-name() match.
+ */
+export function processRegistrationHistory(
+  _value: string | null,
+  context: ResolverContext,
+): RegistrationHistory | null {
+  const { element, adapter, namespaces } = context;
+  const nsResolver = createNamespaceResolver(namespaces);
+
+  const historyNode = adapter.evaluateXPath(
+    element,
+    "./*[local-name()='registrationHistory']",
+    nsResolver,
+  );
+  if (!historyNode) {
+    return null;
+  }
+
+  const getText = createXPathTextGetter(historyNode, adapter, namespaces);
+
+  return {
+    objectRegistrationTime: parseDate(getText("./brocom:objectRegistrationTime")),
+    registrationStatus: getText("./brocom:registrationStatus"),
+    registrationCompletionTime: parseDate(getText("./brocom:registrationCompletionTime")),
+    latestCorrectionTime: parseDate(getText("./brocom:latestCorrectionTime")),
+    latestAdditionTime: parseDate(getText("./brocom:latestAdditionTime")),
+    underReviewTime: parseDate(getText("./brocom:underReviewTime")),
+    deregistrationTime: parseDate(getText("./brocom:deregistrationTime")),
+    reregistrationTime: parseDate(getText("./brocom:reregistrationTime")),
+    corrected: parseBoolean(getText("./brocom:corrected")),
+    underReview: parseBoolean(getText("./brocom:underReview")),
+    deregistered: parseBoolean(getText("./brocom:deregistered")),
+    reregistered: parseBoolean(getText("./brocom:reregistered")),
+  };
 }

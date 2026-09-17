@@ -48,15 +48,16 @@ export {
   processSampledIntervals,
   processCompletedIntervals,
   processNotDescribedIntervals,
-  processRegistrationHistory,
   processReportHistory,
 } from "./resolvers/bore-resolvers.js";
+
+// Registration history is shared across all registration types.
+export { processRegistrationHistory } from "./resolvers/bore-resolver-utils.js";
 
 // Re-export BHR-G resolvers
 export {
   processBHRGLayerData,
   processBHRGBoredIntervals,
   processBHRGSampledIntervals,
-  processBHRGRegistrationHistory,
   processBHRGReportHistory,
 } from "./resolvers/bhrg-resolvers.js";

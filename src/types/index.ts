@@ -181,16 +181,47 @@ export interface DissipationTest {
 }
 
 /**
+ * Common `brocom:RegistrationObject` fields shared by every BRO registration
+ * type (CPT, BHR-GT, BHR-G, ...).
+ *
+ * Mirrors how the XSDs model these: each registration object extends
+ * `brocom:RegistrationObject` via complexContent. Domain data interfaces extend
+ * this so the shared surface is declared once and stays consistent. The runtime
+ * counterpart is `COMMON_REGISTRATION_FIELDS` in schemas/common-fields.ts.
+ */
+export interface BRORegistrationObject {
+  // Core identification
+  broId: string | null;
+
+  /**
+   * BRO quality regime
+   *
+   * - IMBRO: Strict regime (all mandatory fields required)
+   * - IMBRO/A: Relaxed regime for historical data (allows missing fields)
+   */
+  qualityRegime: QualityRegime | null;
+
+  /** Party responsible for delivering the data to the BRO (bronhouder, KvK number or name) */
+  deliveryAccountableParty: string | null;
+
+  /** Object identifier assigned by the accountable party (their own reference) */
+  objectIdAccountableParty: string | null;
+
+  /** KvK number of the party responsible for the delivery */
+  deliveryResponsibleParty: string | null;
+
+  /** BRO registration history */
+  registrationHistory: RegistrationHistory | null;
+}
+
+/**
  * Complete CPT data (metadata + measurements)
  */
-export interface CPTData {
+export interface CPTData extends BRORegistrationObject {
   /**
    * Metadata about the parsed document (schema version, warnings)
    */
   meta: ParseMeta;
-
-  // Core identification
-  broId: string | null;
 
   /**
    * User-defined identifier (not parsed from XML)
@@ -206,16 +237,8 @@ export interface CPTData {
    */
   alias?: string;
 
-  /**
-   * BRO quality regime
-   *
-   * - IMBRO: Strict regime (all mandatory fields required)
-   * - IMBRO/A: Relaxed regime for historical data (allows missing fields)
-   */
-  qualityRegime: QualityRegime | null;
-
-  /** Party responsible for delivering the data to the BRO (bronhouder, KvK number or name) */
-  deliveryAccountableParty: string | null;
+  /** KvK number of the operator that carried out the research */
+  researchOperator: string | null;
 
   researchReportDate: string | null;
 
@@ -228,21 +251,29 @@ export interface CPTData {
   // Location
   deliveredLocation: Location | null;
   standardizedLocation: Location | null;
+  /** Coordinate transformation applied to the standardized location (e.g. "RDNAPTRANS2018") */
+  coordinateTransformation: string | null;
 
   // Location provenance
   /** Date horizontal position was determined */
   horizontalPositioningDate: string | null;
   /** Method used to determine horizontal position (e.g., "onbekend", "GNSS") */
   horizontalPositioningMethod: string | null;
+  /** KvK number of the operator that determined the horizontal position */
+  horizontalPositioningOperator: string | null;
 
   // Vertical position
   deliveredVerticalPositionOffset: number | null;
   deliveredVerticalPositionDatum: string | null;
   deliveredVerticalPositionReferencePoint: string | null;
+  /** Water depth at the CPT location (m), when the survey was performed over water */
+  waterDepth: number | null;
   /** Date vertical position was determined */
   verticalPositioningDate: string | null;
   /** Method used to determine vertical position (e.g., "onbekend", "waterpassingKlasse2") */
   verticalPositioningMethod: string | null;
+  /** KvK number of the operator that determined the vertical position */
+  verticalPositioningOperator: string | null;
 
   // Survey context
   /** Delivery context (e.g., "publiekeTaak", "archiefoverdracht") */
@@ -323,9 +354,6 @@ export interface CPTData {
 
   // Dissipation tests (pore pressure decay at specific depths)
   dissipationTests: Array<DissipationTest>;
-
-  // Administrative history
-  registrationHistory: RegistrationHistory | null;
 }
 
 /**
@@ -343,11 +371,72 @@ export interface Grainshape {
 }
 
 /**
+ * Weathering degree of a rock layer (three-axis classification)
+ */
+export interface RockWeatheringDegree {
+  /** Degree of discolouration */
+  discolouration: string | null;
+  /** Degree of disintegration */
+  disintegration: string | null;
+  /** Degree of decomposition */
+  decomposition: string | null;
+}
+
+/**
+ * Rock description for a layer (BHR-GT `rock` element).
+ *
+ * A layer describes either soil (flattened onto BHRGTLayer) or rock (this
+ * nested object). Yes/no fields keep their raw code (e.g. "ja", "nee",
+ * "nietWaargenomen") to preserve archive nuance.
+ */
+export interface RockDescription {
+  rockType: string | null;
+  cementType: string | null;
+  colour: string | null;
+  /** Tertiary rock constituents (1 or more) */
+  tertiaryRockConstituent: Array<string>;
+  interbedding: string | null;
+  /** Dispersed inhomogeneities (0-2) */
+  dispersedInhomogeneity: Array<string>;
+  carbonateContentClass: string | null;
+  crossBedding: string | null;
+  gradedBedding: string | null;
+  voidsPresent: string | null;
+  voidDistribution: string | null;
+  stability: string | null;
+  strengthClass: string | null;
+  weathered: string | null;
+  weatheringDegree?: RockWeatheringDegree;
+}
+
+/**
+ * Post-sedimentary discontinuity in the descriptive borehole log
+ * (e.g. a fracture or fault plane crossing the described interval)
+ */
+export interface PostSedimentaryDiscontinuity {
+  beginDepth: number;
+  endDepth: number;
+  /** Whether the discontinuity is in rock (raw code, e.g. "ja"/"nee") */
+  inRock: string | null;
+  discontinuityType: string | null;
+  compositeDiscontinuity: string | null;
+  /** Spacing between discontinuities (m) */
+  spacing: number | null;
+  smooth: string | null;
+  apertureClass: string | null;
+  infillMaterial: string | null;
+}
+
+/**
  * BHR-GT (Borehole Research Geotechnical) layer data
  *
  * Contains all fields from the BRO BHR-GT schema for a single soil layer.
  */
-export interface BHRGTLayer {
+/**
+ * Fields shared by every BHR-GT described layer, regardless of whether it
+ * describes soil or rock (they live directly on the XSD `layer` element).
+ */
+export interface BHRGTLayerBase {
   // Depth boundaries
   upperBoundary: number;
   lowerBoundary: number;
@@ -360,7 +449,34 @@ export interface BHRGTLayer {
   /** Whether the layer is anthropogenic (man-made) */
   anthropogenic?: boolean | null;
 
+  // Layer structure properties
+  /** Whether the layer boundary is slanted */
+  slant?: boolean | null;
+  /** Whether the layer is bedded/stratified */
+  bedded?: boolean | null;
+  /** Bedding type of the layer (e.g., "dikGelamineerd") */
+  bedding?: string | null;
+  /** Whether the layer is a composite layer */
+  compositeLayer?: boolean | null;
+  /** Human activity type observed in the layer (e.g., "nietBepaald") */
+  activityType?: string | null;
+  /** Whether the internal structure is intact (undisturbed) */
+  internalStructureIntact?: boolean | null;
+
+  // Special material
+  /** Special material in the layer (e.g. anthropogenic debris) */
+  specialMaterial?: string | null;
+}
+
+/**
+ * A BHR-GT layer that describes soil (the common case).
+ * Discriminate on `material === "soil"`.
+ */
+export interface BHRGTSoilLayer extends BHRGTLayerBase {
+  material: "soil";
+
   // Soil classification
+  /** Geotechnical soil name (may be "" for IMBRO/A archive data using NEN 5104) */
   geotechnicalSoilName: string;
   /** Soil name per NEN 5104 (IMBRO/A archive data; geotechnicalSoilName is often nil there) */
   soilNameNEN5104?: string | null;
@@ -391,19 +507,6 @@ export interface BHRGTLayer {
   /** Grain shape properties (for sand/gravel) */
   grainshape?: Grainshape;
 
-  // Layer structure properties
-  /** Whether the layer boundary is slanted */
-  slant?: boolean | null;
-  /** Whether the layer is bedded/stratified */
-  bedded?: boolean | null;
-  /** Bedding type of the layer (e.g., "dikGelamineerd") */
-  bedding?: string | null;
-  /** Whether the layer is a composite layer */
-  compositeLayer?: boolean | null;
-  /** Human activity type observed in the layer (e.g., "nietBepaald") */
-  activityType?: string | null;
-  /** Whether the internal structure is intact (undisturbed) */
-  internalStructureIntact?: boolean | null;
   /** Whether the soil is mixed */
   mixed?: boolean | null;
   /** Whether the soil has mottled appearance */
@@ -420,7 +523,48 @@ export interface BHRGTLayer {
   organicSoilTexture?: string | null;
   /** Tensile strength of peat */
   peatTensileStrength?: string | null;
+
+  // Additional soil description fields
+  /** Cross bedding present (raw code) */
+  crossBedding?: string | null;
+  /** Graded bedding present (raw code) */
+  gradedBedding?: string | null;
+  /** Mixing type of the soil */
+  mixingType?: string | null;
+  /** Fine gravel content classification */
+  fineGravelContentClass?: string | null;
+  /** Medium-coarse gravel content classification */
+  mediumCoarseGravelContentClass?: string | null;
+  /** Very coarse gravel content classification */
+  veryCoarseGravelContentClass?: string | null;
+  /** Sand sorting classification per NEN 5104 */
+  sandSortingNEN5104?: string | null;
+  /** Peat type classification */
+  peatType?: string | null;
+  /** Depositional age of the layer */
+  depositionalAge?: string | null;
 }
+
+/**
+ * A BHR-GT layer that describes rock.
+ * Discriminate on `material === "rock"`.
+ */
+export interface BHRGTRockLayer extends BHRGTLayerBase {
+  material: "rock";
+  /** Rock description */
+  rock: RockDescription;
+}
+
+/**
+ * A BHR-GT described layer: either soil or rock.
+ *
+ * Narrow on the `material` discriminant:
+ * ```ts
+ * if (layer.material === "rock") layer.rock.rockType;
+ * else layer.geotechnicalSoilName;
+ * ```
+ */
+export type BHRGTLayer = BHRGTSoilLayer | BHRGTRockLayer;
 
 /**
  * Complete Bore data (metadata + layers)
@@ -428,14 +572,11 @@ export interface BHRGTLayer {
  * Note: BHRGTData represents BHR-GT-BMB (Boormonsterbeschrijving - visual/textural description)
  * For laboratory analysis data, see the optional `analysis` field (BHR-GT-BMA)
  */
-export interface BHRGTData {
+export interface BHRGTData extends BRORegistrationObject {
   /**
    * Metadata about the parsed document (schema version, warnings)
    */
   meta: ParseMeta;
-
-  // Core identification
-  broId: string | null;
 
   /**
    * User-defined identifier (not parsed from XML)
@@ -451,17 +592,6 @@ export interface BHRGTData {
    */
   alias?: string;
 
-  /**
-   * BRO quality regime
-   *
-   * - IMBRO: Strict regime (all mandatory fields required)
-   * - IMBRO/A: Relaxed regime for historical data (allows missing fields)
-   */
-  qualityRegime: QualityRegime | null;
-
-  /** Party responsible for delivering the data to the BRO (bronhouder, KvK number or name) */
-  deliveryAccountableParty: string | null;
-
   researchReportDate: string | null;
 
   // Location
@@ -476,6 +606,10 @@ export interface BHRGTData {
   // Site characteristic
   /** Soil use at the site (e.g., "akker", "grasland", "geenBodemgebruik") */
   soilUse: string | null;
+  /** Position of the borehole on the ground body (e.g. "kruin", "talud") */
+  positionOnGroundBody: string | null;
+  /** Temporary change at the site at time of drilling (e.g. "geen") */
+  temporaryChange: string | null;
 
   // Bore metadata
   descriptionProcedure: string | null;
@@ -487,6 +621,12 @@ export interface BHRGTData {
   boreRockReached: boolean | null;
   finalBoreDepth: number | null;
   finalSampleDepth: number | null;
+  /** Final depth reached during site preparation (m) */
+  finalDepthPreparation: number | null;
+  /** Final depth reached by excavation (m) */
+  finalDepthExcavation: number | null;
+  /** Final depth reached with a temporary casing (m) */
+  finalDepthTemporaryCasing: number | null;
   boreHoleCompleted: boolean | null;
 
   // Boring execution details
@@ -506,10 +646,14 @@ export interface BHRGTData {
   stopCriterion: string | null;
   /** Whether a flushing medium was used during boring */
   flushingMediumUsed: boolean | null;
+  /** Flushing additive used during boring (e.g. "geen"), when a flushing medium was used */
+  flushingAdditive: string | null;
   /** Whether a temporary casing was used during boring */
   temporaryCasingUsed: boolean | null;
   /** Site preparation before boring (e.g., "geen") */
   preparation: string | null;
+  /** KvK number of the operator that carried out the research */
+  researchOperator: string | null;
 
   // Sampler details
   /** Type of sampler used */
@@ -578,10 +722,18 @@ export interface BHRGTData {
   completedIntervals: Array<CompletedInterval>;
   /** Array of intervals not described (with reason) */
   notDescribedIntervals: Array<NotDescribedInterval>;
+  /** Array of post-sedimentary discontinuities in the descriptive log */
+  postSedimentaryDiscontinuities: Array<PostSedimentaryDiscontinuity>;
+  /** Array of excavated layers (removed by excavation) */
+  excavatedLayers: Array<ExcavatedLayer>;
+  /** Boring velocity profile (elapsed time vs depth) */
+  boringVelocity: Array<BoringVelocityMeasurement>;
 
-  // Administrative history
-  /** BRO registration history */
-  registrationHistory: RegistrationHistory | null;
+  // Fluid mud layer (optional, single)
+  /** Fluid mud (slib) layer at the borehole, when present */
+  fluidMudLayer?: FluidMudLayer;
+
+  // Administrative history (registrationHistory inherited from BRORegistrationObject)
   /** Report history with events */
   reportHistory: ReportHistory | null;
 
@@ -598,10 +750,154 @@ export interface BHRGTData {
   siteCharacteristicDetermined: boolean | null;
 }
 
+/** Munsell colour notation (BHR-G soil colour) */
+export interface MunsellColour {
+  munsellHue: string | null;
+  munsellValue: string | null;
+  munsellChroma: string | null;
+}
+
+/** A constituent of the sand fraction */
+export interface SandConstituent {
+  grainColour: string | null;
+  percentageClass: string | null;
+  archiveClass: string | null;
+}
+
+/** Sand fraction description (BHR-G soil) */
+export interface SandFraction {
+  darkGrainContentClass: string | null;
+  darkGrainContentClassArchive: string | null;
+  angularity: string | null;
+  sandMedianClass: string | null;
+  sandSorting: string | null;
+  variegation: string | null;
+  anomalouslyCoarseContentClass: string | null;
+  anomalouslyCoarseContentClassArchive: string | null;
+  granuleContentClass: string | null;
+  granuleContentClassArchive: string | null;
+  estimatedMedian: number | null;
+  sandConstituents: Array<SandConstituent>;
+}
+
+/** A constituent of the shell fraction */
+export interface ShellConstituent {
+  shellTaxon: string | null;
+  relativeAbundance: string | null;
+  relativeAbundanceClass: string | null;
+  relativeAbundanceClassArchive: string | null;
+}
+
+/** Shell fraction description (BHR-G soil) */
+export interface ShellFraction {
+  gritContentClass: string | null;
+  fragmentContentClass: string | null;
+  remainsContentClass: string | null;
+  wholeContentClass: string | null;
+  doublets: string | null;
+  thickWalledContentClass: string | null;
+  thinWalledContentClass: string | null;
+  inSitu: string | null;
+  weatheringDegree: string | null;
+  shellConstituents: Array<ShellConstituent>;
+}
+
+/** A constituent of the gravel fraction */
+export interface GravelConstituent {
+  gravelType: string | null;
+  fractionProportion: number | null;
+  archiveClass: string | null;
+}
+
+/** Gravel fraction description (BHR-G soil) */
+export interface GravelFraction {
+  gravelMedianClass: string | null;
+  angularity: string | null;
+  fineGravelContentClass: string | null;
+  mediumCoarseGravelContentClass: string | null;
+  veryCoarseGravelContentClass: string | null;
+  ventifactPresent: string | null;
+  sphericity: string | null;
+  variegation: string | null;
+  gravelProvenance: string | null;
+  estimatedMedian: number | null;
+  gravelConstituents: Array<GravelConstituent>;
+}
+
+/** A constituent of the peat fraction */
+export interface PeatConstituent {
+  plantRemainType: string | null;
+  percentageClass: string | null;
+  archiveClass: string | null;
+}
+
+/** Peat fraction description (BHR-G soil) */
+export interface PeatFraction {
+  peatType: string | null;
+  peatConstituents: Array<PeatConstituent>;
+}
+
+/** A chunk (brok) of differing material within a layer */
+export interface Chunk {
+  soilType: string | null;
+  sizeClass: string | null;
+  percentageClass: string | null;
+  archiveClass: string | null;
+  colour: string | null;
+  geologicalOrigin: string | null;
+  cemented: string | null;
+}
+
+/** Fine fraction distribution for organic soils (mass proportions, %) */
+export interface FineFractionDistributionOrganicSoil {
+  estimatedMassProportionSand: number | null;
+  estimatedMassProportionSilt: number | null;
+  estimatedMassProportionLutum: number | null;
+}
+
+/** Fine fraction distribution for shelly soils (volume proportions, %) */
+export interface FineFractionDistributionShellySoil {
+  estimatedVolumeProportionSand: number | null;
+  estimatedVolumeProportionSilt: number | null;
+  estimatedVolumeProportionLutum: number | null;
+}
+
+/** Estimated fraction distribution of a layer's soil */
+export interface FractionDistribution {
+  fractionDistributionComplete: string | null;
+  estimatedMassProportionOrganicMatter: number | null;
+  estimatedMassProportionShellMatter: number | null;
+  estimatedVolumeProportionShellMatter: number | null;
+  estimatedMassProportionShell: number | null;
+  estimatedMassProportionGravel: number | null;
+  estimatedVolumeProportionGravel: number | null;
+  fineFractionDistributionOrganicSoil?: FineFractionDistributionOrganicSoil;
+  fineFractionDistributionShellySoil?: FineFractionDistributionShellySoil;
+}
+
+/** A mottle (vlek) in a layer */
+export interface Mottle {
+  colour: string | null;
+  density: string | null;
+  inBands: string | null;
+}
+
+/** A thin stratum (laagje) interbedded in a layer */
+export interface ThinStratum {
+  layerProportion: number | null;
+  layerProportionClass: string | null;
+  layerProportionClassArchive: string | null;
+  stratumThicknessClass: string | null;
+  geologicalOrigin: string | null;
+}
+
 /**
  * BHR-G (Geological Borehole) layer data
  *
  * Contains all fields from the BRO BHR-G schema for a single soil layer.
+ * Soil-level fields are flattened directly onto the layer (matching the parser's
+ * existing style); genuinely nested sub-structures (fractions, mottles, chunks,
+ * thin strata) are modelled as nested objects/arrays.
  */
 export interface BHRGLayer {
   // Depth boundaries
@@ -625,32 +921,67 @@ export interface BHRGLayer {
   gravelContentClass?: string | null;
   carbonateContentClass?: string | null;
   sandMedianClass?: string | null;
+
+  // Layer-level description
+  /** Whether a post-sedimentary change is present (raw code) */
+  postSedimentary?: string | null;
+  horizonCode?: string | null;
+  humanTrace?: string | null;
+  geologicalOrigin?: string | null;
+  bioturbated?: string | null;
+  /** Sedimentary structures (0-3) */
+  structure?: Array<string>;
+  /** Vertical trends (0-3) */
+  verticalTrend?: Array<string>;
+  /** Archeological constituent types (0-5) */
+  archeologicalConstituents?: Array<string>;
+
+  // Soil-level classification (inside <soil>)
+  /** Geological soil name (lithostratigraphic) */
+  geologicalSoilName?: string | null;
+  /** Shell matter content classification */
+  shellMatterContentClass?: string | null;
+  micaContentClass?: string | null;
+  micaContentClassArchive?: string | null;
+  shellMatterContentClassArchive?: string | null;
+  /** Very coarse fraction content classes (0-2) */
+  veryCoarseFractionContentClass?: Array<string>;
+  /** Very coarse fraction content classes, archive coding (0-2) */
+  veryCoarseFractionContentClassArchive?: Array<string>;
+  glauconiteContentClass?: string | null;
+  glauconiteContentClassArchive?: string | null;
+  sedimentaryPhenomenon?: string | null;
+  /** Animal fossil types found in the soil (0+) */
+  animalFossils?: Array<string>;
+
+  // Nested soil sub-structures
+  munsellColour?: MunsellColour;
+  sandFraction?: SandFraction;
+  shellFraction?: ShellFraction;
+  gravelFraction?: GravelFraction;
+  peatFraction?: PeatFraction;
+  fractionDistribution?: FractionDistribution;
+  /** Chunks of differing material (0-3) */
+  chunks?: Array<Chunk>;
+  /** Mottles (0-3) */
+  mottles?: Array<Mottle>;
+  /** Thin interbedded strata (0-4) */
+  thinStrata?: Array<ThinStratum>;
 }
 
 /**
  * Complete BHR-G (Geological Borehole) data (metadata + layers)
  */
-export interface BHRGData {
+export interface BHRGData extends BRORegistrationObject {
   /**
    * Metadata about the parsed document (schema version, warnings)
    */
   meta: ParseMeta;
 
-  // Core identification
-  broId: string | null;
-
   /**
    * User-defined identifier (not parsed from XML)
    */
   alias?: string;
-
-  /**
-   * BRO quality regime
-   *
-   * - IMBRO: Strict regime (all mandatory fields required)
-   * - IMBRO/A: Relaxed regime for historical data (allows missing fields)
-   */
-  qualityRegime: QualityRegime | null;
 
   researchReportDate: string | null;
 
@@ -662,9 +993,27 @@ export interface BHRGData {
   deliveredVerticalPositionOffset: number | null;
   deliveredVerticalPositionDatum: string | null;
   deliveredVerticalPositionReferencePoint: string | null;
+  /** Water depth at the borehole location (m), when the survey was over water */
+  waterDepth: number | null;
+  /** Date vertical position was determined */
+  verticalPositioningDate: string | null;
+  /** Method used to determine vertical position */
+  verticalPositioningMethod: string | null;
+  /** KvK number of the operator that determined the vertical position */
+  verticalPositioningOperator: string | null;
+
+  // Site characteristic
+  /** Landscape element at the site */
+  landscapeElement: string | null;
+  /** Hydrological setting at the site */
+  hydrologicalSetting: string | null;
+  /** Current geomorphological process at the site */
+  currentProcess: string | null;
 
   // Bore metadata
   descriptionProcedure: string | null;
+  /** Tool used for the sample description */
+  utensil: string | null;
   boreRockReached: boolean | null;
   finalBoreDepth: number | null;
   finalSampleDepth: number | null;
@@ -685,6 +1034,8 @@ export interface BHRGData {
   subsurfaceContaminated: boolean | null;
   /** Stop criterion for boring */
   stopCriterion: string | null;
+  /** Whether a flushing additive was used (raw code) */
+  flushingAdditiveUsed: string | null;
 
   // Sampling details
   /** Sampling procedure standard */
@@ -718,9 +1069,7 @@ export interface BHRGData {
   /** Array of sampled intervals with method and quality */
   sampledIntervals: Array<SampledInterval>;
 
-  // Administrative history
-  /** BRO registration history */
-  registrationHistory: RegistrationHistory | null;
+  // Administrative history (registrationHistory inherited from BRORegistrationObject)
   /** Report history with events */
   reportHistory: ReportHistory | null;
 
@@ -765,6 +1114,20 @@ export interface SamplerDetails {
 }
 
 /**
+ * Core recovery measurements for a sampled interval (rock coring)
+ */
+export interface CoreRecovery {
+  /** Total core recovery (%) */
+  totalCoreRecovery: number | null;
+  /** Solid core recovery (%) */
+  solidCoreRecovery: number | null;
+  /** Rock Quality Designation (%) */
+  rockQualityDesignation: number | null;
+  /** Whether the core recovery was determined in the field */
+  fieldDetermined: boolean | null;
+}
+
+/**
  * Sampled interval - records sampling method and quality at specific depth ranges
  */
 export interface SampledInterval {
@@ -775,6 +1138,8 @@ export interface SampledInterval {
   samplingQuality: string | null;
   orientatedSampled: boolean | null;
   sampler?: SamplerDetails;
+  /** Core recovery measurements (rock coring), when determined */
+  coreRecovery?: CoreRecovery;
 }
 
 /**
@@ -784,9 +1149,47 @@ export interface CompletedInterval {
   beginDepth: number;
   endDepth: number;
   permanentCasingPresent: boolean | null;
+  /** Diameter of the permanent casing (mm) */
+  diameterPermanentCasing: number | null;
+  /** Material of the permanent casing */
+  materialPermanentCasing: string | null;
   backfillMaterial: string | null;
   backfillMaterialWashed: boolean | null;
   backfillMaterialCertified: boolean | null;
+}
+
+/**
+ * Excavated layer - a layer removed by excavation before/during boring
+ */
+export interface ExcavatedLayer {
+  upperBoundary: number;
+  lowerBoundary: number;
+  /** Material that was excavated */
+  excavatedMaterial: string | null;
+}
+
+/**
+ * Boring velocity measurement - drilling depth reached after a given elapsed time
+ */
+export interface BoringVelocityMeasurement {
+  /** Elapsed time (s) */
+  elapsedTime: number | null;
+  /** Depth reached (m) */
+  depth: number | null;
+}
+
+/**
+ * Fluid mud layer - a layer of fluid mud (slib) recorded at the borehole
+ */
+export interface FluidMudLayer {
+  /** Thickness of the fluid mud layer (m) */
+  thickness: number | null;
+  /** Colour of the fluid mud */
+  colour: string | null;
+  /** Method used to position the upper boundary */
+  upperBoundaryPositioningMethod: string | null;
+  /** Method used to position the lower boundary */
+  lowerBoundaryPositioningMethod: string | null;
 }
 
 /**
@@ -815,6 +1218,14 @@ export interface RegistrationHistory {
   registrationCompletionTime: string | null;
   /** Time of the latest correction to the registered object */
   latestCorrectionTime: string | null;
+  /** Time of the latest addition to the registered object */
+  latestAdditionTime: string | null;
+  /** Time the object was placed under review */
+  underReviewTime: string | null;
+  /** Time the object was deregistered */
+  deregistrationTime: string | null;
+  /** Time the object was reregistered after deregistration */
+  reregistrationTime: string | null;
   corrected: boolean | null;
   underReview: boolean | null;
   deregistered: boolean | null;
@@ -904,6 +1315,8 @@ export interface ParticleSizeDistributionDetermination {
   removedMaterial: string | null;
   equivalentMassDeterminationMethod: string | null;
   equivalentMass: number | null; // g/cm³
+  /** Optical model used (for laser-diffraction methods) */
+  usedOpticalModel?: string | null;
 
   // Basic distribution
   fractionSmaller63um: number | null; // percentage
@@ -939,6 +1352,27 @@ export interface ParticleSizeDistributionDetermination {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   fraction31_5to63mm?: number | null;
   fractionLarger63mm?: number | null;
+
+  // Detailed distribution > 63μm (finer buckets; alternative to the standard >63μm set)
+  fraction63to75um?: number | null;
+  fraction75to90um?: number | null;
+  fraction90to106um?: number | null;
+  fraction106to125um?: number | null;
+  fraction125to150um?: number | null;
+  fraction150to180um?: number | null;
+  fraction180to212um?: number | null;
+  fraction212to250um?: number | null;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  fraction4to5_6mm?: number | null;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  fraction5_6to8mm?: number | null;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  fraction8to11_2mm?: number | null;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  fraction11_2to16mm?: number | null;
+  fraction16to20mm?: number | null;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  fraction20to31_5mm?: number | null;
 }
 
 /**
@@ -1022,6 +1456,10 @@ export interface SaturationStageAtCompression {
   constantHeight: boolean | null;
   specimenHeightAfterwards: number | null; // mm
   disturbanceInduced: boolean | null;
+  /** Maximum stress difference during saturation (kPa) */
+  maximumStressDifference: number | null;
+  /** Maximum strain during saturation (%) */
+  maximumStrain: number | null;
 }
 
 /**
@@ -1053,6 +1491,14 @@ export interface SaturatedPermeabilityAtSpecificDensity {
 }
 
 /**
+ * Permeability at specific load measurement
+ */
+export interface SaturatedPermeabilityAtSpecificLoad {
+  load: number | null; // kPa
+  saturatedPermeability: number | null; // m/s
+}
+
+/**
  * Saturated permeability determination (hydraulic conductivity)
  * Used to determine water flow characteristics through soil
  */
@@ -1067,7 +1513,14 @@ export interface SaturatedPermeabilityDetermination {
   waterDegassed: boolean | null;
   temperature: number | null; // Celsius
   maximumGradient: number | null; // cm/cm
+  /** Whether the confining ring was water-repellent (raw code) */
+  ringWaterRepellent: string | null;
+  /** Water content after the test (%) */
+  waterContentAfterwards: number | null;
+  /** Material irregularities observed (0-2 codes) */
+  materialIrregularity: Array<string>;
   saturatedPermeabilityAtSpecificDensity: Array<SaturatedPermeabilityAtSpecificDensity>;
+  saturatedPermeabilityAtSpecificLoad: Array<SaturatedPermeabilityAtSpecificLoad>;
 }
 
 /**
@@ -1104,6 +1557,8 @@ export interface SaturationStageAtLoading {
   effectivePressure: number | null; // kPa
   skemptonBCoefficient: number | null; // dimensionless (0-1)
   disturbanceInduced: boolean | null;
+  /** Stress difference during saturation (kPa) */
+  stressDifference: number | null;
 }
 
 /**
@@ -1214,6 +1669,10 @@ export interface MaximumUndrainedShearStrengthDetermination {
   verticallyDetermined: boolean | null;
   sampleMoistness: string | null;
   maximumUndrainedShearStrength: number | null; // kPa
+  /** Lowest measured maximum undrained shear strength (kPa) */
+  lowestMaximumUndrainedShearStrength: number | null;
+  /** Highest measured maximum undrained shear strength (kPa) */
+  highestMaximumUndrainedShearStrength: number | null;
 }
 
 /**

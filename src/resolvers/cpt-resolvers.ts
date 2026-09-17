@@ -5,9 +5,8 @@
  * XML nodes: removed layers and registration history.
  */
 
-import type { ResolverContext, RemovedLayer, RegistrationHistory } from "../types/index.js";
+import type { ResolverContext, RemovedLayer } from "../types/index.js";
 import { createXPathTextGetter, createNamespaceResolver } from "./bore-resolver-utils.js";
-import { parseBoolean, parseDate } from "./type-resolvers.js";
 
 /**
  * Process removedLayer elements from additionalInvestigation
@@ -43,39 +42,5 @@ export function processRemovedLayers(
   });
 }
 
-/**
- * Process CPT registration history
- *
- * Equivalent to processRegistrationHistory in bore-resolvers but for the
- * dscpt namespace used in CPT documents.
- */
-export function processCPTRegistrationHistory(
-  _value: string | null,
-  context: ResolverContext,
-): RegistrationHistory | null {
-  const { element, adapter, namespaces } = context;
-  const nsResolver = createNamespaceResolver(namespaces);
-
-  const historyNode = adapter.evaluateXPath(element, "./dscpt:registrationHistory", nsResolver);
-
-  if (!historyNode) {
-    return null;
-  }
-
-  const getText = createXPathTextGetter(historyNode, adapter, namespaces);
-
-  const objectRegistrationTimeStr = getText("./brocom:objectRegistrationTime");
-  const registrationCompletionTimeStr = getText("./brocom:registrationCompletionTime");
-  const latestCorrectionTimeStr = getText("./brocom:latestCorrectionTime");
-
-  return {
-    objectRegistrationTime: parseDate(objectRegistrationTimeStr),
-    registrationStatus: getText("./brocom:registrationStatus"),
-    registrationCompletionTime: parseDate(registrationCompletionTimeStr),
-    latestCorrectionTime: parseDate(latestCorrectionTimeStr),
-    corrected: parseBoolean(getText("./brocom:corrected")),
-    underReview: parseBoolean(getText("./brocom:underReview")),
-    deregistered: parseBoolean(getText("./brocom:deregistered")),
-    reregistered: parseBoolean(getText("./brocom:reregistered")),
-  };
-}
+// Registration history is parsed by the shared processRegistrationHistory in
+// bore-resolver-utils (identical across CPT/BHR-GT/BHR-G).

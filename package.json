@@ -64,7 +64,8 @@
     "docs:api": "typedoc",
     "docs:sync": "node scripts/sync-docs.mjs",
     "docs": "npm run docs:api && npm run docs:sync",
-    "codegen:reference-codes": "npx tsx scripts/codegen-reference-codes.ts"
+    "codegen:reference-codes": "npx tsx scripts/codegen-reference-codes.ts",
+    "check:xsd-coverage": "npx tsx scripts/check-xsd-coverage.ts"
   },
   "keywords": [
     "bro",

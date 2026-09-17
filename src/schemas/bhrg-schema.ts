@@ -10,20 +10,15 @@
  */
 
 import type { Schema } from "../types/index.js";
+import { COMMON_REGISTRATION_FIELDS } from "./common-fields.js";
 import * as typeResolvers from "../resolvers/type-resolvers.js";
 import * as gmlResolvers from "../resolvers/gml-resolvers.js";
 import * as bhrgResolvers from "../resolvers/bhrg-resolvers.js";
+import { processRegistrationHistory } from "../resolvers/bore-resolver-utils.js";
 
 export const BHRG_SCHEMA: Schema = {
-  // === Core Identification ===
-
-  broId: {
-    xpath: "brocom:broId",
-  },
-
-  qualityRegime: {
-    xpath: "brocom:qualityRegime",
-  },
+  // === Core Identification (shared brocom fields) ===
+  ...COMMON_REGISTRATION_FIELDS,
 
   // === Dates ===
 
@@ -59,11 +54,47 @@ export const BHRG_SCHEMA: Schema = {
     xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:localVerticalReferencePoint",
   },
 
+  waterDepth: {
+    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:waterDepth",
+    resolver: typeResolvers.parseFloat,
+  },
+
+  verticalPositioningDate: {
+    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningDate",
+    resolver: typeResolvers.parseDate,
+  },
+
+  verticalPositioningMethod: {
+    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningMethod",
+  },
+
+  verticalPositioningOperator: {
+    xpath: "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningOperator",
+  },
+
+  // === Site Characteristic ===
+
+  landscapeElement: {
+    xpath: "./dsbhrg:siteCharacteristic/bhrgcom:landscapeElement",
+  },
+
+  hydrologicalSetting: {
+    xpath: "./dsbhrg:siteCharacteristic/bhrgcom:hydrologicalSetting",
+  },
+
+  currentProcess: {
+    xpath: "./dsbhrg:siteCharacteristic/bhrgcom:currentProcess",
+  },
+
   // === Boring Metadata ===
 
   descriptionProcedure: {
     xpath:
       "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptionProcedure",
+  },
+
+  utensil: {
+    xpath: "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:utensil",
   },
 
   boreRockReached: {
@@ -118,6 +149,10 @@ export const BHRG_SCHEMA: Schema = {
 
   stopCriterion: {
     xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:stopCriterion",
+  },
+
+  flushingAdditiveUsed: {
+    xpath: "./dsbhrg:boring/bhrgcom:Boring/bhrgcom:flushingAdditiveUsed",
   },
 
   // === Sampling Details ===
@@ -199,7 +234,7 @@ export const BHRG_SCHEMA: Schema = {
 
   registrationHistory: {
     xpath: ".", // Use current context - resolver will find registration history
-    resolver: bhrgResolvers.processBHRGRegistrationHistory,
+    resolver: processRegistrationHistory,
   },
 
   reportHistory: {

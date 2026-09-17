@@ -10,24 +10,19 @@
  */
 
 import type { Schema } from "../types/index.js";
+import { COMMON_REGISTRATION_FIELDS } from "./common-fields.js";
 import * as typeResolvers from "../resolvers/type-resolvers.js";
 import * as gmlResolvers from "../resolvers/gml-resolvers.js";
 import * as measurementResolvers from "../resolvers/measurement-resolver.js";
 import * as cptResolvers from "../resolvers/cpt-resolvers.js";
+import { processRegistrationHistory } from "../resolvers/bore-resolver-utils.js";
 
 export const CPT_SCHEMA: Schema = {
-  // === Core Identification ===
+  // === Core Identification (shared brocom fields) ===
+  ...COMMON_REGISTRATION_FIELDS,
 
-  broId: {
-    xpath: "brocom:broId",
-  },
-
-  qualityRegime: {
-    xpath: "brocom:qualityRegime",
-  },
-
-  deliveryAccountableParty: {
-    xpath: "brocom:deliveryAccountableParty",
+  researchOperator: {
+    xpath: "./dscpt:researchOperator",
   },
 
   researchReportDate: {
@@ -64,6 +59,10 @@ export const CPT_SCHEMA: Schema = {
     resolver: gmlResolvers.parseGMLLocation,
   },
 
+  coordinateTransformation: {
+    xpath: "./dscpt:standardizedLocation/brocom:coordinateTransformation",
+  },
+
   horizontalPositioningDate: {
     xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningDate",
     resolver: typeResolvers.parseDate,
@@ -71,6 +70,10 @@ export const CPT_SCHEMA: Schema = {
 
   horizontalPositioningMethod: {
     xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningMethod",
+  },
+
+  horizontalPositioningOperator: {
+    xpath: "./dscpt:deliveredLocation/cptcommon:horizontalPositioningOperator",
   },
 
   // === Vertical Position ===
@@ -88,6 +91,11 @@ export const CPT_SCHEMA: Schema = {
     xpath: "./dscpt:deliveredVerticalPosition/cptcommon:localVerticalReferencePoint",
   },
 
+  waterDepth: {
+    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:waterDepth",
+    resolver: typeResolvers.parseFloat,
+  },
+
   verticalPositioningDate: {
     xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningDate",
     resolver: typeResolvers.parseDate,
@@ -95,6 +103,10 @@ export const CPT_SCHEMA: Schema = {
 
   verticalPositioningMethod: {
     xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningMethod",
+  },
+
+  verticalPositioningOperator: {
+    xpath: "./dscpt:deliveredVerticalPosition/cptcommon:verticalPositioningOperator",
   },
 
   // === Survey Context ===
@@ -377,6 +389,6 @@ export const CPT_SCHEMA: Schema = {
 
   registrationHistory: {
     xpath: ".",
-    resolver: cptResolvers.processCPTRegistrationHistory,
+    resolver: processRegistrationHistory,
   },
 };

@@ -7,7 +7,11 @@
 import type {
   ResolverContext,
   BHRGTLayer,
+  BHRGTLayerBase,
+  BHRGTSoilLayer,
   Grainshape,
+  RockDescription,
+  PostSedimentaryDiscontinuity,
   BoreholeSampleAnalysis,
   InvestigatedInterval,
   WaterContentDetermination,
@@ -30,7 +34,9 @@ import type {
   SamplerDetails,
   CompletedInterval,
   NotDescribedInterval,
-  RegistrationHistory,
+  ExcavatedLayer,
+  BoringVelocityMeasurement,
+  FluidMudLayer,
   ReportHistory,
   IntermediateEvent,
 } from "../types/index.js";
@@ -39,13 +45,14 @@ import type {
 import {
   createXPathTextGetter,
   createNamespaceResolver,
-  createLayerParser,
+  extractOptionalFields,
   getTextContent,
   findChildElement,
   extractArray,
   parseCSVPairs,
   parseCSVRows,
 } from "./bore-resolver-utils.js";
+import type { OptionalLayerField } from "./bore-resolver-utils.js";
 
 // Import type resolvers
 import { parseBoolean, parseFloat, parseDate } from "./type-resolvers.js";
@@ -79,169 +86,213 @@ function parseDispersedInhomogeneity(text: string | null): boolean | null {
  * - Tertiary soil constituent
  * - Grain shape properties for coarse fractions
  */
-export const processBHRGTLayerData = createLayerParser<BHRGTLayer>({
-  layerXPath: ".//bhrgtcom:layer",
-  requiredFields: {
-    upperBoundary: "./bhrgtcom:upperBoundary",
-    lowerBoundary: "./bhrgtcom:lowerBoundary",
-    soilName: "./bhrgtcom:soil/bhrgtcom:geotechnicalSoilName",
-    soilNameKey: "geotechnicalSoilName",
+// Layer-level fields shared by soil and rock layers (outside <soil>/<rock>).
+const BHRGT_BASE_FIELDS: Array<OptionalLayerField<BHRGTLayerBase>> = [
+  { xpath: "./bhrgtcom:upperBoundaryDetermination", key: "upperBoundaryDetermination" },
+  { xpath: "./bhrgtcom:lowerBoundaryDetermination", key: "lowerBoundaryDetermination" },
+  { xpath: "./bhrgtcom:anthropogenic", key: "anthropogenic", transform: parseBoolean },
+  { xpath: "./bhrgtcom:slant", key: "slant", transform: parseBoolean },
+  { xpath: "./bhrgtcom:bedding", key: "bedding", omitIfEmpty: true },
+  {
+    xpath: "./bhrgtcom:compositeLayer",
+    key: "compositeLayer",
+    transform: parseBoolean,
+    omitIfEmpty: true,
   },
-  optionalFields: [
-    // Layer-level fields (outside <soil>)
-    {
-      xpath: "./bhrgtcom:upperBoundaryDetermination",
-      key: "upperBoundaryDetermination",
-    },
-    {
-      xpath: "./bhrgtcom:lowerBoundaryDetermination",
-      key: "lowerBoundaryDetermination",
-    },
-    {
-      xpath: "./bhrgtcom:anthropogenic",
-      key: "anthropogenic",
-      transform: parseBoolean,
-    },
-    {
-      xpath: "./bhrgtcom:slant",
-      key: "slant",
-      transform: parseBoolean,
-    },
-    {
-      xpath: "./bhrgtcom:bedding",
-      key: "bedding",
-      omitIfEmpty: true,
-    },
-    {
-      xpath: "./bhrgtcom:compositeLayer",
-      key: "compositeLayer",
-      transform: parseBoolean,
-      omitIfEmpty: true,
-    },
-    {
-      xpath: "./bhrgtcom:activityType",
-      key: "activityType",
-      omitIfEmpty: true,
-    },
-    // Soil-level fields (inside <soil>)
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:soilNameNEN5104",
-      key: "soilNameNEN5104",
-      omitIfEmpty: true,
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:gravelContentClassNEN5104",
-      key: "gravelContentClassNEN5104",
-      omitIfEmpty: true,
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:organicMatterContentClassNEN5104",
-      key: "organicMatterContentClassNEN5104",
-      omitIfEmpty: true,
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:tertiaryConstituent",
-      key: "tertiaryConstituent",
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:colour",
-      key: "color",
-      omitIfEmpty: true,
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:dispersedInhomogeneity",
-      key: "dispersedInhomogeneity",
-      transform: parseDispersedInhomogeneity,
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:organicMatterContentClass",
-      key: "organicMatterContentClass",
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:carbonateContentClass",
-      key: "carbonateContentClass",
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:sandMedianClass",
-      key: "sandMedianClass",
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:gravelMedianClass",
-      key: "gravelMedianClass",
-      omitIfEmpty: true,
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:geotechnicalDepositionalCharacteristic",
-      key: "geotechnicalDepositionalCharacteristic",
-      omitIfEmpty: true,
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:interbedding",
-      key: "interbedding",
-      omitIfEmpty: true,
-    },
-    // Layer structure properties (at layer level)
-    {
-      xpath: "./bhrgtcom:bedded",
-      key: "bedded",
-      transform: parseBoolean,
-    },
-    {
-      xpath: "./bhrgtcom:internalStructureIntact",
-      key: "internalStructureIntact",
-      transform: parseBoolean,
-    },
-    // Soil structure properties (inside <soil>)
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:mixed",
-      key: "mixed",
-      transform: parseBoolean,
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:mottled",
-      key: "mottled",
-      transform: parseBoolean,
-    },
-    // Fine-grained soil consistency
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:fineSoilConsistency",
-      key: "fineSoilConsistency",
-    },
-    // Organic soil properties
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:organicSoilConsistency",
-      key: "organicSoilConsistency",
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:organicSoilTexture",
-      key: "organicSoilTexture",
-    },
-    {
-      xpath: "./bhrgtcom:soil/bhrgtcom:peatTensileStrength",
-      key: "peatTensileStrength",
-    },
-  ],
-  // Extract nested grainshape object
-  postProcess: (layerNode, layer, adapter, namespaces) => {
-    const nsResolver = createNamespaceResolver(namespaces);
+  { xpath: "./bhrgtcom:activityType", key: "activityType", omitIfEmpty: true },
+  { xpath: "./bhrgtcom:bedded", key: "bedded", transform: parseBoolean },
+  {
+    xpath: "./bhrgtcom:internalStructureIntact",
+    key: "internalStructureIntact",
+    transform: parseBoolean,
+  },
+  { xpath: "./bhrgtcom:specialMaterial", key: "specialMaterial", omitIfEmpty: true },
+];
+
+// Soil-description fields (inside <soil>) for soil layers only.
+const BHRGT_SOIL_FIELDS: Array<OptionalLayerField<BHRGTSoilLayer>> = [
+  { xpath: "./bhrgtcom:soil/bhrgtcom:soilNameNEN5104", key: "soilNameNEN5104", omitIfEmpty: true },
+  {
+    xpath: "./bhrgtcom:soil/bhrgtcom:gravelContentClassNEN5104",
+    key: "gravelContentClassNEN5104",
+    omitIfEmpty: true,
+  },
+  {
+    xpath: "./bhrgtcom:soil/bhrgtcom:organicMatterContentClassNEN5104",
+    key: "organicMatterContentClassNEN5104",
+    omitIfEmpty: true,
+  },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:tertiaryConstituent", key: "tertiaryConstituent" },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:colour", key: "color", omitIfEmpty: true },
+  {
+    xpath: "./bhrgtcom:soil/bhrgtcom:dispersedInhomogeneity",
+    key: "dispersedInhomogeneity",
+    transform: parseDispersedInhomogeneity,
+  },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:organicMatterContentClass", key: "organicMatterContentClass" },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:carbonateContentClass", key: "carbonateContentClass" },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:sandMedianClass", key: "sandMedianClass" },
+  {
+    xpath: "./bhrgtcom:soil/bhrgtcom:gravelMedianClass",
+    key: "gravelMedianClass",
+    omitIfEmpty: true,
+  },
+  {
+    xpath: "./bhrgtcom:soil/bhrgtcom:geotechnicalDepositionalCharacteristic",
+    key: "geotechnicalDepositionalCharacteristic",
+    omitIfEmpty: true,
+  },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:interbedding", key: "interbedding", omitIfEmpty: true },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:mixed", key: "mixed", transform: parseBoolean },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:mottled", key: "mottled", transform: parseBoolean },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:fineSoilConsistency", key: "fineSoilConsistency" },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:organicSoilConsistency", key: "organicSoilConsistency" },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:organicSoilTexture", key: "organicSoilTexture" },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:peatTensileStrength", key: "peatTensileStrength" },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:crossBedding", key: "crossBedding", omitIfEmpty: true },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:gradedBedding", key: "gradedBedding", omitIfEmpty: true },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:mixingType", key: "mixingType", omitIfEmpty: true },
+  {
+    xpath: "./bhrgtcom:soil/bhrgtcom:fineGravelContentClass",
+    key: "fineGravelContentClass",
+    omitIfEmpty: true,
+  },
+  {
+    xpath: "./bhrgtcom:soil/bhrgtcom:mediumCoarseGravelContentClass",
+    key: "mediumCoarseGravelContentClass",
+    omitIfEmpty: true,
+  },
+  {
+    xpath: "./bhrgtcom:soil/bhrgtcom:veryCoarseGravelContentClass",
+    key: "veryCoarseGravelContentClass",
+    omitIfEmpty: true,
+  },
+  {
+    xpath: "./bhrgtcom:soil/bhrgtcom:sandSortingNEN5104",
+    key: "sandSortingNEN5104",
+    omitIfEmpty: true,
+  },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:peatType", key: "peatType", omitIfEmpty: true },
+  { xpath: "./bhrgtcom:soil/bhrgtcom:depositionalAge", key: "depositionalAge", omitIfEmpty: true },
+];
+
+/**
+ * Parse a BHR-GT `rock` element into a RockDescription.
+ */
+function parseRockDescription(
+  rockNode: Node,
+  adapter: XMLAdapter,
+  namespaces: Namespaces,
+): RockDescription {
+  const nsResolver = createNamespaceResolver(namespaces);
+  const getText = createXPathTextGetter(rockNode, adapter, namespaces);
+  const textList = (xpath: string): Array<string> =>
+    adapter
+      .evaluateXPathAll(rockNode, xpath, nsResolver)
+      .map((n) => n.textContent?.trim() ?? "")
+      .filter((s) => s !== "");
+
+  const rock: RockDescription = {
+    rockType: getText("./bhrgtcom:rockType"),
+    cementType: getText("./bhrgtcom:cementType"),
+    colour: getText("./bhrgtcom:colour"),
+    tertiaryRockConstituent: textList("./bhrgtcom:tertiaryRockConstituent"),
+    interbedding: getText("./bhrgtcom:interbedding"),
+    dispersedInhomogeneity: textList("./bhrgtcom:dispersedInhomogeneity"),
+    carbonateContentClass: getText("./bhrgtcom:carbonateContentClass"),
+    crossBedding: getText("./bhrgtcom:crossBedding"),
+    gradedBedding: getText("./bhrgtcom:gradedBedding"),
+    voidsPresent: getText("./bhrgtcom:voidsPresent"),
+    voidDistribution: getText("./bhrgtcom:voidDistribution"),
+    stability: getText("./bhrgtcom:stability"),
+    strengthClass: getText("./bhrgtcom:strengthClass"),
+    weathered: getText("./bhrgtcom:weathered"),
+  };
+
+  const weatheringNode = adapter.evaluateXPath(rockNode, "./bhrgtcom:weatheringDegree", nsResolver);
+  if (weatheringNode) {
+    const getW = createXPathTextGetter(weatheringNode, adapter, namespaces);
+    rock.weatheringDegree = {
+      discolouration: getW("./bhrgtcom:discolouration"),
+      disintegration: getW("./bhrgtcom:disintegration"),
+      decomposition: getW("./bhrgtcom:decomposition"),
+    };
+  }
+
+  return rock;
+}
+
+/**
+ * Parse BHR-GT descriptive-log layers into a discriminated union of soil / rock
+ * layers. A layer describes either soil or rock; we branch on which is present
+ * so rock layers aren't forced through the soil shape (and vice versa).
+ */
+export function processBHRGTLayerData(
+  _value: string | null,
+  context: ResolverContext,
+): Array<BHRGTLayer> {
+  const { node, adapter, namespaces } = context;
+  const nsResolver = createNamespaceResolver(namespaces);
+  const layerNodes = adapter.evaluateXPathAll(node, ".//bhrgtcom:layer", nsResolver);
+
+  const layers: Array<BHRGTLayer> = [];
+
+  for (const layerNode of layerNodes) {
+    const getText = createXPathTextGetter(layerNode, adapter, namespaces);
+    const upperBoundary = parseFloat(getText("./bhrgtcom:upperBoundary"));
+    const lowerBoundary = parseFloat(getText("./bhrgtcom:lowerBoundary"));
+
+    if (upperBoundary === null || lowerBoundary === null) {
+      continue;
+    }
+
+    // Spread extracted optionals first, then the guaranteed fields, so the
+    // required boundaries/discriminant keep their exact (non-optional) types.
+    const base: BHRGTLayerBase = {
+      ...extractOptionalFields(BHRGT_BASE_FIELDS, layerNode, adapter, namespaces),
+      upperBoundary,
+      lowerBoundary,
+    };
+
+    // A layer describes rock or soil - branch on which element is present.
+    const rockNode = adapter.evaluateXPath(layerNode, "./bhrgtcom:rock", nsResolver);
+    if (rockNode) {
+      layers.push({
+        ...base,
+        material: "rock",
+        rock: parseRockDescription(rockNode, adapter, namespaces),
+      });
+      continue;
+    }
+
+    const soilLayer: BHRGTSoilLayer = {
+      ...base,
+      ...extractOptionalFields(BHRGT_SOIL_FIELDS, layerNode, adapter, namespaces),
+      material: "soil",
+      geotechnicalSoilName: getText("./bhrgtcom:soil/bhrgtcom:geotechnicalSoilName") ?? "",
+    };
+
     const grainshapeNode = adapter.evaluateXPath(
       layerNode,
       "./bhrgtcom:soil/bhrgtcom:grainshape",
       nsResolver,
     );
-
     if (grainshapeNode) {
-      const getText = createXPathTextGetter(grainshapeNode, adapter, namespaces);
+      const getGrain = createXPathTextGetter(grainshapeNode, adapter, namespaces);
       const grainshape: Grainshape = {
-        sizeFraction: getText("./bhrgtcom:sizeFraction"),
-        angularity: getText("./bhrgtcom:angularity"),
-        sphericity: getText("./bhrgtcom:sphericity"),
-        roughness: getText("./bhrgtcom:roughness"),
+        sizeFraction: getGrain("./bhrgtcom:sizeFraction"),
+        angularity: getGrain("./bhrgtcom:angularity"),
+        sphericity: getGrain("./bhrgtcom:sphericity"),
+        roughness: getGrain("./bhrgtcom:roughness"),
       };
-      layer.grainshape = grainshape;
+      soilLayer.grainshape = grainshape;
     }
-  },
-});
+
+    layers.push(soilLayer);
+  }
+
+  return layers;
+}
 
 /**
  * Empty structure constants for determinations
@@ -284,7 +335,11 @@ const EMPTY_SATURATED_PERMEABILITY: SaturatedPermeabilityDetermination = {
   waterDegassed: null,
   temperature: null,
   maximumGradient: null,
+  ringWaterRepellent: null,
+  waterContentAfterwards: null,
+  materialIrregularity: [],
   saturatedPermeabilityAtSpecificDensity: [],
+  saturatedPermeabilityAtSpecificLoad: [],
 };
 
 /**
@@ -446,7 +501,41 @@ function parseParticleSizeDistributionDetermination(
   const standardSmallerBase =
     "./bhrgtcom:basicParticleSizeDistribution/bhrgtcom:standardDistributionFractionSmaller63um";
 
+  // Finer >63μm resolution — an alternative to standardDistributionFractionLarger63um.
+  const detailedLargerNode = basicDistNode
+    ? findChildElement(
+        basicDistNode,
+        "./bhrgtcom:detailedDistributionFractionLarger63um",
+        adapter,
+        namespaces,
+      )
+    : null;
+  const detailedLargerBase =
+    "./bhrgtcom:basicParticleSizeDistribution/bhrgtcom:detailedDistributionFractionLarger63um";
+  const fracDL = (qname: string): number | null =>
+    detailedLargerNode ? parseFloat(getText(`${detailedLargerBase}/${qname}`)) : null;
+
   return {
+    usedOpticalModel: getText("./bhrgtcom:usedOpticalModel"),
+    fraction63to75um: fracDL("bhrgtcom:fraction63to75um"),
+    fraction75to90um: fracDL("bhrgtcom:fraction75to90um"),
+    fraction90to106um: fracDL("bhrgtcom:fraction90to106um"),
+    fraction106to125um: fracDL("bhrgtcom:fraction106to125um"),
+    fraction125to150um: fracDL("bhrgtcom:fraction125to150um"),
+    fraction150to180um: fracDL("bhrgtcom:fraction150to180um"),
+    fraction180to212um: fracDL("bhrgtcom:fraction180to212um"),
+    fraction212to250um: fracDL("bhrgtcom:fraction212to250um"),
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    fraction4to5_6mm: fracDL("bhrgtcom:fraction4to5_6mm"),
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    fraction5_6to8mm: fracDL("bhrgtcom:fraction5_6to8mm"),
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    fraction8to11_2mm: fracDL("bhrgtcom:fraction8to11_2mm"),
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    fraction11_2to16mm: fracDL("bhrgtcom:fraction11_2to16mm"),
+    fraction16to20mm: fracDL("bhrgtcom:fraction16to20mm"),
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    fraction20to31_5mm: fracDL("bhrgtcom:fraction20to31_5mm"),
     determinationProcedure: getText("./bhrgtcom:determinationProcedure"),
     determinationMethod: getText("./bhrgtcom:determinationMethod"),
     fractionDistribution: getText("./bhrgtcom:fractionDistribution"),
@@ -796,6 +885,8 @@ function parseSettlementCharacteristicsDetermination(
       constantHeight: parseBoolean(getSatText("./bhrgtcom:constantHeight")),
       specimenHeightAfterwards: parseFloat(getSatText("./bhrgtcom:specimenHeightAfterwards")),
       disturbanceInduced: parseBoolean(getSatText("./bhrgtcom:disturbanceInduced")),
+      maximumStressDifference: parseFloat(getSatText("./bhrgtcom:maximumStressDifference")),
+      maximumStrain: parseFloat(getSatText("./bhrgtcom:maximumStrain")),
     };
   }
 
@@ -855,6 +946,27 @@ function parseSaturatedPermeabilityDetermination(
     namespaces,
   );
 
+  const saturatedPermeabilityAtSpecificLoad = extractArray(
+    determinationNode,
+    "./bhrgtcom:saturatedPermeabilityAtSpecificLoad",
+    (_loadNode, getLoadText) => {
+      const load = parseFloat(getLoadText("./bhrgtcom:load"));
+      const saturatedPermeability = parseFloat(getLoadText("./bhrgtcom:saturatedPermeability"));
+
+      return load !== null || saturatedPermeability !== null
+        ? { load, saturatedPermeability }
+        : null;
+    },
+    adapter,
+    namespaces,
+  );
+
+  const nsResolver = createNamespaceResolver(namespaces);
+  const materialIrregularity = adapter
+    .evaluateXPathAll(determinationNode, "./bhrgtcom:materialIrregularity", nsResolver)
+    .map((n) => n.textContent?.trim() ?? "")
+    .filter((s) => s !== "");
+
   return {
     determinationProcedure: getText("./bhrgtcom:determinationProcedure"),
     determinationMethod: getText("./bhrgtcom:determinationMethod"),
@@ -866,7 +978,11 @@ function parseSaturatedPermeabilityDetermination(
     waterDegassed: parseBoolean(getText("./bhrgtcom:waterDegassed")),
     temperature: parseFloat(getText("./bhrgtcom:temperature")),
     maximumGradient: parseFloat(getText("./bhrgtcom:maximumGradient")),
+    ringWaterRepellent: getText("./bhrgtcom:ringWaterRepellent"),
+    waterContentAfterwards: parseFloat(getText("./bhrgtcom:waterContentAfterwards")),
+    materialIrregularity,
     saturatedPermeabilityAtSpecificDensity,
+    saturatedPermeabilityAtSpecificLoad,
   };
 }
 
@@ -998,6 +1114,7 @@ function parseShearStressChangeDuringLoadingDeterminations(
         effectivePressure: parseFloat(getSatText("./bhrgtcom:effectivePressure")),
         skemptonBCoefficient: parseFloat(getSatText("./bhrgtcom:skemptonB_Coefficient")),
         disturbanceInduced: parseBoolean(getSatText("./bhrgtcom:disturbanceInduced")),
+        stressDifference: parseFloat(getSatText("./bhrgtcom:stressDifference")),
       };
     }
 
@@ -1131,6 +1248,12 @@ function parseMaximumUndrainedShearStrengthDetermination(
     verticallyDetermined: parseBoolean(getText("./bhrgtcom:verticallyDetermined")),
     sampleMoistness: getText("./bhrgtcom:sampleMoistness"),
     maximumUndrainedShearStrength: parseFloat(getText("./bhrgtcom:maximumUndrainedShearStrength")),
+    lowestMaximumUndrainedShearStrength: parseFloat(
+      getText("./bhrgtcom:lowestMaximumUndrainedShearStrength"),
+    ),
+    highestMaximumUndrainedShearStrength: parseFloat(
+      getText("./bhrgtcom:highestMaximumUndrainedShearStrength"),
+    ),
   };
 }
 
@@ -1603,6 +1726,24 @@ export function processSampledIntervals(
       interval.sampler = sampler;
     }
 
+    // Check for nested coreRecovery element (rock coring)
+    const coreRecoveryNode = adapter.evaluateXPath(
+      intervalNode,
+      "./bhrgtcom:coreRecovery",
+      nsResolver,
+    );
+
+    if (coreRecoveryNode) {
+      const getCoreText = createXPathTextGetter(coreRecoveryNode, adapter, namespaces);
+
+      interval.coreRecovery = {
+        totalCoreRecovery: parseFloat(getCoreText("./bhrgtcom:totalCoreRecovery")),
+        solidCoreRecovery: parseFloat(getCoreText("./bhrgtcom:solidCoreRecovery")),
+        rockQualityDesignation: parseFloat(getCoreText("./bhrgtcom:rockQualityDesignation")),
+        fieldDetermined: parseBoolean(getCoreText("./bhrgtcom:fieldDetermined")),
+      };
+    }
+
     intervals.push(interval);
   }
 
@@ -1644,6 +1785,8 @@ export function processCompletedIntervals(
       beginDepth,
       endDepth,
       permanentCasingPresent: parseBoolean(getText("./bhrgtcom:permanentCasingPresent")),
+      diameterPermanentCasing: parseFloat(getText("./bhrgtcom:diameterPermanentCasing")),
+      materialPermanentCasing: getText("./bhrgtcom:materialPermanentCasing"),
       backfillMaterial: getText("./bhrgtcom:backfillMaterial"),
       backfillMaterialWashed: parseBoolean(getText("./bhrgtcom:backfillMaterialWashed")),
       backfillMaterialCertified: parseBoolean(getText("./bhrgtcom:backfillMaterialCertified")),
@@ -1651,6 +1794,117 @@ export function processCompletedIntervals(
   }
 
   return intervals;
+}
+
+/**
+ * Process excavated layers from boring element
+ *
+ * Layers removed by excavation before/during boring.
+ */
+export function processExcavatedLayers(
+  _value: string | null,
+  context: ResolverContext,
+): Array<ExcavatedLayer> {
+  const { element, adapter, namespaces } = context;
+  const nsResolver = createNamespaceResolver(namespaces);
+
+  const layerNodes = adapter.evaluateXPathAll(
+    element,
+    "./dsbhrgt:boring/bhrgtcom:excavatedLayer",
+    nsResolver,
+  );
+
+  const layers: Array<ExcavatedLayer> = [];
+
+  for (const layerNode of layerNodes) {
+    const getText = createXPathTextGetter(layerNode, adapter, namespaces);
+
+    const upperBoundary = parseFloat(getText("./bhrgtcom:upperBoundary"));
+    const lowerBoundary = parseFloat(getText("./bhrgtcom:lowerBoundary"));
+
+    if (upperBoundary === null || lowerBoundary === null) {
+      continue;
+    }
+
+    layers.push({
+      upperBoundary,
+      lowerBoundary,
+      excavatedMaterial: getText("./bhrgtcom:excavatedMaterial"),
+    });
+  }
+
+  return layers;
+}
+
+/**
+ * Process boring velocity profile from boring element
+ *
+ * Series of (elapsed time, depth) points describing drilling progress.
+ */
+export function processBoringVelocity(
+  _value: string | null,
+  context: ResolverContext,
+): Array<BoringVelocityMeasurement> {
+  const { element, adapter, namespaces } = context;
+  const nsResolver = createNamespaceResolver(namespaces);
+
+  const velocityNodes = adapter.evaluateXPathAll(
+    element,
+    "./dsbhrgt:boring/bhrgtcom:boringVelocity",
+    nsResolver,
+  );
+
+  return velocityNodes.map((node) => {
+    const getText = createXPathTextGetter(node, adapter, namespaces);
+    return {
+      elapsedTime: parseFloat(getText("./bhrgtcom:elapsedTime")),
+      depth: parseFloat(getText("./bhrgtcom:depth")),
+    };
+  });
+}
+
+/**
+ * Process fluid mud layer from document element
+ *
+ * Single optional fluid mud (slib) layer recorded at the borehole.
+ */
+export function processFluidMudLayer(
+  _value: string | null,
+  context: ResolverContext,
+): FluidMudLayer | undefined {
+  const { element, adapter, namespaces } = context;
+  const nsResolver = createNamespaceResolver(namespaces);
+
+  const node = adapter.evaluateXPath(element, "./dsbhrgt:fluidMudLayer", nsResolver);
+
+  if (!node) {
+    return undefined;
+  }
+
+  const getText = createXPathTextGetter(node, adapter, namespaces);
+
+  return {
+    thickness: parseFloat(getText("./bhrgtcom:thickness")),
+    colour: getText("./bhrgtcom:colour"),
+    upperBoundaryPositioningMethod: getText("./bhrgtcom:upperBoundaryPositioningMethod"),
+    lowerBoundaryPositioningMethod: getText("./bhrgtcom:lowerBoundaryPositioningMethod"),
+  };
+}
+
+/**
+ * Resolve an organisation identifier (KvK number, or European company
+ * registration number as a fallback) from an organisation element.
+ */
+export function resolveOrganisationId(
+  _value: string | null,
+  context: ResolverContext,
+): string | null {
+  const { node, adapter, namespaces } = context;
+  const getText = createXPathTextGetter(node, adapter, namespaces);
+  return (
+    getText("./brocom:chamberOfCommerceNumber") ??
+    getText("./brocom:europeanCompanyRegistrationNumber")
+  );
 }
 
 /**
@@ -1695,42 +1949,58 @@ export function processNotDescribedIntervals(
 }
 
 /**
+ * Process post-sedimentary discontinuities from the descriptive borehole log
+ *
+ * Fractures/fault planes crossing described intervals (e.g. in rock).
+ */
+export function processPostSedimentaryDiscontinuities(
+  _value: string | null,
+  context: ResolverContext,
+): Array<PostSedimentaryDiscontinuity> {
+  const { element, adapter, namespaces } = context;
+  const nsResolver = createNamespaceResolver(namespaces);
+
+  const nodes = adapter.evaluateXPathAll(
+    element,
+    "./dsbhrgt:boreholeSampleDescription/bhrgtcom:descriptiveBoreholeLog/bhrgtcom:postSedimentaryDiscontinuity",
+    nsResolver,
+  );
+
+  const out: Array<PostSedimentaryDiscontinuity> = [];
+
+  for (const node of nodes) {
+    const getText = createXPathTextGetter(node, adapter, namespaces);
+
+    const beginDepth = parseFloat(getText("./bhrgtcom:beginDepth"));
+    const endDepth = parseFloat(getText("./bhrgtcom:endDepth"));
+
+    if (beginDepth === null || endDepth === null) {
+      continue;
+    }
+
+    out.push({
+      beginDepth,
+      endDepth,
+      inRock: getText("./bhrgtcom:inRock"),
+      discontinuityType: getText("./bhrgtcom:discontinuityType"),
+      compositeDiscontinuity: getText("./bhrgtcom:compositeDiscontinuity"),
+      spacing: parseFloat(getText("./bhrgtcom:spacing")),
+      smooth: getText("./bhrgtcom:smooth"),
+      apertureClass: getText("./bhrgtcom:apertureClass"),
+      infillMaterial: getText("./bhrgtcom:infillMaterial"),
+    });
+  }
+
+  return out;
+}
+
+/**
  * Process registration history from document element
  *
  * Extracts BRO registration history information.
  */
-export function processRegistrationHistory(
-  _value: string | null,
-  context: ResolverContext,
-): RegistrationHistory | null {
-  const { element, adapter, namespaces } = context;
-  const nsResolver = createNamespaceResolver(namespaces);
-
-  // Find registrationHistory element (in default namespace dsbhrgt)
-  const historyNode = adapter.evaluateXPath(element, "./dsbhrgt:registrationHistory", nsResolver);
-
-  if (!historyNode) {
-    return null;
-  }
-
-  const getText = createXPathTextGetter(historyNode, adapter, namespaces);
-
-  // Parse dates
-  const objectRegistrationTimeStr = getText("./brocom:objectRegistrationTime");
-  const registrationCompletionTimeStr = getText("./brocom:registrationCompletionTime");
-  const latestCorrectionTimeStr = getText("./brocom:latestCorrectionTime");
-
-  return {
-    objectRegistrationTime: parseDate(objectRegistrationTimeStr),
-    registrationStatus: getText("./brocom:registrationStatus"),
-    registrationCompletionTime: parseDate(registrationCompletionTimeStr),
-    latestCorrectionTime: parseDate(latestCorrectionTimeStr),
-    corrected: parseBoolean(getText("./brocom:corrected")),
-    underReview: parseBoolean(getText("./brocom:underReview")),
-    deregistered: parseBoolean(getText("./brocom:deregistered")),
-    reregistered: parseBoolean(getText("./brocom:reregistered")),
-  };
-}
+// Registration history is parsed by the shared processRegistrationHistory in
+// bore-resolver-utils (identical across CPT/BHR-GT/BHR-G).
 
 /**
  * Process report history from document element

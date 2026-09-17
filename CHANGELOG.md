@@ -8,6 +8,69 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **XSD coverage checker** (`npm run check:xsd-coverage`): fetches the official
+  BRO XSDs and diffs every parsed type against them, reporting missing
+  properties per domain. CPT, BHR-GT and BHR-G are now verified at full coverage
+  of their modelled surface.
+- CPT: `objectIdAccountableParty`, `deliveryResponsibleParty`, `researchOperator`,
+  `coordinateTransformation`, `horizontalPositioningOperator`,
+  `verticalPositioningOperator`, `waterDepth`, and the registration-history
+  timestamps `latestAdditionTime`, `underReviewTime`, `deregistrationTime`,
+  `reregistrationTime`.
+- BHR-GT: boring depths (`finalDepthPreparation`, `finalDepthExcavation`,
+  `finalDepthTemporaryCasing`), `flushingAdditive`, site characteristics
+  (`positionOnGroundBody`, `temporaryChange`), `researchOperator`; boring
+  sub-structures (`coreRecovery`, permanent-casing fields on completed intervals,
+  `excavatedLayers`, `boringVelocity`, `fluidMudLayer`); rock/discontinuity
+  geology (nested `rock` description with `weatheringDegree`,
+  `postSedimentaryDiscontinuities`, extra `soil` fields, `specialMaterial`); and
+  BMA determination refinements (detailed >63µm particle-size fractions, min/max
+  undrained shear strength, saturation-stage extras, `materialIrregularity`,
+  `saturatedPermeabilityAtSpecificLoad`).
+- BHR-G: vertical-position provenance (`waterDepth`, `verticalPositioningDate`,
+  `verticalPositioningMethod`, `verticalPositioningOperator`), site
+  characteristics (`landscapeElement`, `hydrologicalSetting`, `currentProcess`),
+  `flushingAdditiveUsed`, `utensil`; and a full geological description model —
+  nested soil fractions (`sandFraction`, `shellFraction`, `gravelFraction`,
+  `peatFraction` with their constituents), `fractionDistribution`,
+  `munsellColour`, `mottles`, `chunks`, `thinStrata`, plus many flat soil/layer
+  fields. (BHR-G lab analysis, `boreholeSampleAnalysis`, is intentionally not
+  modelled yet.)
+- Shared `BRORegistrationObject` base interface and many newly exported types
+  (e.g. `BHRGTSoilLayer`, `BHRGTRockLayer`, `CoreRecovery`, `FluidMudLayer`,
+  `RockDescription`, `SandFraction`, `ShellFraction`, `FractionDistribution`,
+  `Chunk`, `Mottle`, `ThinStratum`).
+
+### Changed
+
+- **BREAKING:** `BHRGTLayer` is now a discriminated union
+  (`BHRGTSoilLayer | BHRGTRockLayer`) on a `material` field. Narrow on
+  `layer.material` before accessing soil-only fields (`geotechnicalSoilName`,
+  grain shape, …) or the rock-only `rock` object. This restores a non-null
+  `geotechnicalSoilName` on soil layers and stops rock layers from carrying empty
+  soil fields.
+- **BREAKING:** `CPTData`, `BHRGTData` and `BHRGData` now extend a shared
+  `BRORegistrationObject`, which adds `objectIdAccountableParty` and
+  `deliveryResponsibleParty` to all three and makes `deliveryAccountableParty`
+  available on BHR-G.
+- **BREAKING:** `RegistrationHistory` gained `latestAdditionTime`,
+  `underReviewTime`, `deregistrationTime` and `reregistrationTime`.
+- **BREAKING:** the per-domain `processCPTRegistrationHistory` and
+  `processBHRGRegistrationHistory` resolver exports were removed; use the single
+  shared `processRegistrationHistory` (also exported from `resolvers`).
+- `parseDate` documents BRO's timezone handling (mandatory `+01:00`/`+02:00`
+  offsets; the calendar date is the Dutch-local date) with a link to the BRO
+  guidance, reinforcing why raw ISO strings are preserved.
+
+### Fixed
+
+- BHR-GT rock layers were silently dropped because the layer parser required
+  `geotechnicalSoilName`; rock layers are now retained.
+- BHR-G never extracted `deliveryAccountableParty` even though it is present in
+  the data; it is now parsed.
+
 ## [0.2.0] - 2026-09-16
 
 ### Added

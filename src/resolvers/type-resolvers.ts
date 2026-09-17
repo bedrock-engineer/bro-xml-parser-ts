@@ -97,10 +97,18 @@ const BRO_DATE_FORMATS = [
  * year-month (`YYYY-MM`), year (`YYYY`), full `dateTime`, or a `voidReason`
  * code (e.g. "onbekend") when the value is unknown. The exact lexical value is
  * returned unchanged so no precision or timezone information is lost;
- * `voidReason` codes and any unrecognized input yield `null`. Consumers can
- * construct a `Date` (or `Temporal`) from the string when they need one — note
- * that a date-only string parsed via `new Date()` is interpreted as UTC
- * midnight.
+ * `voidReason` codes and any unrecognized input yield `null`.
+ *
+ * Timezone handling (per BRO): `dateTime` values carry a mandatory offset, which
+ * for Dutch data is the seasonal `+01:00` (winter) / `+02:00` (summer) — never
+ * `Z`. BRO derives the calendar date from the *Dutch-local* time, so the
+ * intended date is simply the lexical `YYYY-MM-DD` prefix of the string. We keep
+ * the string verbatim precisely to avoid a UTC conversion silently shifting the
+ * date across midnight (BRO's own worked example of the pitfall). Consumers can
+ * build a `Date`/`Temporal` when needed, but beware: `new Date("YYYY-MM-DD")` on
+ * a date-only value is parsed as UTC midnight and can render as the previous day
+ * in negative-offset zones — treat date-only values as plain calendar dates.
+ * @see https://www.bro-productomgeving.nl/bpo/release-2.5_2024_Q4/informatie-voor-softwareleveranciers/het-afhandelen-van-tijdstippen
  *
  * Unlike the numeric resolvers this does not warn on non-matching input,
  * because `voidReason` is a legitimate and common value in archive data.
