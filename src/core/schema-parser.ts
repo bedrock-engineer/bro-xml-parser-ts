@@ -1,22 +1,17 @@
 /**
- * Generic schema-driven XML parser
+ * Generic schema-driven XML parser.
  *
- * This parser interprets a schema definition (field configurations)
- * and extracts data from XML documents accordingly.
- * The same parser works for any schema (CPT, Bore, etc.)
+ * Interprets a {@link Producer} schema against a document — recursing through
+ * nested objects, arrays, unions and custom decoders — and produces typed
+ * output. The same interpreter drives every data type (CPT, Bore, ...) and the
+ * public {@link BROParser.parseCustom} surface.
  */
 
-import type {
-  XMLAdapter,
-  Schema,
-  SchemaField,
-  Namespaces,
-  ResolverContext,
-} from "../types/index.js";
+import type { XMLAdapter, Namespaces } from "../types/index.js";
 import { BROParseError } from "../types/index.js";
-import type { NodeLens, Producer, ObjectProducer } from "./producer.js";
+import type { NodeLens, Producer, ObjectProducer, Presence } from "./producer.js";
 
-/** A relative XPath ending in `/@name` selects an attribute node. */
+/** Resolves an XPath namespace prefix to its URI. */
 type NamespaceResolver = (prefix: string | null) => string | null;
 
 /** Trimmed text content of a node, or `null` when empty. */
@@ -40,92 +35,6 @@ export class SchemaParser {
     private adapter: XMLAdapter,
     private namespaces: Namespaces,
   ) {}
-
-  /**
-   * Parse XML document using provided schema
-   *
-   * @param doc - Parsed XML document
-   * @param schema - Field definitions (field name -> config)
-   * @param rootPath - Optional XPath to root element
-   * @returns Parsed data object with fields from schema
-   */
-
-  parse(doc: Document, schema: Schema, rootPath?: string): Record<string, unknown> {
-    const rootElement = this.resolveRoot(doc, rootPath);
-
-    const result: Record<string, unknown> = {};
-
-    // Iterate through schema fields and extract each one
-    for (const [fieldName, config] of Object.entries(schema)) {
-      try {
-        const value = this.extractField(rootElement, config);
-        result[fieldName] = value;
-      } catch (error) {
-        // If field is required and extraction failed, throw error
-        if (config.required) {
-          throw new BROParseError(`Required field missing or invalid: ${fieldName}`, {
-            code: "MISSING_REQUIRED_FIELD",
-            field: fieldName,
-            xpath: config.xpath,
-            originalError: error,
-          });
-        }
-
-        // Optional fields default to null on error
-        result[fieldName] = null;
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Extract single field using schema config
-   *
-   * @param element - Root element to search from
-   * @param config - Field configuration (xpath, resolver, etc.)
-   * @returns Extracted and resolved value
-   */
-  private extractField(element: Node, config: SchemaField): unknown {
-    // Find element using XPath
-    const node = this.adapter.evaluateXPath(element, config.xpath, (prefix) =>
-      prefix ? (this.namespaces[prefix] ?? null) : null,
-    );
-
-    if (!node) {
-      return null;
-    }
-
-    // Get value from element (text content or attribute)
-    let value: string | null;
-    if (config.attribute) {
-      // Get specific attribute (e.g., "textContent")
-      // Use type assertion to access dynamic properties
-      const element = node as unknown as Record<string, unknown>;
-      const attrValue = element[config.attribute];
-      value = typeof attrValue === "string" ? attrValue : null;
-    } else {
-      // Default to text content
-      value = node.textContent;
-    }
-
-    if (config.resolver) {
-      const context: ResolverContext = {
-        node,
-        element,
-        namespaces: this.namespaces,
-        adapter: this.adapter,
-      };
-
-      return config.resolver(value, context);
-    }
-
-    return value;
-  }
-
-  // =========================================================================
-  // Producer interpreter (the deepened path)
-  // =========================================================================
 
   /**
    * Interpret a {@link Producer} schema against a document, recursing through
@@ -193,7 +102,7 @@ export class SchemaParser {
   }
 
   /** Run one producer against `node` (the enclosing context node). */
-  private run(node: Node, producer: Producer<unknown>, warnings: Array<string>): Outcome {
+  private run(node: Node, producer: Producer<unknown, Presence>, warnings: Array<string>): Outcome {
     // Resolve this producer's own node (relative to the enclosing node).
     const self = producer.at ? this.xpath(node, producer.at) : node;
     if (!self) {
@@ -244,7 +153,7 @@ export class SchemaParser {
    */
   private runObject(
     self: Node,
-    producer: ObjectProducer<unknown>,
+    producer: ObjectProducer<unknown, Presence>,
     warnings: Array<string>,
     isRoot: boolean,
   ): Outcome {
@@ -285,7 +194,7 @@ export class SchemaParser {
     warnings: Array<string>,
   ): Outcome {
     // Assign each field, honouring `presence: "omit"` (skip the key when absent).
-    const assign = (target: Record<string, unknown>, node: Node, fields: ObjectProducer<unknown>["fields"]): void => {
+    const assign = (target: Record<string, unknown>, node: Node, fields: ObjectProducer<unknown, Presence>["fields"]): void => {
       for (const [key, field] of Object.entries(fields)) {
         const outcome = this.run(node, field, warnings);
         if (outcome.satisfied || (field.presence ?? "optional") !== "omit") {
@@ -314,7 +223,7 @@ export class SchemaParser {
   }
 
   /** The "empty" value a producer yields when its node is absent. */
-  private emptyValue(producer: Producer<unknown>): unknown {
+  private emptyValue(producer: Producer<unknown, Presence>): unknown {
     switch (producer.kind) {
       case "scalar":
         return producer.decode(null);
@@ -345,4 +254,4 @@ export class SchemaParser {
 }
 
 /** The runtime shape of {@link OneOfProducer} without its phantom type param. */
-type OneOfProducerNode = Extract<Producer<unknown>, { kind: "oneOf" }>;
+type OneOfProducerNode = Extract<Producer<unknown, Presence>, { kind: "oneOf" }>;

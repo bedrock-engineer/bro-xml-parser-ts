@@ -10,7 +10,7 @@
  * `npm run check:xsd-coverage`.
  */
 
-import type { NodeLens } from "../core/producer.js";
+import type { NodeLens, Produced } from "../core/producer.js";
 import type { CPTMeasurement, DissipationMeasurement } from "../types/index.js";
 import {
   object_,
@@ -22,6 +22,7 @@ import {
   number_,
   integer,
   boolean_,
+  qualityClass,
 } from "../core/producer.js";
 import {
   COMMON_REGISTRATION_PRODUCERS,
@@ -29,7 +30,7 @@ import {
   gmlLocation,
 } from "./common-fields.js";
 import { decodeColumns, col, type ColumnSpec } from "../core/columns.js";
-import { parseQualityClass, parseFloat } from "../resolvers/type-resolvers.js";
+import { parseFloat } from "../decoders/type-decoders.js";
 
 const SURVEY = "./dscpt:conePenetrometerSurvey";
 const CONE = `${SURVEY}/cptcommon:conePenetrometer`;
@@ -118,6 +119,21 @@ const DISSIPATION_TEST = object_({
   },
 });
 
+/** A layer removed before the CPT was performed (e.g. asphalt, gravel fill). */
+const REMOVED_LAYER = object_({
+  fields: {
+    sequenceNumber: integer("./cptcommon:sequenceNumber"),
+    upperBoundary: number_("./cptcommon:upperBoundary"),
+    lowerBoundary: number_("./cptcommon:lowerBoundary"),
+    description: text("./cptcommon:description"),
+  },
+});
+
+/** One dissipation test (pore-pressure decay). Inferred from {@link DISSIPATION_TEST}. */
+export type DissipationTest = Produced<typeof DISSIPATION_TEST>;
+/** A layer removed before the CPT. Inferred from {@link REMOVED_LAYER}. */
+export type RemovedLayer = Produced<typeof REMOVED_LAYER>;
+
 export const CPT_PRODUCER = object_({
   fields: {
     // === Core identification (shared brocom fields) ===
@@ -166,10 +182,7 @@ export const CPT_PRODUCER = object_({
     stopCriterion: text(`${SURVEY}/cptcommon:stopCriterion`),
     sensorAzimuth: number_(`${SURVEY}/cptcommon:sensorAzimuth`),
     dissipationtestPerformed: boolean_(`${SURVEY}/cptcommon:dissipationTestPerformed`),
-    qualityClass: scalar({
-      at: `${SURVEY}/cptcommon:qualityClass`,
-      decode: parseQualityClass,
-    }),
+    qualityClass: qualityClass(`${SURVEY}/cptcommon:qualityClass`),
     groundwaterLevel: number_("./dscpt:additionalInvestigation/cptcommon:groundwaterLevel"),
 
     // === Additional investigation ===
@@ -178,14 +191,7 @@ export const CPT_PRODUCER = object_({
     surfaceDescription: text("./dscpt:additionalInvestigation/cptcommon:surfaceDescription"),
     removedLayers: array({
       each: "./dscpt:additionalInvestigation/cptcommon:removedLayer",
-      item: object_({
-        fields: {
-          sequenceNumber: integer("./cptcommon:sequenceNumber"),
-          upperBoundary: number_("./cptcommon:upperBoundary"),
-          lowerBoundary: number_("./cptcommon:lowerBoundary"),
-          description: text("./cptcommon:description"),
-        },
-      }),
+      item: REMOVED_LAYER,
     }),
     predrilledDepth: number_(`${SURVEY}/cptcommon:trajectory/cptcommon:predrilledDepth`),
     finalDepth: number_(`${SURVEY}/cptcommon:trajectory/cptcommon:finalDepth`),

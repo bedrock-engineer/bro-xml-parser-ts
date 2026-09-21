@@ -10,6 +10,7 @@
  */
 
 import { object_, array, text, date, number_, integer, scalar } from "../core/producer.js";
+import type { Produced } from "../core/producer.js";
 import {
   COMMON_REGISTRATION_PRODUCERS,
   REGISTRATION_HISTORY,
@@ -71,6 +72,15 @@ const OBSERVATION = object_({
   },
 });
 
+/** The GMW tube a GLD research pertains to. */
+const MONITORING_POINT = object_({
+  at: "./dsgld:monitoringPoint/gldcommon:GroundwaterMonitoringTube",
+  fields: {
+    broId: text("./gldcommon:broId"),
+    tubeNumber: integer("./gldcommon:tubeNumber"),
+  },
+});
+
 export const GLD_PRODUCER = object_({
   fields: {
     // === Core identification (shared brocom fields) ===
@@ -81,13 +91,7 @@ export const GLD_PRODUCER = object_({
     researchLastDate: date("./dsgld:researchLastDate"),
 
     // === Monitoring point (the GMW tube this research pertains to) ===
-    monitoringPoint: object_({
-      at: "./dsgld:monitoringPoint/gldcommon:GroundwaterMonitoringTube",
-      fields: {
-        broId: text("./gldcommon:broId"),
-        tubeNumber: integer("./gldcommon:tubeNumber"),
-      },
-    }),
+    monitoringPoint: MONITORING_POINT,
 
     // === Groundwater monitoring nets (GMN membership) ===
     groundwaterMonitoringNets: array({
@@ -105,3 +109,10 @@ export const GLD_PRODUCER = object_({
     registrationHistory: REGISTRATION_HISTORY,
   },
 });
+
+/** The GMW tube reference a GLD pertains to. Inferred from {@link MONITORING_POINT}. */
+export type GroundwaterMonitoringTubeRef = Produced<typeof MONITORING_POINT>;
+/** One `{time, value, qualifier}` point of an observation series. Inferred from {@link OBSERVATION_POINT}. */
+export type GLDObservationPoint = Produced<typeof OBSERVATION_POINT>;
+/** One groundwater level observation. Inferred from {@link OBSERVATION}. */
+export type GLDObservation = Produced<typeof OBSERVATION>;

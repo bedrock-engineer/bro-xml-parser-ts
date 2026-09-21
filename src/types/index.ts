@@ -6,6 +6,13 @@
 // the single source of truth for both parsing and types (`import type` only, so
 // this reads as an acyclic type-level dependency; erased at runtime).
 import type { Produced } from "../core/producer.js";
+import type {
+  HeightAtSpecificTime,
+  StressAtSpecificSettlement,
+  VolumeChangeAtSpecificTime,
+  ShearStressAtSpecificStrain,
+  HorizontalDeformationDataPoint,
+} from "../schemas/bhrgt-analysis.js";
 import type { CPT_PRODUCER } from "../schemas/cpt-schema.js";
 import type { BORE_PRODUCER } from "../schemas/bore-schema.js";
 import type { BHRG_PRODUCER } from "../schemas/bhrg-schema.js";
@@ -67,72 +74,6 @@ export interface XMLAdapter {
 }
 
 /**
- * Context passed to resolver functions
- */
-export interface ResolverContext {
-  node: Node;
-  element: Node;
-  namespaces: Namespaces;
-  adapter: XMLAdapter;
-}
-
-/**
- * Resolver function type
- *
- * `T` is the resolver's return type. It defaults to `unknown` so that a plain
- * `ResolverFunction` (and therefore `Schema`) accepts any resolver regardless of
- * what it produces — the full schemas (`CPT_SCHEMA`, ...) mix resolvers that
- * return `number | null`, `boolean | null`, `Location | null`, arrays, etc.
- * `parseCustom` recovers each concrete `T` from the resolver at the call site.
- */
-export type ResolverFunction<T = unknown> = (value: string | null, context: ResolverContext) => T;
-
-/**
- * Schema field definition
- *
- * `T` mirrors the resolver's return type (see {@link ResolverFunction}).
- */
-export interface SchemaField<T = unknown> {
-  xpath: string;
-  resolver?: ResolverFunction<T>;
-  attribute?: string;
-  required?: boolean;
-}
-
-/**
- * Schema definition (field name -> field config)
- */
-export type Schema = Record<string, SchemaField>;
-
-/**
- * Output type inferred from a custom schema `S`, as returned by
- * {@link BROParser.parseCustom}.
- *
- * Each field's type is recovered from its resolver's return type; fields with no
- * resolver yield the raw text (`string | null`). The `meta` block is always
- * present.
- *
- * The conditional keys off a *required* `resolver` (`{ resolver: ... }`) rather
- * than `SchemaField<infer T>`: because `resolver` is optional on `SchemaField`,
- * a no-resolver field would give `infer` no candidate and widen to `unknown`.
- * Matching a required `resolver` instead makes such fields fall to the
- * `string | null` branch cleanly.
- *
- * @example
- * ```ts
- * const schema = {
- *   broId:      { xpath: "brocom:broId" },               // string | null
- *   finalDepth: { xpath: "...", resolver: parseFloat },  // number | null
- * } satisfies Schema;
- * type Out = ParsedSchema<typeof schema>;
- * // { broId: string | null; finalDepth: number | null; meta: ParseMeta }
- * ```
- */
-export type ParsedSchema<S extends Schema> = {
-  [K in keyof S]: S[K] extends { resolver: ResolverFunction<infer T> } ? T : string | null;
-} & { meta: ParseMeta };
-
-/**
  * BRO quality regime
  *
  * IMBRO: Strict regime for new data (all mandatory fields required)
@@ -147,18 +88,6 @@ export interface Location {
   x: number;
   y: number;
   epsg: string;
-}
-
-/**
- * Layer of material removed before CPT was performed (e.g. asphalt, gravel fill)
- *
- * Found in additionalInvestigation. Directly affects depth interpretation.
- */
-export interface RemovedLayer {
-  sequenceNumber: number;
-  upperBoundary: number;
-  lowerBoundary: number;
-  description: string | null;
 }
 
 /**
@@ -212,18 +141,6 @@ export interface DissipationMeasurement {
   porePressureU1: number | null;
   porePressureU2: number | null;
   porePressureU3: number | null;
-}
-
-/**
- * Dissipation test performed at a specific depth
- *
- * During a CPT, the cone can be paused at a given depth to measure
- * pore pressure decay over time. A CPT can contain multiple dissipation tests.
- */
-export interface DissipationTest {
-  penetrationLength: number;
-  phenomenonTime: string | null;
-  measurements: Array<DissipationMeasurement>;
 }
 
 /**
@@ -338,145 +255,6 @@ export interface PostSedimentaryDiscontinuity {
   apertureClass: string | null;
   infillMaterial: string | null;
 }
-
-/**
- * BHR-GT (Borehole Research Geotechnical) layer data
- *
- * Contains all fields from the BRO BHR-GT schema for a single soil layer.
- */
-/**
- * Fields shared by every BHR-GT described layer, regardless of whether it
- * describes soil or rock (they live directly on the XSD `layer` element).
- */
-export interface BHRGTLayerBase {
-  // Depth boundaries
-  upperBoundary: number;
-  lowerBoundary: number;
-
-  // Boundary determination method (how the boundary was positioned)
-  upperBoundaryDetermination?: string | null;
-  lowerBoundaryDetermination?: string | null;
-
-  // Layer properties
-  /** Whether the layer is anthropogenic (man-made) */
-  anthropogenic?: boolean | null;
-
-  // Layer structure properties
-  /** Whether the layer boundary is slanted */
-  slant?: boolean | null;
-  /** Whether the layer is bedded/stratified */
-  bedded?: boolean | null;
-  /** Bedding type of the layer (e.g., "dikGelamineerd") */
-  bedding?: string | null;
-  /** Whether the layer is a composite layer */
-  compositeLayer?: boolean | null;
-  /** Human activity type observed in the layer (e.g., "nietBepaald") */
-  activityType?: string | null;
-  /** Whether the internal structure is intact (undisturbed) */
-  internalStructureIntact?: boolean | null;
-
-  // Special material
-  /** Special material in the layer (e.g. anthropogenic debris) */
-  specialMaterial?: string | null;
-}
-
-/**
- * A BHR-GT layer that describes soil (the common case).
- * Discriminate on `material === "soil"`.
- */
-export interface BHRGTSoilLayer extends BHRGTLayerBase {
-  material: "soil";
-
-  // Soil classification
-  /** Geotechnical soil name (may be "" for IMBRO/A archive data using NEN 5104) */
-  geotechnicalSoilName: string;
-  /** Soil name per NEN 5104 (IMBRO/A archive data; geotechnicalSoilName is often nil there) */
-  soilNameNEN5104?: string | null;
-  /** Gravel content classification per NEN 5104 (IMBRO/A) */
-  gravelContentClassNEN5104?: string | null;
-  /** Organic matter content classification per NEN 5104 (IMBRO/A) */
-  organicMatterContentClassNEN5104?: string | null;
-
-  // Soil properties
-  /** Tertiary soil constituent (e.g., "schelpMateriaal", "plantenresten") */
-  tertiaryConstituent?: string | null;
-  /** Soil color code */
-  color?: string;
-  /** Dispersed inhomogeneity presence */
-  dispersedInhomogeneity?: boolean | null;
-  /** Organic matter content classification */
-  organicMatterContentClass?: string | null;
-  /** Carbonate content classification */
-  carbonateContentClass?: string | null;
-  /** Sand median grain size classification */
-  sandMedianClass?: string | null;
-  /** Gravel median grain size classification (e.g., "fijn", "middelgrof") */
-  gravelMedianClass?: string | null;
-  /** Depositional characteristic of the soil (e.g., "nietBepaald") */
-  geotechnicalDepositionalCharacteristic?: string | null;
-  /** Interbedding of other material in the soil (e.g., "kleiWeinigDikkeLaminae") */
-  interbedding?: string | null;
-  /** Grain shape properties (for sand/gravel) */
-  grainshape?: Grainshape;
-
-  /** Whether the soil is mixed */
-  mixed?: boolean | null;
-  /** Whether the soil has mottled appearance */
-  mottled?: boolean | null;
-
-  // Fine-grained soil properties
-  /** Consistency of fine-grained soils (e.g., "slap", "stevig", "vast") */
-  fineSoilConsistency?: string | null;
-
-  // Organic soil properties
-  /** Consistency of organic soils */
-  organicSoilConsistency?: string | null;
-  /** Texture of organic soils (e.g., "vezeligGrof", "vezeligFijn") */
-  organicSoilTexture?: string | null;
-  /** Tensile strength of peat */
-  peatTensileStrength?: string | null;
-
-  // Additional soil description fields
-  /** Cross bedding present (raw code) */
-  crossBedding?: string | null;
-  /** Graded bedding present (raw code) */
-  gradedBedding?: string | null;
-  /** Mixing type of the soil */
-  mixingType?: string | null;
-  /** Fine gravel content classification */
-  fineGravelContentClass?: string | null;
-  /** Medium-coarse gravel content classification */
-  mediumCoarseGravelContentClass?: string | null;
-  /** Very coarse gravel content classification */
-  veryCoarseGravelContentClass?: string | null;
-  /** Sand sorting classification per NEN 5104 */
-  sandSortingNEN5104?: string | null;
-  /** Peat type classification */
-  peatType?: string | null;
-  /** Depositional age of the layer */
-  depositionalAge?: string | null;
-}
-
-/**
- * A BHR-GT layer that describes rock.
- * Discriminate on `material === "rock"`.
- */
-export interface BHRGTRockLayer extends BHRGTLayerBase {
-  material: "rock";
-  /** Rock description */
-  rock: RockDescription;
-}
-
-/**
- * A BHR-GT described layer: either soil or rock.
- *
- * Narrow on the `material` discriminant:
- * ```ts
- * if (layer.material === "rock") layer.rock.rockType;
- * else layer.geotechnicalSoilName;
- * ```
- */
-export type BHRGTLayer = BHRGTSoilLayer | BHRGTRockLayer;
 
 /**
  * Complete Bore data (metadata + layers).
@@ -1039,27 +817,6 @@ export interface ConsistencyLimitsDetermination {
 }
 
 /**
- * Height measurement at specific time during settlement test
- * Used to construct compression/consolidation curves
- */
-export interface HeightAtSpecificTime {
-  time: number; // seconds
-  height: number; // mm
-}
-
-/**
- * Stress/strain measurement at a specific time during a settlement step
- * Columns of the StressAtSpecificSettlement time-series (oedometer/consolidation).
- */
-export interface StressAtSpecificSettlement {
-  elapsedTime: number; // seconds
-  verticalStrain: number; // percentage
-  excessPoreWaterPressure: number | null; // kPa
-  verticalEffectiveStress: number | null; // kPa
-  horizontalEffectiveStress: number | null; // kPa
-}
-
-/**
  * Single loading step in settlement characteristics test
  * Represents one stress increment in oedometer/consolidation test
  */
@@ -1192,14 +949,6 @@ export interface SaturationStageAtLoading {
 }
 
 /**
- * Volume change measurement at specific time during consolidation
- */
-export interface VolumeChangeAtSpecificTime {
-  time: number; // seconds
-  volumeChange: number; // cm³ or percentage
-}
-
-/**
  * Consolidation stage data for triaxial test
  * Documents specimen consolidation under specified stresses
  */
@@ -1211,19 +960,6 @@ export interface ConsolidationStageAtLoading {
   verticalStrain: number | null; // percentage
   lateralEarthPressureCoefficient: number | null; // K0
   volumeChangeDuringConsolidation: Array<VolumeChangeAtSpecificTime>;
-}
-
-/**
- * Shear stress measurement at specific strain during loading
- * Used to construct stress-strain curves for soil strength analysis
- */
-export interface ShearStressAtSpecificStrain {
-  time: number; // seconds
-  axialStrain: number; // percentage
-  deviatorStress: number; // kPa (σ1 - σ3)
-  cellPressure: number; // kPa (confining pressure)
-  porePressure?: number | null; // kPa (for undrained tests)
-  volumeChange?: number | null; // cm³ (for drained tests)
 }
 
 /**
@@ -1331,17 +1067,6 @@ export interface ConsolidationStageAtHorizontalDeformation {
 }
 
 /**
- * Shear stress measurement at specific deformation during horizontal shearing
- */
-export interface HorizontalDeformationDataPoint {
-  time: number;
-  horizontalDisplacement: number;
-  shearStress: number;
-  verticalStress: number;
-  heightChange?: number | null; // optional 5th column
-}
-
-/**
  * Shear stage for horizontal deformation (direct shear) test
  */
 export interface ShearStageAtHorizontalDeformation {
@@ -1443,56 +1168,6 @@ export type BROFileType = "CPT" | "BHR-GT" | "BHR-G" | "GMW" | "GLD";
 // ===========================================================================
 
 /**
- * Reference to the GMW monitoring tube a groundwater level research pertains to.
- */
-export interface GroundwaterMonitoringTubeRef {
-  /** broId of the groundwater monitoring well (GMW) */
-  broId: string | null;
-  /** Tube number within that well */
-  tubeNumber: number | null;
-}
-
-/**
- * A single time-value measurement point in a GLD observation series
- * (a WaterML2 `MeasurementTVP`).
- */
-export interface GLDObservationPoint {
-  /** Timestamp of the measurement (precision-preserving ISO string) */
-  time: string | null;
-  /** Measured groundwater level value */
-  value: number | null;
-  /** Unit of measure (the `uom` attribute, e.g. "m") */
-  unit: string | null;
-  /** Status quality-control qualifier for this point (e.g. "goedgekeurd") */
-  qualifier: string | null;
-}
-
-/**
- * A single groundwater level observation - a WaterML2 measurement time-series
- * plus its metadata and processing provenance.
- */
-export interface GLDObservation {
-  /** gml:id of the observation */
-  observationId: string | null;
-  /** Observation type (code list, e.g. "reguliereMeting", "controlemeting") */
-  observationType: string | null;
-  /** Processing status of the series (code list, e.g. "voorlopig", "volledigBeoordeeld") */
-  status: string | null;
-  /** Start of the observation period (precision-preserving ISO string) */
-  beginPosition: string | null;
-  /** End of the observation period */
-  endPosition: string | null;
-  /** When the result was produced */
-  resultTime: string | null;
-  /** Air-pressure compensation type used (code list) */
-  airPressureCompensationType: string | null;
-  /** Evaluation procedure (code list) */
-  evaluationProcedure: string | null;
-  /** The measurement points of the series */
-  points: Array<GLDObservationPoint>;
-}
-
-/**
  * Complete GLD (groundwater level research) data.
  *
  * Inferred from {@link GLD_PRODUCER}; `meta` (parse metadata) and the optional
@@ -1503,125 +1178,6 @@ export type GLDData = { meta: ParseMeta; alias?: string } & Produced<typeof GLD_
 // ===========================================================================
 // GMW (Grondwatermonitoringput / Groundwater Monitoring Well, dsgmw/1.1)
 // ===========================================================================
-
-/**
- * A single electrode on a geo-electrical (geo-ohm) cable.
- *
- * Geo-ohm cables carry electrodes at known depths, used to measure the
- * electrical resistivity of the surrounding ground (e.g. for salt/fresh
- * groundwater interface monitoring).
- */
-export interface Electrode {
-  /** Sequence number of the electrode on its cable */
-  electrodeNumber: number | null;
-  /** Filler/packing material around the electrode (code list) */
-  electrodePackingMaterial: string | null;
-  /** Whether the electrode is in use (code list, e.g. "ja"/"nee"/"onbekend") */
-  electrodeStatus: string | null;
-  /** Vertical position of the electrode, in metres relative to the vertical datum */
-  electrodePosition: number | null;
-}
-
-/**
- * A geo-electrical (geo-ohm) cable running along a monitoring tube.
- */
-export interface GeoOhmCable {
-  /** Sequence number of the cable within the tube */
-  cableNumber: number | null;
-  /** Whether the cable is in use ("ja"/"nee"/"onbekend") */
-  cableInUse: string | null;
-  /** Electrodes carried by this cable */
-  electrodes: Array<Electrode>;
-}
-
-/**
- * A monitoring tube (peilbuis) within a groundwater monitoring well.
- *
- * A well ({@link GMWData}) has one or more tubes; each tube has its own screen,
- * materials, dimensions and optional geo-ohm cables. Fields from the XSD's
- * `materialUsed`, `screen`, `plainTubePart`, `sedimentSump` and `insertedPart`
- * sub-structures are flattened onto this object for ergonomics.
- */
-export interface MonitoringTube {
-  /** Tube sequence number within the well (1-based) */
-  tubeNumber: number | null;
-  /** Tube type (code list, e.g. "standaardbuis") */
-  tubeType: string | null;
-  /** Whether an artesian well cap is present */
-  artesianWellCapPresent: boolean | null;
-  /** Whether a sediment sump is present */
-  sedimentSumpPresent: boolean | null;
-  /** Number of geo-ohm cables on this tube */
-  numberOfGeoOhmCables: number | null;
-  /** Outer diameter at the top of the tube, in millimetres */
-  tubeTopDiameter: number | null;
-  /** Whether the tube has a variable diameter over its length */
-  variableDiameter: boolean | null;
-  /** Tube status (code list, e.g. "gebruiksklaar") */
-  tubeStatus: string | null;
-  /** Position of the top of the tube, in metres relative to the vertical datum */
-  tubeTopPosition: number | null;
-  /** How the tube-top position was determined (code list) */
-  tubeTopPositioningMethod: string | null;
-  /** Whether a part was inserted into the tube */
-  tubePartInserted: boolean | null;
-  /** Whether the tube is in use ("ja"/"nee"/"onbekend") */
-  tubeInUse: string | null;
-
-  // materialUsed
-  /** Packing material around the tube (code list) */
-  tubePackingMaterial: string | null;
-  /** Tube material (code list, e.g. "peHighDensity") */
-  tubeMaterial: string | null;
-  /** Glue used to join tube parts (code list) */
-  glue: string | null;
-
-  // screen
-  /** Length of the screen (filter) section, in metres */
-  screenLength: number | null;
-  /** Filter sock material (code list) */
-  sockMaterial: string | null;
-  /** Screen protection (code list) */
-  screenProtection: string | null;
-  /** Position of the top of the screen, in metres relative to the vertical datum */
-  screenTopPosition: number | null;
-  /** Position of the bottom of the screen, in metres relative to the vertical datum */
-  screenBottomPosition: number | null;
-
-  // plainTubePart
-  /** Length of the plain (non-screened) tube part, in metres */
-  plainTubePartLength: number | null;
-
-  // sedimentSump
-  /** Length of the sediment sump, in metres (null if no sump) */
-  sedimentSumpLength: number | null;
-
-  // insertedPart (present when tubePartInserted is true)
-  /** Length of the inserted part, in metres */
-  insertedPartLength: number | null;
-  /** Diameter of the inserted part, in millimetres */
-  insertedPartDiameter: number | null;
-  /** Material of the inserted part (code list) */
-  insertedPartMaterial: string | null;
-
-  /** Geo-ohm cables on this tube */
-  geoOhmCables: Array<GeoOhmCable>;
-}
-
-/**
- * An intermediate event in a well's history (a change after construction).
- *
- * The XSD attaches an `eventData` diff describing exactly what changed; that
- * detailed per-event diff is intentionally not expanded here - this exposes the
- * event log (what happened, and when). The changed fields themselves are the
- * same properties modelled on {@link MonitoringTube} / {@link GMWData}.
- */
-export interface GMWIntermediateEvent {
-  /** Event name (code list, e.g. "nieuweInmetingPosities") */
-  eventName: string | null;
-  /** Date the event took place (precision-preserving ISO string) */
-  eventDate: string | null;
-}
 
 /**
  * Complete GMW (groundwater monitoring well) data.

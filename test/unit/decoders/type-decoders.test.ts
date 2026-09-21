@@ -5,7 +5,7 @@ import {
   parseBoolean,
   parseDate,
   parseQualityClass,
-} from '@/resolvers/type-resolvers';
+} from '@/decoders/type-decoders';
 
 describe('parseFloat', () => {
   it('should parse valid float strings', () => {

@@ -20,10 +20,6 @@ export type {
   CPTData,
   CPTMeasurement,
   BHRGTData,
-  BHRGTLayer,
-  BHRGTLayerBase,
-  BHRGTSoilLayer,
-  BHRGTRockLayer,
   Grainshape,
   BHRGData,
   BHRGLayer,
@@ -43,24 +39,12 @@ export type {
   Mottle,
   ThinStratum,
   GMWData,
-  MonitoringTube,
-  GeoOhmCable,
-  Electrode,
-  GMWIntermediateEvent,
   GLDData,
-  GLDObservation,
-  GLDObservationPoint,
-  GroundwaterMonitoringTubeRef,
   BROData,
   BRORegistrationObject,
   BROFileType,
   Location,
   ParseMeta,
-  Schema,
-  SchemaField,
-  ParsedSchema,
-  ResolverFunction,
-  ResolverContext,
   Namespaces,
   BoreholeSampleAnalysis,
   InvestigatedInterval,
@@ -71,29 +55,22 @@ export type {
   SaturatedPermeabilityAtSpecificDensity,
   ShearStressChangeDuringLoadingDetermination,
   SettlementDeterminationStep,
-  ShearStressAtSpecificStrain,
   MaximumUndrainedShearStrengthDetermination,
   ShearStressChangeDuringHorizontalDeformationDetermination,
   ConsolidationStageAtHorizontalDeformation,
   ConsolidationStepAtHorizontalDeformation,
   ShearStageAtHorizontalDeformation,
-  HorizontalDeformationDataPoint,
   HeightAtSpecificConsolidationTime,
-  DissipationTest,
   DissipationMeasurement,
   QualityRegime,
   PlasticityAtSpecificWaterContent,
-  HeightAtSpecificTime,
   MembraneCorrection,
   DrainageStripCorrection,
   SaturationStageAtLoading,
   SaturationStageAtCompression,
   SpecimenMadeForLoading,
-  StressAtSpecificSettlement,
-  VolumeChangeAtSpecificTime,
   ConsolidationStageAtLoading,
   LoadStage,
-  RemovedLayer,
   RegistrationHistory,
   ReportHistory,
   IntermediateEvent,
@@ -123,17 +100,45 @@ export { SUPPORTED_VERSIONS } from "./core/version-detector.js";
 export type { DataType } from "./core/version-detector.js";
 
 export { CPT_PRODUCER } from "./schemas/cpt-schema.js";
+export type { DissipationTest, RemovedLayer } from "./schemas/cpt-schema.js";
 export { BORE_PRODUCER } from "./schemas/bore-schema.js";
+export type {
+  BHRGTLayer,
+  BHRGTLayerBase,
+  BHRGTSoilLayer,
+  BHRGTRockLayer,
+} from "./schemas/bore-schema.js";
+export type {
+  HeightAtSpecificTime,
+  StressAtSpecificSettlement,
+  VolumeChangeAtSpecificTime,
+  ShearStressAtSpecificStrain,
+  HorizontalDeformationDataPoint,
+} from "./schemas/bhrgt-analysis.js";
+export type {
+  GLDObservation,
+  GLDObservationPoint,
+  GroundwaterMonitoringTubeRef,
+} from "./schemas/gld-schema.js";
 export { BHRG_PRODUCER } from "./schemas/bhrg-schema.js";
 export { GMW_PRODUCER } from "./schemas/gmw-schema.js";
+export type {
+  MonitoringTube,
+  GeoOhmCable,
+  Electrode,
+  GMWIntermediateEvent,
+} from "./schemas/gmw-schema.js";
 export { GLD_PRODUCER } from "./schemas/gld-schema.js";
 
 export { BRO_NAMESPACES, KNOWN_BRO_PREFIXES } from "./namespaces.js";
 
 export { BRO_SOIL_COLORS, getSoilColor, isValidSoilColor, getSoilColorNames } from "./colors.js";
 
-// Export resolvers for custom schema definitions
-export * as resolvers from "./resolvers.js";
+// The authoring surface for custom schemas (combinators + domain helpers).
+export * as producers from "./producers.js";
+
+// The producer schema types, for authoring and inferring custom schemas.
+export type { Producer, NodeLens, Produced, ProducedFields } from "./core/producer.js";
 
 // Export schema presets for common use cases
 export * as presets from "./schema-presets.js";

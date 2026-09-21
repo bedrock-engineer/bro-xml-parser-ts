@@ -12,7 +12,7 @@ Comprehensive test suite using Vitest with browser mode, node mode, and unit tes
   - `fixture-loader.ts` - Load XML fixtures easily
   - `assertions.ts` - Custom assertions for CPT/Bore data validation
 - `unit/` - Unit tests for individual functions
-  - `resolvers/` - Type conversion functions
+  - `decoders/` - Type conversion functions
   - `core/` - Version detection, schema parsing
 - `node/` - Node.js integration tests
   - Uses NodeXMLAdapter with @xmldom/xmldom and fontoxpath
@@ -47,7 +47,7 @@ npm run test:coverage
 
 Test individual functions in isolation:
 
-- **Type resolvers** - parseFloat, parseInt, parseBoolean, parseDate, parseQualityClass
+- **Type decoders** - parseFloat, parseInt, parseBoolean, parseDate, parseQualityClass
 - **Version detection** - Schema version validation, error handling
 - **Core modules** - Schema parsing logic
 
@@ -85,7 +85,7 @@ See `fixtures/README.md` for details on each file.
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { parseFloat } from '@/resolvers/type-resolvers';
+import { parseFloat } from '@/decoders/type-decoders';
 
 describe('parseFloat', () => {
   it('should parse valid floats', () => {

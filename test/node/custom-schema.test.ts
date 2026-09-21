@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach, expectTypeOf } from 'vitest';
 import { BROParser } from '@/parser';
 import { NodeXMLAdapter } from '@/adapters/node-adapter';
 import { fixtures } from '@test/helpers/fixture-loader';
-import * as resolvers from '@/resolvers';
+import * as producers from '@/producers';
 import * as presets from '@/schema-presets';
-import type { Schema, ParseMeta, Location } from '@/types/index';
+import type { Producer } from '@/core/producer';
+import type { ParseMeta, Location } from '@/types/index';
 
 /**
  * `parseCustom` returns `{ meta, ...data }` where `data` has exactly the keys
@@ -13,8 +14,8 @@ import type { Schema, ParseMeta, Location } from '@/types/index';
  * that the result's own keys are exactly the schema's keys plus `meta` — no
  * `data`, no `finalDepth`, no other full-parse fields leak through.
  */
-function expectExactKeys(result: object, schema: Schema) {
-  expect(Object.keys(result).sort()).toEqual(['meta', ...Object.keys(schema)].sort());
+function expectExactKeys(result: object, fields: Record<string, Producer<unknown>>) {
+  expect(Object.keys(result).sort()).toEqual(['meta', ...Object.keys(fields)].sort());
 }
 
 describe('Custom Schema Parsing', () => {
@@ -37,7 +38,7 @@ describe('Custom Schema Parsing', () => {
     it('LOCATION_ONLY preset extracts only location fields with exact coordinates', () => {
       const result = parser.parseCustom(fixtures.cpt.example(), presets.CPT_LOCATION_ONLY, 'CPT');
 
-      // Preset field types are inferred (authored with `satisfies Schema`).
+      // Preset field types are inferred from each producer's output type.
       expectTypeOf(result.broId).toEqualTypeOf<string | null>();
       expectTypeOf(result.deliveredLocation).toEqualTypeOf<Location | null>();
       expectTypeOf(result.deliveredVerticalPositionOffset).toEqualTypeOf<number | null>();
@@ -74,25 +75,20 @@ describe('Custom Schema Parsing', () => {
       expect((result.deliveredLocation as { epsg: string }).epsg).toBe('EPSG:28992');
     });
 
-    it('fully custom schema infers field types from resolvers (no manual annotation)', () => {
-      // `satisfies Schema` preserves each field's literal type so `parseCustom`
-      // can infer the return type; a `: Schema` annotation would erase it.
+    it('fully custom schema infers field types from producers (no manual annotation)', () => {
+      // An inline producer map: each field's output type flows into the result.
       const mySchema = {
-        id: { xpath: 'brocom:broId' },
-        depth: {
-          xpath: './dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth',
-          resolver: resolvers.parseFloat,
-        },
-        reportDate: {
-          xpath: './dscpt:researchReportDate',
-          resolver: resolvers.parseDate,
-        },
-      } satisfies Schema;
+        id: producers.text('brocom:broId'),
+        depth: producers.number_(
+          './dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth'
+        ),
+        reportDate: producers.date('./dscpt:researchReportDate'),
+      };
 
-      // No type argument — the output type is inferred from the schema.
+      // No type argument — the output type is inferred from the map.
       const result = parser.parseCustom(fixtures.cpt.example(), mySchema, 'CPT');
 
-      // Inference: resolver return types flow through, no-resolver fields are raw text.
+      // Inference: each producer's output type flows through.
       expectTypeOf(result.id).toEqualTypeOf<string | null>();
       expectTypeOf(result.depth).toEqualTypeOf<number | null>();
       expectTypeOf(result.reportDate).toEqualTypeOf<string | null>();
@@ -230,12 +226,11 @@ describe('Custom Schema Parsing', () => {
 
   describe('Extending presets', () => {
     it('should allow extending a preset with additional fields', () => {
-      const extendedSchema: Schema = {
+      const extendedSchema = {
         ...presets.CPT_ID_ONLY,
-        finalDepth: {
-          xpath: './dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth',
-          resolver: resolvers.parseFloat,
-        },
+        finalDepth: producers.number_(
+          './dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth'
+        ),
       };
 
       const result = parser.parseCustom(fixtures.cpt.example(), extendedSchema, 'CPT');

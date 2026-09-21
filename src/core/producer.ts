@@ -19,7 +19,13 @@
  * a schema author asks for it.
  */
 
-import { parseDate, parseFloat, parseInt, parseBoolean } from "../resolvers/type-resolvers.js";
+import {
+  parseDate,
+  parseFloat,
+  parseInt,
+  parseBoolean,
+  parseQualityClass,
+} from "../decoders/type-decoders.js";
 
 /** How a producer behaves when it finds no data. */
 export type Presence =
@@ -49,42 +55,56 @@ export interface NodeLens {
   all(xpath: string): Array<NodeLens>;
 }
 
-/** Fields common to every producer kind. */
+/**
+ * Fields common to every producer kind. `presence` lives on each producer
+ * interface instead (typed as the literal `P`), so its value can be recovered at
+ * the type level.
+ */
 interface ProducerMeta {
   /** Relative XPath from the enclosing node to this producer's node. */
   at?: string;
-  /** Absence behaviour (default `"optional"`). */
-  presence?: Presence;
   /** Docstring carried into generated types as `/** *\/`. */
   doc?: string;
   /** Group name carried into generated types as `@group`. */
   group?: string;
 }
 
-export interface ScalarProducer<T> extends ProducerMeta {
+/**
+ * A producer carries two type params: its output type `T`, and its
+ * {@link Presence} `P`. `P` is the literal type of the runtime `presence` field —
+ * the same value drives both parsing and {@link ProducedFields} (which reads `P`
+ * to decide whether a field's key is required or `omit` → optional). One field,
+ * one source of truth; no phantom to keep in sync.
+ */
+export interface ScalarProducer<T, P extends Presence = "optional"> extends ProducerMeta {
   kind: "scalar";
   decode: (raw: string | null) => T;
+  /** Absence behaviour (default `"optional"`). */
+  presence?: P;
   /** Phantom output type — never present at runtime. */
   readonly _out?: T;
 }
 
-export interface ObjectProducer<T> extends ProducerMeta {
+export interface ObjectProducer<T, P extends Presence = "optional"> extends ProducerMeta {
   kind: "object";
-  fields: Record<string, Producer<unknown>>;
+  fields: Record<string, Producer<unknown, Presence>>;
+  presence?: P;
   readonly _out?: T;
 }
 
-export interface ArrayProducer<T> extends ProducerMeta {
+export interface ArrayProducer<T, P extends Presence = "optional"> extends ProducerMeta {
   kind: "array";
   /** Relative XPath selecting each item node. */
   each: string;
-  item: Producer<unknown>;
+  item: Producer<unknown, Presence>;
+  presence?: P;
   readonly _out?: T;
 }
 
-export interface CustomProducer<T> extends ProducerMeta {
+export interface CustomProducer<T, P extends Presence = "optional"> extends ProducerMeta {
   kind: "custom";
   produce: (lens: NodeLens) => T;
+  presence?: P;
   readonly _out?: T;
 }
 
@@ -96,44 +116,65 @@ export interface OneOfBranch {
   at?: string;
   /** Literal discriminant value written under the oneOf's `tagAs` key. */
   tag: string;
-  fields: Record<string, Producer<unknown>>;
+  fields: Record<string, Producer<unknown, Presence>>;
 }
 
-export interface OneOfProducer<T> extends ProducerMeta {
+export interface OneOfProducer<T, P extends Presence = "optional"> extends ProducerMeta {
   kind: "oneOf";
   /** Field name that carries each branch's literal `tag`. */
   tagAs: string;
   /** Fields parsed once and merged into every branch. */
-  base: Record<string, Producer<unknown>>;
-  branches: Array<OneOfBranch>;
+  base: Record<string, Producer<unknown, Presence>>;
+  branches: ReadonlyArray<OneOfBranch>;
+  presence?: P;
   readonly _out?: T;
 }
 
-export type Producer<T> =
-  | ScalarProducer<T>
-  | ObjectProducer<T>
-  | ArrayProducer<T>
-  | CustomProducer<T>
-  | OneOfProducer<T>;
+export type Producer<T, P extends Presence = "optional"> =
+  | ScalarProducer<T, P>
+  | ObjectProducer<T, P>
+  | ArrayProducer<T, P>
+  | CustomProducer<T, P>
+  | OneOfProducer<T, P>;
+
+/** Flatten an intersection into a single object literal for legible hovers. */
+type Simplify<T> = { [K in keyof T]: T[K] } & {};
 
 /** Recover a producer's output type. Recurses in parallel with the runtime. */
 export type Produced<P> = P extends { readonly _out?: infer T } ? T : never;
 
-/** The output type of an object built from a fields map. */
-export type ProducedFields<F> = { [K in keyof F]: Produced<F[K]> };
+/** Recover a producer's {@link Presence} (absent → the `"optional"` default). */
+type PresenceOf<X> = X extends { presence?: infer P } ? (P extends Presence ? P : "optional") : "optional";
+
+type OmitPresenceKeys<F> = { [K in keyof F]: PresenceOf<F[K]> extends "omit" ? K : never }[keyof F];
+
+/**
+ * The output type of an object built from a fields map. A field whose producer
+ * has `presence: "omit"` becomes an **optional** key (`key?:`); every other
+ * field is a required key. Under `exactOptionalPropertyTypes` this exactly
+ * mirrors the runtime absence model.
+ */
+export type ProducedFields<F> = Simplify<
+  { [K in Exclude<keyof F, OmitPresenceKeys<F>>]: Produced<F[K]> } & {
+    [K in OmitPresenceKeys<F>]?: Produced<F[K]>;
+  }
+>;
 
 // ===========================================================================
 // Combinators
 // ===========================================================================
 
-type ScalarOpts<T> = { at?: string; decode: (raw: string | null) => T } & Omit<
-  ProducerMeta,
-  "at"
->;
-type LeafOpts = { at?: string } & Omit<ProducerMeta, "at">;
+/** Meta accepted by every combinator, minus `presence` (captured generically). */
+type BaseMeta = { at?: string; doc?: string; group?: string };
+type LeafOpts<P extends Presence = "optional"> = BaseMeta & { presence?: P };
+type ScalarOpts<T, P extends Presence = "optional"> = LeafOpts<P> & {
+  decode: (raw: string | null) => T;
+};
 
 /** A leaf producer with an explicit decoder. */
-export function scalar<T>(opts: ScalarOpts<T>): ScalarProducer<T> {
+export function scalar<T, P extends Presence = "optional">(
+  opts: ScalarOpts<T, P>,
+): ScalarProducer<T, P> {
   return { kind: "scalar", ...opts };
 }
 
@@ -141,71 +182,123 @@ export function scalar<T>(opts: ScalarOpts<T>): ScalarProducer<T> {
  * Build a leaf from a decoder + optional `at`, without ever writing
  * `at: undefined` (which `exactOptionalPropertyTypes` rejects).
  */
-function leaf<T>(decode: (raw: string | null) => T, at: string | undefined, opts: LeafOpts) {
-  return scalar<T>({ decode, ...(at !== undefined ? { at } : {}), ...opts });
+function leaf<T, P extends Presence>(
+  decode: (raw: string | null) => T,
+  at: string | undefined,
+  opts: LeafOpts<P>,
+): ScalarProducer<T, P> {
+  return scalar<T, P>({ decode, ...(at !== undefined ? { at } : {}), ...opts });
 }
 
 /** Raw trimmed text (`string | null`). */
-export function text(at?: string, opts: LeafOpts = {}): ScalarProducer<string | null> {
-  return leaf<string | null>((raw) => raw, at, opts);
+export function text<P extends Presence = "optional">(
+  at?: string,
+  opts: LeafOpts<P> = {},
+): ScalarProducer<string | null, P> {
+  return leaf<string | null, P>((raw) => raw, at, opts);
 }
 
 /** Precision-preserving ISO date/dateTime string (`string | null`). */
-export function date(at?: string, opts: LeafOpts = {}): ScalarProducer<string | null> {
-  return leaf<string | null>(parseDate, at, opts);
+export function date<P extends Presence = "optional">(
+  at?: string,
+  opts: LeafOpts<P> = {},
+): ScalarProducer<string | null, P> {
+  return leaf<string | null, P>(parseDate, at, opts);
 }
 
 /** Decimal number (`number | null`). */
-export function number_(at?: string, opts: LeafOpts = {}): ScalarProducer<number | null> {
-  return leaf<number | null>(parseFloat, at, opts);
+export function number_<P extends Presence = "optional">(
+  at?: string,
+  opts: LeafOpts<P> = {},
+): ScalarProducer<number | null, P> {
+  return leaf<number | null, P>(parseFloat, at, opts);
 }
 
 /** Integer (`number | null`). */
-export function integer(at?: string, opts: LeafOpts = {}): ScalarProducer<number | null> {
-  return leaf<number | null>(parseInt, at, opts);
+export function integer<P extends Presence = "optional">(
+  at?: string,
+  opts: LeafOpts<P> = {},
+): ScalarProducer<number | null, P> {
+  return leaf<number | null, P>(parseInt, at, opts);
 }
 
 /** Boolean (`boolean | null`), understanding BRO's `ja`/`nee`. */
-export function boolean_(at?: string, opts: LeafOpts = {}): ScalarProducer<boolean | null> {
-  return leaf<boolean | null>(parseBoolean, at, opts);
+export function boolean_<P extends Presence = "optional">(
+  at?: string,
+  opts: LeafOpts<P> = {},
+): ScalarProducer<boolean | null, P> {
+  return leaf<boolean | null, P>(parseBoolean, at, opts);
+}
+
+/** BRO quality class (`number | null`), understanding `"klasse2"` and `"2"`. */
+export function qualityClass<P extends Presence = "optional">(
+  at?: string,
+  opts: LeafOpts<P> = {},
+): ScalarProducer<number | null, P> {
+  return leaf<number | null, P>(parseQualityClass, at, opts);
 }
 
 /** A fixed set of named fields. Output type is inferred from `fields`. */
-export function object_<F extends Record<string, Producer<unknown>>>(
-  opts: { fields: F } & ProducerMeta,
-): ObjectProducer<ProducedFields<F>> {
+export function object_<
+  F extends Record<string, Producer<unknown, Presence>>,
+  P extends Presence = "optional",
+>(opts: { fields: F; presence?: P } & BaseMeta): ObjectProducer<ProducedFields<F>, P> {
   const { fields, ...meta } = opts;
   return { kind: "object", fields, ...meta };
 }
 
 /** A repeated subtree. `each` selects item nodes; `item` produces one value. */
-export function array<E>(
-  opts: { each: string; item: Producer<E> } & ProducerMeta,
-): ArrayProducer<Array<E>> {
+export function array<E, P extends Presence = "optional">(
+  opts: { each: string; item: Producer<E, Presence>; presence?: P } & BaseMeta,
+): ArrayProducer<Array<E>, P> {
   const { each, item, ...meta } = opts;
   return { kind: "array", each, item, ...meta };
 }
 
 /** The escape hatch: a decoder handed a relative-only {@link NodeLens}. */
-export function custom<T>(
-  opts: { produce: (lens: NodeLens) => T } & ProducerMeta,
-): CustomProducer<T> {
+export function custom<T, P extends Presence = "optional">(
+  opts: { produce: (lens: NodeLens) => T; presence?: P } & BaseMeta,
+): CustomProducer<T, P> {
   const { produce, ...meta } = opts;
   return { kind: "custom", produce, ...meta };
 }
+
+/** A branch as written at the `oneOf` call site (captured for type inference). */
+type BranchInput<
+  Tag extends string = string,
+  F extends Record<string, Producer<unknown, Presence>> = Record<string, Producer<unknown, Presence>>,
+> = { when: string; at?: string; tag: Tag; fields: F };
+
+/** Output type of one branch: shared base ∪ branch fields ∪ the tag literal. */
+type BranchOut<TagKey extends string, Base, B> = B extends {
+  tag: infer Tag extends string;
+  fields: infer F;
+}
+  ? Simplify<ProducedFields<Base> & ProducedFields<F> & { [K in TagKey]: Tag }>
+  : never;
+
+/** The discriminated union over all branches (mapped tuple → indexed union). */
+type OneOfOut<TagKey extends string, Base, Branches extends readonly unknown[]> = {
+  [I in keyof Branches]: BranchOut<TagKey, Base, Branches[I]>;
+}[number];
 
 /**
  * An honest discriminated union. `base` fields are parsed once; the first branch
  * whose `when` XPath exists is parsed and merged, with its literal `tag` written
  * under `tagAs`.
  *
- * The output type is left to the caller to declare (via the type argument), since
- * inferring a full discriminated union from `base`/`branches` is beyond what the
- * combinator can express cleanly. Codegen reads the same declaration.
+ * The output type is **inferred**: a discriminated union keyed on `tagAs`, each
+ * member being the shared `base` fields plus that branch's `fields` plus the
+ * literal `tag`. Presence is honoured throughout (`omit` → optional key).
  */
-export function oneOf<T>(
-  opts: { tagAs: string; base?: Record<string, Producer<unknown>>; branches: Array<OneOfBranch> } & ProducerMeta,
-): OneOfProducer<T> {
+export function oneOf<
+  TagKey extends string,
+  const Base extends Record<string, Producer<unknown, Presence>>,
+  const Branches extends readonly BranchInput[],
+  P extends Presence = "optional",
+>(
+  opts: { tagAs: TagKey; base?: Base; branches: Branches; presence?: P } & BaseMeta,
+): OneOfProducer<OneOfOut<TagKey, Base, Branches>, P> {
   const { tagAs, base = {}, branches, ...meta } = opts;
   return { kind: "oneOf", tagAs, base, branches, ...meta };
 }

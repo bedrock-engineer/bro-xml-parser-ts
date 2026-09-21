@@ -9,8 +9,8 @@
  * {@link Producer} DSL.
  */
 
-import { SENTINEL } from "../resolvers/constants.js";
-import { parseBoolean } from "../resolvers/type-resolvers.js";
+import { SENTINEL } from "../decoders/constants.js";
+import { parseBoolean } from "../decoders/type-decoders.js";
 import type { CustomProducer } from "./producer.js";
 import { custom } from "./producer.js";
 
@@ -18,17 +18,30 @@ import { custom } from "./producer.js";
 export type ColumnParser<V> = (raw: string) => V;
 
 /** One column of a CSV time-series. */
-export interface ColumnSpec {
+export interface ColumnSpec<Name extends string = string, V = unknown> {
   /** Output property name on each row object. */
-  name: string;
+  name: Name;
   /** Cell parser (see {@link col}). */
-  parse: ColumnParser<unknown>;
+  parse: ColumnParser<V>;
   /**
    * When true, a row missing this (trailing) column is still kept. By default a
    * row with fewer cells than the number of required columns is dropped.
    */
   optional?: boolean;
 }
+
+/** Flatten an intersection into a single object literal for legible hovers. */
+type Simplify<T> = { [K in keyof T]: T[K] } & {};
+
+/**
+ * The row object inferred from a `const` column-spec tuple. Every non-`null`
+ * column contributes a **required** key (the decoder always assigns it — `null`
+ * when the cell is absent), typed as that column's cell-parser return type.
+ * A `null` spec entry (a skipped position) contributes nothing.
+ */
+export type RowOf<Spec extends readonly (ColumnSpec | null)[]> = Simplify<{
+  [S in Extract<Spec[number], ColumnSpec> as S["name"]]: ReturnType<S["parse"]>;
+}>;
 
 export interface DecodeColumnsOptions {
   /** Row delimiter (default: any run of whitespace). */
@@ -81,7 +94,7 @@ export const col = {
  */
 export function decodeColumns<T>(
   text: string | null | undefined,
-  columns: Array<ColumnSpec | null>,
+  columns: ReadonlyArray<ColumnSpec | null>,
   options: DecodeColumnsOptions = {},
 ): Array<T> {
   if (!text) {
@@ -122,13 +135,16 @@ export function decodeColumns<T>(
  * A {@link Producer} that reads the CSV text at `valuesAt` (relative to the
  * enclosing node) and decodes it with {@link decodeColumns}. Yields `[]` when the
  * values element is absent.
+ *
+ * The row type is **inferred** from the (`as const`) `spec` — each column's name
+ * and cell-parser return type — so callers no longer declare it by hand.
  */
-export function columns<T>(
+export function columns<const Spec extends readonly (ColumnSpec | null)[]>(
   valuesAt: string,
-  spec: Array<ColumnSpec | null>,
+  spec: Spec,
   options?: DecodeColumnsOptions,
-): CustomProducer<Array<T>> {
-  return custom<Array<T>>({
-    produce: (lens) => decodeColumns<T>(lens.textAt(valuesAt), spec, options),
+): CustomProducer<Array<RowOf<Spec>>> {
+  return custom<Array<RowOf<Spec>>>({
+    produce: (lens) => decodeColumns<RowOf<Spec>>(lens.textAt(valuesAt), spec, options),
   });
 }

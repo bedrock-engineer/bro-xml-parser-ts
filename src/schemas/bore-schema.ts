@@ -8,8 +8,7 @@
  * `npm run check:xsd-coverage`.
  */
 
-import type { BHRGTLayer } from "../types/index.js";
-import type { Producer } from "../core/producer.js";
+import type { Producer, Presence, Produced, ProducedFields } from "../core/producer.js";
 import {
   object_,
   array,
@@ -47,7 +46,7 @@ function parseDispersedInhomogeneity(raw: string | null): boolean | null {
 }
 
 /** Mount an object/array producer at a relative path, keyed only when present. */
-function optional<T>(producer: Producer<T>, at: string): Producer<T> {
+function optional<T>(producer: Producer<T, Presence>, at: string): Producer<T, "omit"> {
   return { ...producer, at, presence: "omit" };
 }
 
@@ -98,22 +97,25 @@ const GRAINSHAPE = object_({
 
 // === The described layer: soil ⊕ rock ===
 
-const LAYER = oneOf<BHRGTLayer>({
+/** Fields shared by every layer, regardless of soil/rock. */
+const LAYER_BASE = {
+  upperBoundary: number_("./bhrgtcom:upperBoundary"),
+  lowerBoundary: number_("./bhrgtcom:lowerBoundary"),
+  upperBoundaryDetermination: text("./bhrgtcom:upperBoundaryDetermination"),
+  lowerBoundaryDetermination: text("./bhrgtcom:lowerBoundaryDetermination"),
+  anthropogenic: boolean_("./bhrgtcom:anthropogenic"),
+  slant: boolean_("./bhrgtcom:slant"),
+  bedding: text("./bhrgtcom:bedding", OMIT),
+  compositeLayer: boolean_("./bhrgtcom:compositeLayer", OMIT),
+  activityType: text("./bhrgtcom:activityType", OMIT),
+  bedded: boolean_("./bhrgtcom:bedded"),
+  internalStructureIntact: boolean_("./bhrgtcom:internalStructureIntact"),
+  specialMaterial: text("./bhrgtcom:specialMaterial", OMIT),
+};
+
+const LAYER = oneOf({
   tagAs: "material",
-  base: {
-    upperBoundary: number_("./bhrgtcom:upperBoundary"),
-    lowerBoundary: number_("./bhrgtcom:lowerBoundary"),
-    upperBoundaryDetermination: text("./bhrgtcom:upperBoundaryDetermination"),
-    lowerBoundaryDetermination: text("./bhrgtcom:lowerBoundaryDetermination"),
-    anthropogenic: boolean_("./bhrgtcom:anthropogenic"),
-    slant: boolean_("./bhrgtcom:slant"),
-    bedding: text("./bhrgtcom:bedding", OMIT),
-    compositeLayer: boolean_("./bhrgtcom:compositeLayer", OMIT),
-    activityType: text("./bhrgtcom:activityType", OMIT),
-    bedded: boolean_("./bhrgtcom:bedded"),
-    internalStructureIntact: boolean_("./bhrgtcom:internalStructureIntact"),
-    specialMaterial: text("./bhrgtcom:specialMaterial", OMIT),
-  },
+  base: LAYER_BASE,
   branches: [
     {
       when: "./bhrgtcom:rock",
@@ -177,6 +179,18 @@ const LAYER = oneOf<BHRGTLayer>({
     },
   ],
 });
+
+/**
+ * A BHR-GT described layer: a soil/rock discriminated union on `material`.
+ * Inferred from {@link LAYER} — the schema is the single source of truth.
+ */
+export type BHRGTLayer = Produced<typeof LAYER>;
+/** Fields common to every {@link BHRGTLayer}, regardless of material. */
+export type BHRGTLayerBase = ProducedFields<typeof LAYER_BASE>;
+/** A layer that describes soil (`material === "soil"`). */
+export type BHRGTSoilLayer = Extract<BHRGTLayer, { material: "soil" }>;
+/** A layer that describes rock (`material === "rock"`). */
+export type BHRGTRockLayer = Extract<BHRGTLayer, { material: "rock" }>;
 
 // === Interval item producers ===
 

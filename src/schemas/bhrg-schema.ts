@@ -13,7 +13,7 @@
  * `npm run check:xsd-coverage`.
  */
 
-import type { Producer } from "../core/producer.js";
+import type { Producer, Presence } from "../core/producer.js";
 import { object_, array, text, date, number_, boolean_ } from "../core/producer.js";
 import {
   COMMON_REGISTRATION_PRODUCERS,
@@ -25,12 +25,12 @@ const REQUIRED = { presence: "required" } as const;
 const OMIT = { presence: "omit" } as const;
 
 /** Mount an object/array producer at a relative path, keyed only when present. */
-function optional<T>(producer: Producer<T>, at: string): Producer<T> {
+function optional<T>(producer: Producer<T, Presence>, at: string): Producer<T, "omit"> {
   return { ...producer, at, presence: "omit" };
 }
 
 /** A repeatable code list: array of the matched elements' text, omitted if empty. */
-function codeList(each: string): Producer<Array<string | null>> {
+function codeList(each: string): Producer<Array<string | null>, "omit"> {
   return array({ each, item: text(), presence: "omit" });
 }
 

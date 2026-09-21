@@ -228,6 +228,20 @@ export interface Leaf {
   cardinality: string;
   /** best-effort xsd base type local name (e.g. "date", "decimal", "boolean") */
   baseType: string;
+  /** xs:documentation text on the leaf element (BRO ships Dutch Definition/Explanation), if any */
+  doc?: string;
+}
+
+/** Collapsed text of an element's own `xs:annotation/xs:documentation` (whitespace-normalized). */
+function documentationOf(el: Element): string | undefined {
+  const ann = directChildElements(el, "annotation")[0];
+  if (!ann) return undefined;
+  const text = directChildElements(ann, "documentation")
+    .map((d) => (d.textContent ?? "").trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ");
+  return text || undefined;
 }
 
 const MAX_DEPTH = 40;
@@ -469,12 +483,14 @@ function handleElementParticle(
   let ownerUrl = docUrlOf(el);
   let inlineType: Element | null =
     directChildElements(el, "complexType")[0] ?? directChildElements(el, "simpleType")[0] ?? null;
+  let docEl: Element = el;
 
   if (ref && !name) {
     const q = resolveQName(ref, ownerUrl);
     if (q) {
       const globalEl = globalElements.get(typeKey(q.uri, q.local));
       if (globalEl) {
+        docEl = globalEl;
         name = globalEl.getAttribute("name");
         typeAttr = globalEl.getAttribute("type");
         elemNs = q.uri;
@@ -495,6 +511,7 @@ function handleElementParticle(
 
   if (!name) return;
 
+  const doc = documentationOf(docEl);
   const prefix = prefixForUri(elemNs);
   const qualified = `${prefix}:${name}`;
   const path = `${pathPrefix}/${qualified}`;
@@ -513,11 +530,11 @@ function handleElementParticle(
   }
 
   // BRO partial-date fields (PartialDateType: choice of date/yearMonth/year/voidReason)
-  // are parsed wholesale by the parseDate resolver - collapse to a single leaf.
+  // are parsed wholesale by the parseDate decoder - collapse to a single leaf.
   // Matches the type directly OR an (inline/named) complexType that extends it
   // (e.g. BHR-G verticalPositioningDate adds a nilReason attribute).
   if ((typeQ && /PartialDate/i.test(typeQ.local)) || isPartialDateExtension(typeQ, effInline)) {
-    leaves.push({ qualified, local: name, path, cardinality, baseType: "date" });
+    leaves.push({ qualified, local: name, path, cardinality, baseType: "date", doc });
     return;
   }
 
@@ -541,7 +558,7 @@ function handleElementParticle(
     const ck = typeKey(typeQ!.uri, typeQ!.local);
     if (seenTypes.has(ck)) {
       // recursive type - record as leaf to avoid infinite loop
-      leaves.push({ qualified, local: name, path, cardinality, baseType: "recursive" });
+      leaves.push({ qualified, local: name, path, cardinality, baseType: "recursive", doc });
       return;
     }
     const nextSeen = new Set(seenTypes);
@@ -557,7 +574,7 @@ function handleElementParticle(
 
   // Opaque-namespace types (gml/swe/om) and simple types -> leaf.
   const baseType = leafBaseType(typeQ, effInline);
-  leaves.push({ qualified, local: name, path, cardinality, baseType });
+  leaves.push({ qualified, local: name, path, cardinality, baseType, doc });
 }
 
 /** Flatten a registration-object type (already loaded) into deduped leaves. */
@@ -604,8 +621,8 @@ function scoreObj(name: string): number {
 // Helpers shared by the coverage report and the codegen
 // ---------------------------------------------------------------------------
 
-/** Map an xsd base type local name to one of our type resolvers (or null for string). */
-export function guessResolver(baseType: string): string | null {
+/** Map an xsd base type local name to one of our type decoders (or null for string). */
+export function guessDecoder(baseType: string): string | null {
   const t = baseType.toLowerCase();
   if (t.includes("date") || t.includes("time") || t.startsWith("gyear")) return "parseDate";
   if (t === "boolean") return "parseBoolean";

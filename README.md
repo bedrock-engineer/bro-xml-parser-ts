@@ -60,23 +60,32 @@ const bhr_g = parser.parseBHRG(xmlText);
 
 Extract only the fields you need:
 
+Build a schema from the `producers` combinators — a map of field name → producer.
+The return type is inferred from the map, so `result.depth` is `number | null`,
+`result.location` is `Location | null`, with no casts:
+
 ```typescript
-import { BROParser, XMLAdapter, resolvers } from "@bedrock-engineer/bro-xml-parser/node";
+import { BROParser, XMLAdapter, producers as p } from "@bedrock-engineer/bro-xml-parser/node";
 
 const parser = new BROParser(new XMLAdapter());
 
-const mySchema = {
-  id: { xpath: "brocom:broId" },
-  depth: { xpath: ".//cptcommon:finalDepth", resolver: resolvers.parseFloat },
-  location: {
-    xpath: "./dscpt:deliveredLocation/cptcommon:location",
-    resolver: resolvers.parseGMLLocation,
+const result = parser.parseCustom(
+  xmlText,
+  {
+    id: p.text("brocom:broId"),
+    depth: p.number_(".//cptcommon:finalDepth"),
+    location: p.gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
   },
-};
-
-const result = parser.parseCustom(xmlText, mySchema, "CPT");
-// { id: "CPT000000099543", depth: 25.5, location: { x: 155000, y: 463000, epsg: "28992" } }
+  "CPT",
+);
+// { id: "CPT000000099543", depth: 25.5, location: { x: 155000, y: 463000, epsg: "28992" }, meta: {…} }
 ```
+
+The `producers` namespace carries every building block the library uses internally:
+scalar combinators (`text`, `number_`, `integer`, `date`, `boolean_`, `qualityClass`),
+structural combinators (`object_`, `array`, `oneOf`, `custom`), the domain helpers
+(`gmlLocation`, `columns`), and the shared field-maps (`COMMON_REGISTRATION_PRODUCERS`,
+`REGISTRATION_HISTORY`) you can spread into a schema.
 
 ## API
 
@@ -86,7 +95,7 @@ const result = parser.parseCustom(xmlText, mySchema, "CPT");
 | `parseCPT(xml)`                   | `CPTData`   | Parse CPT file             |
 | `parseBHRGT(xml)`                 | `BHRGTData` | Parse BHR-GT file          |
 | `parseBHRG(xml)`                  | `BHRGData`  | Parse BHR-G file           |
-| `parseCustom(xml, schema, type?)` | `T`         | Parse with custom schema   |
+| `parseCustom(xml, fields, type?)` | `T`         | Parse with a producer map  |
 
 See [`src/types/index.ts`](./src/types/index.ts) for full type definitions.
 

@@ -28,11 +28,11 @@ import type {
   GLDData,
   BROData,
   ParseMeta,
-  Schema,
-  ParsedSchema,
   BROFileType,
 } from "./types/index.js";
 import { BROParseError } from "./types/index.js";
+import { object_ } from "./core/producer.js";
+import type { Producer, ProducedFields, Presence } from "./core/producer.js";
 
 /**
  * Main BRO Parser class
@@ -313,46 +313,39 @@ export class BROParser {
    * This allows you to extract only the fields you need, which can be
    * more efficient and gives you full control over the output structure.
    *
-   * The return type is inferred from the schema: each field's type comes from
-   * its resolver's return type, and fields with no resolver are the raw text
-   * (`string | null`). Author schemas with `satisfies Schema` (or pass an inline
-   * literal) so the field types are preserved for inference — a `: Schema`
-   * annotation erases them and every field collapses to `string | null`.
+   * Pass a bare map of field name → {@link Producer}, built from the `producers`
+   * authoring surface. The return type is inferred from the map: each field's
+   * type is its producer's output type, plus a `meta` block. Author the map as
+   * an inline literal (or with `satisfies Record<string, Producer<unknown>>`) so
+   * the field types are preserved for inference.
    *
    * @param xmlText - BRO/XML document as string
-   * @param schema - Custom schema defining fields to extract
+   * @param fields - Field name → producer map defining what to extract
    * @param dataType - The BRO data type (for version validation)
-   * @returns Object with extracted fields matching your schema, plus `meta`
+   * @returns Object with extracted fields matching your map, plus `meta`
    *
    * @example
    * ```typescript
-   * import { BROParser, resolvers, type Schema } from '@bedrock-engineer/bro-xml-parser';
+   * import { BROParser, producers as p } from '@bedrock-engineer/bro-xml-parser';
    *
    * const parser = new BROParser(new XMLAdapter());
    *
    * // Define only the fields you need
-   * const mySchema = {
-   *   id: { xpath: 'brocom:broId' },                                    // string | null
-   *   depth: {
-   *     xpath: './/cptcommon:finalDepth',
-   *     resolver: resolvers.parseFloat,                                 // number | null
-   *   },
-   *   location: {
-   *     xpath: './dscpt:deliveredLocation/cptcommon:location',
-   *     resolver: resolvers.parseGMLLocation,                           // Location | null
-   *   },
-   * } satisfies Schema;
+   * const result = parser.parseCustom(xmlText, {
+   *   id: p.text('brocom:broId'),                                       // string | null
+   *   depth: p.number_('./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth'),
+   *   location: p.gmlLocation('./dscpt:deliveredLocation/cptcommon:location'),
+   * }, 'CPT');
    *
-   * const result = parser.parseCustom(xmlText, mySchema, 'CPT');
    * result.depth;    // number | null — inferred, no casts
    * result.location; // Location | null
    * ```
    */
-  parseCustom<const S extends Schema>(
+  parseCustom<const F extends Record<string, Producer<unknown, Presence>>>(
     xmlText: string,
-    schema: S,
+    fields: F,
     dataType?: BROFileType,
-  ): ParsedSchema<S> {
+  ): ProducedFields<F> & { meta: ParseMeta } {
     const doc = this.adapter.parseXML(xmlText);
 
     // Validate version if dataType is provided
@@ -376,9 +369,10 @@ export class BROParser {
       }
     }
 
-    const data = this.parser.parse(doc, schema, "dispatchDocument");
+    const { value, warnings } = this.parser.produce(doc, object_({ fields }), "dispatchDocument");
+    meta.warnings.push(...warnings);
 
-    return { meta, ...data } as ParsedSchema<S>;
+    return { meta, ...value };
   }
 
   /**

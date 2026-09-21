@@ -7,9 +7,10 @@
  * once and stays consistent - mirrors how the XSDs model these via
  * complexContent extension of `brocom:RegistrationObject`.
  *
- * `registrationHistory` is intentionally NOT here: it is a brocom structure too,
- * but its container element sits under the domain namespace (dscpt/dsbhrgt/dsbhrg)
- * and is parsed by a domain-specific resolver, so each schema binds it itself.
+ * `registrationHistory` is intentionally NOT in the shared spread map: it is a
+ * brocom structure too, but its container element sits under the domain namespace
+ * (dscpt/dsbhrgt/dsbhrg). It is provided separately as the {@link REGISTRATION_HISTORY}
+ * producer below, which each schema binds at its own path.
  */
 
 import type { Location } from "../types/index.js";

@@ -7,19 +7,27 @@ marked _(target)_.
 
 ## Architecture
 
-- **SchemaParser** — the deep module at the core. Interprets a declarative schema and produces
-  typed output. Today it handles only flat top-level fields; the deepening makes it recurse.
-  (`src/core/schema-parser.ts`)
+- **SchemaParser** — the deep module at the core. Interprets a {@link Producer} schema and
+  produces typed output, recursing through nested objects, arrays, unions and custom decoders.
+  `produce()` is the *only* interpreter — the legacy `parse()`/`extractField()` path and its
+  `Schema`/`SchemaField`/`ResolverContext` types are deleted. (`src/core/schema-parser.ts`)
 - **XMLAdapter** — the injected seam for all XML node access (`parseXML`, `evaluateXPath`,
   `evaluateXPathAll`). Two adapters justify it: `NodeXMLAdapter` (fontoxpath) and
   `BrowserXMLAdapter` (native `document.evaluate`). All node access funnels through here; nothing
   bypasses it. (`src/adapters/`)
 
-## Schema DSL _(target)_
+## Schema DSL
 
 - **Producer** `Producer<T>` — the single recursive unit of the schema: a node → value description.
   One of five kinds, each built by a combinator (`scalar`, `object_`, `array`, `oneOf`, `custom`).
-  `ParsedSchema<S>` recurses in exact parallel to infer output types from a `const` schema.
+  `Produced<P>` / `ProducedFields<F>` recurse in exact parallel to infer output types from a
+  `const` schema.
+- **producers** — the public authoring barrel (`src/producers.ts`, exported as the `producers`
+  namespace). One import carrying every building block the library uses internally: the combinators
+  (`text`, `date`, `number_`, `integer`, `boolean_`, `qualityClass`, `scalar`, `object_`, `array`,
+  `custom`, `oneOf`), the domain helpers (`gmlLocation`, `columns`/`col`), and the shared field-maps
+  (`REGISTRATION_HISTORY`, `COMMON_REGISTRATION_PRODUCERS`). `BROParser.parseCustom` takes a bare
+  fields map built from these; its return type is `ProducedFields<F> & { meta }`.
 - **presence** — one knob per field: `"optional"` (default; missing → `null`), `"required"`
   (missing → failure, see absence model), `"omit"` (missing → key absent; needs
   `exactOptionalPropertyTypes`).
@@ -30,7 +38,8 @@ marked _(target)_.
   with a `when` (xpath existence test), an `at`, and a literal `tag` (e.g. BHR-GT layer soil/rock).
 - **NodeLens** — the narrow surface a `custom` producer receives: `text / attr / textAt / all`,
   relative reads only, no raw adapter and no escaping the subtree. This is the testable seam that
-  replaces today's leaky `(value, {node, element, adapter, namespaces})`.
+  *replaced* the leaky `(value, {node, element, adapter, namespaces})` resolver context — now the
+  only escape hatch on the public custom-schema surface.
 - **custom** — the sole escape hatch, for irreducibly non-declarative extraction (CSV time-series,
   detailed-vs-standard fraction fallback). Declares its output type so codegen never emits
   `unknown`.

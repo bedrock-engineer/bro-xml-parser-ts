@@ -7,7 +7,7 @@
  * are decoded with the {@link columns} producer.
  */
 
-import type { Producer, CustomProducer } from "../core/producer.js";
+import type { Producer, CustomProducer, Presence } from "../core/producer.js";
 import {
   object_,
   array,
@@ -19,19 +19,13 @@ import {
   boolean_,
 } from "../core/producer.js";
 import { columns, col } from "../core/columns.js";
-import { parseFloat, parseInt } from "../resolvers/type-resolvers.js";
-import type {
-  HeightAtSpecificTime,
-  StressAtSpecificSettlement,
-  VolumeChangeAtSpecificTime,
-  ShearStressAtSpecificStrain,
-  HorizontalDeformationDataPoint,
-} from "../types/index.js";
+import type { RowOf } from "../core/columns.js";
+import { parseFloat, parseInt } from "../decoders/type-decoders.js";
 
 const REQUIRED = { presence: "required" } as const;
 
 /** Mount an object/array producer at a relative path, keyed only when present. */
-function optional<T>(producer: Producer<T>, at: string): Producer<T> {
+function optional<T>(producer: Producer<T, Presence>, at: string): Producer<T, "omit"> {
   return { ...producer, at, presence: "omit" };
 }
 
@@ -50,12 +44,12 @@ function intOr0(at: string): Producer<number> {
   return scalar<number>({ at, decode: (raw) => parseInt(raw) ?? 0 });
 }
 
-// === CSV column specs ===
+// === CSV column specs (as const so column names + cell types drive RowOf) ===
 
 const TIME_HEIGHT = [
   { name: "time", parse: col.num },
   { name: "height", parse: col.num },
-];
+] as const;
 
 const STRESS_SETTLEMENT = [
   { name: "elapsedTime", parse: col.num },
@@ -63,12 +57,12 @@ const STRESS_SETTLEMENT = [
   { name: "excessPoreWaterPressure", parse: col.num },
   { name: "verticalEffectiveStress", parse: col.num },
   { name: "horizontalEffectiveStress", parse: col.num },
-];
+] as const;
 
 const VOLUME_CHANGE = [
   { name: "time", parse: col.num },
   { name: "volumeChange", parse: col.num },
-];
+] as const;
 
 const SHEAR_LOADING = [
   { name: "time", parse: col.num },
@@ -77,7 +71,7 @@ const SHEAR_LOADING = [
   { name: "cellPressure", parse: col.num },
   { name: "porePressure", parse: col.num, optional: true },
   { name: "volumeChange", parse: col.num, optional: true },
-];
+] as const;
 
 const SHEAR_HORIZONTAL = [
   { name: "time", parse: col.num },
@@ -85,7 +79,18 @@ const SHEAR_HORIZONTAL = [
   { name: "shearStress", parse: col.num },
   { name: "verticalStress", parse: col.num },
   { name: "heightChange", parse: col.num, optional: true },
-];
+] as const;
+
+/**
+ * Time-series row types, inferred from the column specs above. All columns are
+ * `col.num`, so every field is `number | null` and always present (the decoder
+ * assigns `null` for absent/sentinel cells).
+ */
+export type HeightAtSpecificTime = RowOf<typeof TIME_HEIGHT>;
+export type StressAtSpecificSettlement = RowOf<typeof STRESS_SETTLEMENT>;
+export type VolumeChangeAtSpecificTime = RowOf<typeof VOLUME_CHANGE>;
+export type ShearStressAtSpecificStrain = RowOf<typeof SHEAR_LOADING>;
+export type HorizontalDeformationDataPoint = RowOf<typeof SHEAR_HORIZONTAL>;
 
 // === Determinations that read directly from their wrapper node ===
 
@@ -289,11 +294,11 @@ const SETTLEMENT_STEP = object_({
     strainPoint24hours: number_("./bhrgtcom:strainPoint24hours"),
     stepType: text("./bhrgtcom:stepType"),
     verticalStress: number_("./bhrgtcom:verticalStress"),
-    heightChangeDuringSettlement: columns<HeightAtSpecificTime>(
+    heightChangeDuringSettlement: columns(
       "./bhrgtcom:heightChangeDuringSettlement/bhrgtcom:values",
       TIME_HEIGHT,
     ),
-    stressChangeDuringSettlement: columns<StressAtSpecificSettlement>(
+    stressChangeDuringSettlement: columns(
       "./bhrgtcom:stressChangeDuringSettlement/bhrgtcom:values",
       STRESS_SETTLEMENT,
     ),
@@ -431,7 +436,7 @@ const SHEAR_LOADING_DET = object_({
           horizontalConsolidationStress: number_("./bhrgtcom:horizontalConsolidationStress"),
           verticalStrain: number_("./bhrgtcom:verticalStrain"),
           lateralEarthPressureCoefficient: number_("./bhrgtcom:lateralEarthPressureCoefficient"),
-          volumeChangeDuringConsolidation: columns<VolumeChangeAtSpecificTime>(
+          volumeChangeDuringConsolidation: columns(
             "./bhrgtcom:volumeChangeDuringConsolidation/bhrgtcom:values",
             VOLUME_CHANGE,
           ),
@@ -444,7 +449,7 @@ const SHEAR_LOADING_DET = object_({
         fields: {
           deformationRate: number_("./bhrgtcom:deformationRate"),
           specimenShape: text("./bhrgtcom:specimenShape"),
-          shearStressChangeDuringLoading: columns<ShearStressAtSpecificStrain>(
+          shearStressChangeDuringLoading: columns(
             "./bhrgtcom:shearStressChangeDuringLoading/bhrgtcom:values",
             SHEAR_LOADING,
           ),
@@ -459,7 +464,7 @@ const HORIZONTAL_CONSOLIDATION_STEP = object_({
   fields: {
     stepNumber: intOr0("./bhrgtcom:stepNumber"),
     verticalStress: number_("./bhrgtcom:verticalStress"),
-    heightChangeDuringConsolidation: columns<HeightAtSpecificTime>(
+    heightChangeDuringConsolidation: columns(
       "./bhrgtcom:heightChangeDuringConsolidation/bhrgtcom:values",
       TIME_HEIGHT,
     ),
@@ -499,7 +504,7 @@ const SHEAR_HORIZONTAL_DET = object_({
         fields: {
           deformationRate: number_("./bhrgtcom:deformationRate"),
           activeHeightControl: boolean_("./bhrgtcom:activeHeightControl"),
-          shearStressChangeDuringHorizontalDeformation: columns<HorizontalDeformationDataPoint>(
+          shearStressChangeDuringHorizontalDeformation: columns(
             "./bhrgtcom:shearStressChangeDuringHorizontalDeformation/bhrgtcom:values",
             SHEAR_HORIZONTAL,
           ),

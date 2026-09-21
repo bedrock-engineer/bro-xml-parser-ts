@@ -5,7 +5,7 @@
  * Fetches the official BRO XSDs (live, from schema.broservices.nl), assembles the
  * full type graph per domain (following xsd:import / xsd:include), flattens each
  * registration-object type down to its leaf elements, and diffs that against the
- * element names our parser actually references (in src/schemas/**, src/resolvers/**,
+ * element names our parser actually references (in src/schemas/**, src/decoders/**,
  * src/schema-presets.ts).
  *
  * The XSD walk itself lives in ./lib/bro-xsd.ts (shared with codegen-schema.ts).
@@ -19,9 +19,9 @@
  * Output (written to scripts/xsd-coverage-out/):
  *   <domain>.leaves.md    - every distinct leaf property (start here to model a type)
  *   <domain>.report.md    - gaps table (leaf elements in the XSD we never reference)
- *   <domain>.scaffold.ts  - suggested SchemaField entries for the gaps, to adapt
+ *   <domain>.scaffold.ts  - suggested producer entries for the gaps, to adapt
  *
- * Matching is by element name, not by full XPath. Our resolvers dig into subtrees
+ * Matching is by element name, not by full XPath. Our producers dig into subtrees
  * with relative paths from arbitrary context nodes, so a path-exact diff would be
  * mostly false positives. Name-based matching answers the real question: "which
  * BRO-defined leaf elements does our code never mention?" A leaf counts as covered
@@ -43,12 +43,31 @@ import {
   findRegistrationObjectType,
   flattenRoot,
   dedupeByQualified,
-  guessResolver,
+  guessDecoder,
   toFieldName,
 } from "./lib/bro-xsd.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * Map a guessed decoder (from {@link guessDecoder}) to the `producers`
+ * combinator that wraps it. A `null` guess (untyped/string leaf) → `text`.
+ */
+function combinatorFor(decoder: string | null): string {
+  switch (decoder) {
+    case "parseFloat":
+      return "number_";
+    case "parseInt":
+      return "integer";
+    case "parseDate":
+      return "date";
+    case "parseBoolean":
+      return "boolean_";
+    default:
+      return "text";
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -59,7 +78,7 @@ const OUT_DIR = path.join(__dirname, "xsd-coverage-out");
 /** Source dirs/files whose xpath string-literals define "what we already cover". */
 const SOURCE_GLOBS = [
   path.join(__dirname, "../src/schemas"),
-  path.join(__dirname, "../src/resolvers"),
+  path.join(__dirname, "../src/decoders"),
   path.join(__dirname, "../src/schema-presets.ts"),
 ];
 
@@ -71,18 +90,18 @@ interface DomainConfig {
   /** Whether our parser models this domain at all (SFR does not yet). */
   modeled: boolean;
   /**
-   * Path substrings for subtrees a resolver handles dynamically (i.e. by reading
+   * Path substrings for subtrees a producer handles dynamically (i.e. by reading
    * whatever child elements are present, not by naming each one). Leaves under
-   * these are moved to a separate "resolver-handled (review)" section instead of
+   * these are moved to a separate "producer-handled (review)" section instead of
    * counting as gaps. Keep this SURGICAL - only genuinely dynamic subtrees, never
-   * a subtree where the resolver names a fixed set of fields (those misses are real).
+   * a subtree where the producer names a fixed set of fields (those misses are real).
    */
-  resolverHandledPrefixes?: string[];
+  producerHandledPrefixes?: string[];
   /**
    * Path substrings for subtrees we have DELIBERATELY chosen not to model. Leaves
    * under these are listed separately as "intentionally not modeled" and excluded
    * from the headline gap count, so a conscious scope boundary doesn't read as an
-   * oversight on every run. (Distinct from resolverHandledPrefixes, which ARE
+   * oversight on every run. (Distinct from producerHandledPrefixes, which ARE
    * covered - these simply aren't modeled yet, by choice.)
    */
   unmodeledPrefixes?: string[];
@@ -95,7 +114,7 @@ const DOMAINS: DomainConfig[] = [
     modeled: true,
     // The measurement/dissipation column set is discovered dynamically from the
     // <parameters> ja/nee flags and read out of the <values> CSV blob.
-    resolverHandledPrefixes: [":parameters/"],
+    producerHandledPrefixes: [":parameters/"],
   },
   {
     key: "BHR-GT",
@@ -128,9 +147,9 @@ const DOMAINS: DomainConfig[] = [
     modeled: true,
     // The observation collapses to a single `dsgld:observation` leaf: its content
     // (om:OM_Observation -> WaterML2 MeasurementTimeseries) is in OGC namespaces the
-    // flattener treats as opaque. The observation resolver reads that subtree
+    // flattener treats as opaque. The observation producer reads that subtree
     // (per-observation metadata + the repeating {time, value, ...} points); coverage
-    // is satisfied because the resolver references `dsgld:observation` by name.
+    // is satisfied because the producer references `dsgld:observation` by name.
   },
   {
     key: "SFR",
@@ -216,13 +235,13 @@ function buildReport(
   const allGaps = leaves.filter(
     (l) => !covered.qualified.has(l.qualified) && !covered.bare.has(l.local),
   );
-  const handledPrefixes = domain.resolverHandledPrefixes ?? [];
+  const handledPrefixes = domain.producerHandledPrefixes ?? [];
   const unmodeledPrefixes = domain.unmodeledPrefixes ?? [];
-  const isResolverHandled = (l: Leaf) => handledPrefixes.some((p) => l.path.includes(p));
+  const isProducerHandled = (l: Leaf) => handledPrefixes.some((p) => l.path.includes(p));
   const isUnmodeled = (l: Leaf) => unmodeledPrefixes.some((p) => l.path.includes(p));
-  const reviewGaps = dedupeByQualified(allGaps.filter(isResolverHandled));
+  const reviewGaps = dedupeByQualified(allGaps.filter(isProducerHandled));
   const unmodeledGaps = dedupeByQualified(allGaps.filter(isUnmodeled));
-  const gapOccurrences = allGaps.filter((l) => !isResolverHandled(l) && !isUnmodeled(l));
+  const gapOccurrences = allGaps.filter((l) => !isProducerHandled(l) && !isUnmodeled(l));
 
   // The same element can appear under many choice branches (esp. the geological
   // BHR-G layer). Report DISTINCT missing properties, keeping one example path.
@@ -245,7 +264,7 @@ function buildReport(
       (gapOccurrences.length !== gaps.length ? ` (${gapOccurrences.length} occurrences across choice branches)` : ""),
   );
   if (reviewGaps.length > 0) {
-    lines.push(`Under resolver-handled subtrees (review, not counted): ${reviewGaps.length}`);
+    lines.push(`Under producer-handled subtrees (review, not counted): ${reviewGaps.length}`);
   }
   if (unmodeledGaps.length > 0) {
     lines.push(`Intentionally not modeled (excluded from gap count): ${unmodeledGaps.length}`);
@@ -283,12 +302,12 @@ function buildReport(
   lines.push("");
 
   if (reviewGaps.length > 0) {
-    lines.push("## Resolver-handled subtrees (review)");
+    lines.push("## Producer-handled subtrees (review)");
     lines.push("");
     lines.push(
-      "These live under a subtree a resolver reads dynamically (e.g. the measurement " +
+      "These live under a subtree a producer reads dynamically (e.g. the measurement " +
         "column set from `<parameters>`/`<values>`). They are almost certainly covered, " +
-        "but verify the resolver maps each one.",
+        "but verify the producer maps each one.",
     );
     lines.push("");
     lines.push("| Element | XPath |");
@@ -315,24 +334,27 @@ function buildReport(
     lines.push("");
   }
 
-  // Scaffold
+  // Scaffold — producer entries to adapt into a schema's fields map.
   const scaffoldLines: string[] = [];
-  scaffoldLines.push(`// Suggested SchemaField entries for ${domain.key} gaps.`);
+  scaffoldLines.push(`// Suggested producer entries for ${domain.key} gaps.`);
   scaffoldLines.push(`// Generated by scripts/check-xsd-coverage.ts - review, rename, and adapt.`);
-  scaffoldLines.push(`// XPaths are the raw XSD paths; resolvers are best-effort guesses.`);
+  scaffoldLines.push(`// XPaths are the raw XSD paths; combinators are best-effort guesses.`);
+  scaffoldLines.push(`import { producers as p } from "@bedrock-engineer/bro-xml-parser";`);
   scaffoldLines.push("");
   const usedNames = new Set<string>();
   for (const g of gaps) {
     let fieldName = toFieldName(g.local);
     while (usedNames.has(fieldName)) fieldName += "_";
     usedNames.add(fieldName);
-    const resolver = guessResolver(g.baseType);
+    const combinator = combinatorFor(guessDecoder(g.baseType));
     const xpath = "." + g.path; // path already starts with "/..."
-    scaffoldLines.push(`  ${fieldName}: {`);
-    scaffoldLines.push(`    xpath: "${xpath}",`);
-    if (resolver) scaffoldLines.push(`    resolver: typeResolvers.${resolver},`);
-    if (g.cardinality.endsWith("*")) scaffoldLines.push(`    // repeatable (${g.cardinality}) - likely needs a custom array resolver`);
-    scaffoldLines.push(`  },`);
+    if (g.cardinality.endsWith("*")) {
+      // Repeatable: an array of items. Emit an array producer whose item is the
+      // best-guess leaf combinator, to be fleshed out into an object_ if needed.
+      scaffoldLines.push(`  ${fieldName}: p.array({ each: "${xpath}", item: p.${combinator}() }), // repeatable (${g.cardinality})`);
+    } else {
+      scaffoldLines.push(`  ${fieldName}: p.${combinator}("${xpath}"),`);
+    }
   }
 
   return {

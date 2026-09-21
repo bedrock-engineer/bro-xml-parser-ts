@@ -1,5 +1,5 @@
 /**
- * Type resolver functions for converting XML values to JavaScript types
+ * Type decoder functions for converting XML values to JavaScript types
  */
 
 import { SENTINEL } from "./constants.js";
@@ -110,7 +110,7 @@ const BRO_DATE_FORMATS = [
  * in negative-offset zones — treat date-only values as plain calendar dates.
  * @see https://www.bro-productomgeving.nl/bpo/release-2.5_2024_Q4/informatie-voor-softwareleveranciers/het-afhandelen-van-tijdstippen
  *
- * Unlike the numeric resolvers this does not warn on non-matching input,
+ * Unlike the numeric decoders this does not warn on non-matching input,
  * because `voidReason` is a legitimate and common value in archive data.
  */
 export function parseDate(value: string | null | undefined): string | null {
