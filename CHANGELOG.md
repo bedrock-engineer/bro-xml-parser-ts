@@ -8,48 +8,56 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-21
+
 ### Added
 
 - **GLD (Grondwaterstandonderzoek / groundwater level research)** support, modelled
-  from the official `dsgld/1.0` XSD at full coverage (0 gaps). New
-  `parser.parseGLD(xml)` (and auto-detection via `parser.parse(xml)`), plus
-  `GLD_SCHEMA` and the resolvers `processMonitoringPoint`, `processMonitoringNets`,
-  `processObservations`. New exported types `GLDData`, `GLDObservation`,
-  `GLDObservationPoint`, `GroundwaterMonitoringTubeRef`. The monitoring-point (GMW
-  tube) reference, monitoring-net membership, and the WaterML2 observation
-  time-series (`{time, value, unit, qualifier}` points with per-series metadata and
-  processing provenance) are parsed. Note: full GLD dispatch documents can be tens
-  of MB (years of measurements); request a bounded observation period where possible.
-- **`codegen:schema` tool** (`npm run codegen:schema`): generates the mechanical
-  half of a domain schema from its XSD - a `<DOMAIN>_SCALARS: Schema` plus a matching
-  `<Domain>Scalars` interface - into `src/schemas/generated/`, driven by a
-  hand-maintained name-map. The domain schema spreads the generated scalars and the
-  result type extends the generated interface, so the flat fields stay in lockstep
-  with the XSD by construction. A leaf that is neither mapped nor excluded is a hard
-  error, so an XSD bump can't silently drop a field. GLD is the first domain built
-  this way. The XSD-walking engine is shared with the coverage checker
-  (`scripts/lib/bro-xsd.ts`).
-
+  from the official `dsgld/1.0` XSD at full coverage. New `parser.parseGLD(xml)`
+  (and auto-detection via `parser.parse(xml)`) returning `GLDData`. The
+  monitoring-point (GMW tube) reference, monitoring-net membership, and the WaterML2
+  observation time-series (`{ time, value, unit, qualifier }` points with per-series
+  metadata and processing provenance) are parsed. Note: full GLD dispatch documents
+  can be tens of MB (years of measurements); request a bounded observation period
+  where possible.
 - **GMW (Grondwatermonitoringput / groundwater monitoring well)** support, modelled
-  from the official `dsgmw/1.1` XSD at full coverage (0 gaps via
-  `npm run check:xsd-coverage`). New `parser.parseGMW(xml)` (and auto-detection via
-  `parser.parse(xml)`), plus `GMW_SCHEMA` and the resolvers `processMonitoringTubes`,
-  `processIntermediateEvents`, `processSurveyBoreholeResearchIds`. New exported types
-  `GMWData`, `MonitoringTube`, `GeoOhmCable`, `Electrode`, `GMWIntermediateEvent`.
-  Well-level metadata, delivered/standardized location and vertical position, the
-  monitoring-tube array (with flattened `materialUsed` / `screen` / `plainTubePart` /
-  `sedimentSump` / `insertedPart`, and nested geo-ohm cables/electrodes), and the
-  well-history event log are parsed. The per-event `eventData` diff is intentionally
-  reduced to the event name + date; the changed values live on the tubes.
-- The XSD coverage checker now emits a full `<domain>.leaves.md` (every distinct
-  leaf property with cardinality, base type and example XPath) for each domain -
-  the starting point for modelling a new registration type from the XSD.
+  from the official `dsgmw/1.1` XSD at full coverage. New `parser.parseGMW(xml)`
+  (and auto-detection) returning `GMWData`. Well-level metadata, delivered and
+  standardized location and vertical position, the monitoring-tube array (with
+  flattened material / screen / insert surfaces and nested geo-ohm cables and
+  electrodes), and the well-history event log are parsed.
+- **`producers` authoring surface** for custom schemas: the combinators (`text`,
+  `number_`, `integer`, `date`, `boolean_`, `qualityClass`, `scalar`, `object_`,
+  `array`, `oneOf`, `custom`) plus domain helpers (`gmlLocation`, `columns`/`col`)
+  and shared field-maps. Pass a map of these to `parser.parseCustom(...)`.
+- The XSD coverage checker (`npm run check:xsd-coverage`) now emits a full
+  `<domain>.leaves.md` (every distinct leaf property with cardinality, base type and
+  example XPath) per domain.
 
 ### Changed
 
+- **BREAKING: one declarative Producer DSL.** All five data types (CPT, BHR-GT,
+  BHR-G, GMW, GLD) parse through a single interpreter (`SchemaParser.produce`); the
+  legacy resolver-based parse path is gone.
+- **BREAKING: `parseCustom(xml, fields, dataType?)`** now takes a map of
+  `producers.*` field producers instead of `{ xpath, resolver }` entries; its return
+  type is inferred from the map.
+- **BREAKING: output types are inferred from the schema.** The five `*Data` types and
+  every nested shape are derived from their producers — a single source of truth, so
+  types can no longer drift from the parser. ~60 hand-written interfaces were removed.
+  Nested data-shape types stay importable but are excluded from the generated API
+  docs. A few previously-published shapes are corrected to match runtime output (e.g.
+  time-series and measurement fields are `number | null`; fields that are absent when
+  unset are optional keys).
 - **BREAKING:** `BROData`, `BROFileType`, `ParseMeta["dataType"]` and the
-  version-detector `DataType` now include `"GMW"` and `"GLD"`. Code that exhaustively
-  switches over these unions must handle the new cases.
+  version-detector `DataType` now include `"GMW"` and `"GLD"`.
+
+### Removed
+
+- **BREAKING:** the public `resolvers` namespace and the `Schema`, `SchemaField`,
+  `ResolverFunction`, `ResolverContext` and `ParsedSchema` types. Build custom
+  schemas with the `producers` namespace and the `Producer` / `Produced` /
+  `ProducedFields` types instead.
 
 ## [0.3.0] - 2026-09-17
 
@@ -182,7 +190,9 @@ While the major version is `0`, breaking changes are released as minor versions.
   structures previously parsed dates inline with `new Date()`, duplicating logic
   and carrying the same bugs; these now route through `parseDate`.
 
-[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.4.0...HEAD
+
+[0.4.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.3.0...v0.4.0
 
 [0.3.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.1.7...v0.2.0
