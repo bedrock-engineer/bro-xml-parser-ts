@@ -183,13 +183,14 @@ const LAYER = oneOf({
 /**
  * A BHR-GT described layer: a soil/rock discriminated union on `material`.
  * Inferred from {@link LAYER} — the schema is the single source of truth.
+ * @internal
  */
 export type BHRGTLayer = Produced<typeof LAYER>;
-/** Fields common to every {@link BHRGTLayer}, regardless of material. */
+/** Fields common to every {@link BHRGTLayer}, regardless of material. @internal */
 export type BHRGTLayerBase = ProducedFields<typeof LAYER_BASE>;
-/** A layer that describes soil (`material === "soil"`). */
+/** A layer that describes soil (`material === "soil"`). @internal */
 export type BHRGTSoilLayer = Extract<BHRGTLayer, { material: "soil" }>;
-/** A layer that describes rock (`material === "rock"`). */
+/** A layer that describes rock (`material === "rock"`). @internal */
 export type BHRGTRockLayer = Extract<BHRGTLayer, { material: "rock" }>;
 
 // === Interval item producers ===
@@ -431,3 +432,36 @@ export const BORE_PRODUCER = object_({
     siteCharacteristicDetermined: boolean_("./dsbhrgt:siteCharacteristicDetermined"),
   },
 });
+
+// ===========================================================================
+// Derived types — the schema (the producers above) is the single source.
+// ===========================================================================
+
+type BoreData = Produced<typeof BORE_PRODUCER>;
+
+/** Rock description of a rock layer. Inferred from {@link ROCK_DESCRIPTION}. @internal */
+export type RockDescription = Produced<typeof ROCK_DESCRIPTION>;
+/** Three-axis rock weathering degree. @internal */
+export type RockWeatheringDegree = NonNullable<RockDescription["weatheringDegree"]>;
+/** Grain-shape properties of a sand/gravel fraction. Inferred from {@link GRAINSHAPE}. @internal */
+export type Grainshape = Produced<typeof GRAINSHAPE>;
+/** One bored interval. Inferred from {@link BORED_INTERVAL}. @internal */
+export type BoredInterval = Produced<typeof BORED_INTERVAL>;
+/** One sampled interval. Inferred from {@link SAMPLED_INTERVAL}. @internal */
+export type SampledInterval = Produced<typeof SAMPLED_INTERVAL>;
+/** Sampler details of a sampled interval. @internal */
+export type SamplerDetails = NonNullable<SampledInterval["sampler"]>;
+/** Core-recovery details of a sampled interval. @internal */
+export type CoreRecovery = NonNullable<SampledInterval["coreRecovery"]>;
+/** One completed interval. Inferred from {@link COMPLETED_INTERVAL}. @internal */
+export type CompletedInterval = Produced<typeof COMPLETED_INTERVAL>;
+/** A post-sedimentary discontinuity. Inferred from {@link POST_SED_DISCONTINUITY}. @internal */
+export type PostSedimentaryDiscontinuity = Produced<typeof POST_SED_DISCONTINUITY>;
+/** One excavated layer. @internal */
+export type ExcavatedLayer = BoreData["excavatedLayers"][number];
+/** One borehole boring-velocity measurement. @internal */
+export type BoringVelocityMeasurement = BoreData["boringVelocity"][number];
+/** One not-described interval. @internal */
+export type NotDescribedInterval = BoreData["notDescribedIntervals"][number];
+/** A fluid-mud layer. @internal */
+export type FluidMudLayer = NonNullable<BoreData["fluidMudLayer"]>;

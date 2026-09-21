@@ -37,7 +37,7 @@ export type Presence =
   | "omit";
 
 /**
- * The narrow, relative-only surface a {@link CustomProducer} receives.
+ * The narrow, relative-only surface a `CustomProducer` receives.
  *
  * A custom producer never sees the raw {@link XMLAdapter} or escapes its subtree —
  * it reads text and child nodes relative to the node it was mounted on.
@@ -165,7 +165,7 @@ export type ProducedFields<F> = Simplify<
 // ===========================================================================
 
 /** Meta accepted by every combinator, minus `presence` (captured generically). */
-type BaseMeta = { at?: string; doc?: string; group?: string };
+interface BaseMeta { at?: string; doc?: string; group?: string }
 type LeafOpts<P extends Presence = "optional"> = BaseMeta & { presence?: P };
 type ScalarOpts<T, P extends Presence = "optional"> = LeafOpts<P> & {
   decode: (raw: string | null) => T;
@@ -264,21 +264,21 @@ export function custom<T, P extends Presence = "optional">(
 }
 
 /** A branch as written at the `oneOf` call site (captured for type inference). */
-type BranchInput<
+interface BranchInput<
   Tag extends string = string,
   F extends Record<string, Producer<unknown, Presence>> = Record<string, Producer<unknown, Presence>>,
-> = { when: string; at?: string; tag: Tag; fields: F };
+> { when: string; at?: string; tag: Tag; fields: F }
 
 /** Output type of one branch: shared base ∪ branch fields ∪ the tag literal. */
 type BranchOut<TagKey extends string, Base, B> = B extends {
   tag: infer Tag extends string;
   fields: infer F;
 }
-  ? Simplify<ProducedFields<Base> & ProducedFields<F> & { [K in TagKey]: Tag }>
+  ? Simplify<ProducedFields<Base> & ProducedFields<F> & Record<TagKey, Tag>>
   : never;
 
 /** The discriminated union over all branches (mapped tuple → indexed union). */
-type OneOfOut<TagKey extends string, Base, Branches extends readonly unknown[]> = {
+type OneOfOut<TagKey extends string, Base, Branches extends ReadonlyArray<unknown>> = {
   [I in keyof Branches]: BranchOut<TagKey, Base, Branches[I]>;
 }[number];
 
@@ -294,7 +294,7 @@ type OneOfOut<TagKey extends string, Base, Branches extends readonly unknown[]> 
 export function oneOf<
   TagKey extends string,
   const Base extends Record<string, Producer<unknown, Presence>>,
-  const Branches extends readonly BranchInput[],
+  const Branches extends ReadonlyArray<BranchInput>,
   P extends Presence = "optional",
 >(
   opts: { tagAs: TagKey; base?: Base; branches: Branches; presence?: P } & BaseMeta,

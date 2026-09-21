@@ -45,6 +45,7 @@ export {
 } from "./core/producer.js";
 
 export { columns, col } from "./core/columns.js";
+export type { ColumnSpec, ColumnParser, RowOf } from "./core/columns.js";
 
 export {
   gmlLocation,

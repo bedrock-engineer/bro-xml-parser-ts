@@ -21,7 +21,7 @@ export type ColumnParser<V> = (raw: string) => V;
 export interface ColumnSpec<Name extends string = string, V = unknown> {
   /** Output property name on each row object. */
   name: Name;
-  /** Cell parser (see {@link col}). */
+  /** Cell parser (see `col`). */
   parse: ColumnParser<V>;
   /**
    * When true, a row missing this (trailing) column is still kept. By default a
@@ -39,7 +39,7 @@ type Simplify<T> = { [K in keyof T]: T[K] } & {};
  * when the cell is absent), typed as that column's cell-parser return type.
  * A `null` spec entry (a skipped position) contributes nothing.
  */
-export type RowOf<Spec extends readonly (ColumnSpec | null)[]> = Simplify<{
+export type RowOf<Spec extends ReadonlyArray<ColumnSpec | null>> = Simplify<{
   [S in Extract<Spec[number], ColumnSpec> as S["name"]]: ReturnType<S["parse"]>;
 }>;
 
@@ -133,13 +133,13 @@ export function decodeColumns<T>(
 
 /**
  * A {@link Producer} that reads the CSV text at `valuesAt` (relative to the
- * enclosing node) and decodes it with {@link decodeColumns}. Yields `[]` when the
+ * enclosing node) and decodes it with `decodeColumns`. Yields `[]` when the
  * values element is absent.
  *
  * The row type is **inferred** from the (`as const`) `spec` — each column's name
  * and cell-parser return type — so callers no longer declare it by hand.
  */
-export function columns<const Spec extends readonly (ColumnSpec | null)[]>(
+export function columns<const Spec extends ReadonlyArray<ColumnSpec | null>>(
   valuesAt: string,
   spec: Spec,
   options?: DecodeColumnsOptions,

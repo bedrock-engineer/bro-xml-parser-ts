@@ -129,9 +129,9 @@ const REMOVED_LAYER = object_({
   },
 });
 
-/** One dissipation test (pore-pressure decay). Inferred from {@link DISSIPATION_TEST}. */
+/** One dissipation test (pore-pressure decay). Inferred from {@link DISSIPATION_TEST}. @internal */
 export type DissipationTest = Produced<typeof DISSIPATION_TEST>;
-/** A layer removed before the CPT. Inferred from {@link REMOVED_LAYER}. */
+/** A layer removed before the CPT. Inferred from {@link REMOVED_LAYER}. @internal */
 export type RemovedLayer = Produced<typeof REMOVED_LAYER>;
 
 export const CPT_PRODUCER = object_({

@@ -7,7 +7,7 @@
  * are decoded with the {@link columns} producer.
  */
 
-import type { Producer, CustomProducer, Presence } from "../core/producer.js";
+import type { Producer, CustomProducer, Presence, Produced } from "../core/producer.js";
 import {
   object_,
   array,
@@ -85,11 +85,16 @@ const SHEAR_HORIZONTAL = [
  * Time-series row types, inferred from the column specs above. All columns are
  * `col.num`, so every field is `number | null` and always present (the decoder
  * assigns `null` for absent/sentinel cells).
+ * @internal
  */
 export type HeightAtSpecificTime = RowOf<typeof TIME_HEIGHT>;
+/** @internal */
 export type StressAtSpecificSettlement = RowOf<typeof STRESS_SETTLEMENT>;
+/** @internal */
 export type VolumeChangeAtSpecificTime = RowOf<typeof VOLUME_CHANGE>;
+/** @internal */
 export type ShearStressAtSpecificStrain = RowOf<typeof SHEAR_LOADING>;
+/** @internal */
 export type HorizontalDeformationDataPoint = RowOf<typeof SHEAR_HORIZONTAL>;
 
 // === Determinations that read directly from their wrapper node ===
@@ -592,3 +597,87 @@ export const ANALYSIS_PRODUCER = object_({
     }),
   },
 });
+
+// ===========================================================================
+// Derived types — the schema (the producers above) is the single source.
+// ===========================================================================
+
+/** The BHR-GT-BMA laboratory-analysis subtree. Inferred from {@link ANALYSIS_PRODUCER}. @internal */
+export type BoreholeSampleAnalysis = Produced<typeof ANALYSIS_PRODUCER>;
+/** One investigated interval within the analysis. Inferred from {@link INVESTIGATED_INTERVAL}. @internal */
+export type InvestigatedInterval = Produced<typeof INVESTIGATED_INTERVAL>;
+
+// --- Determinations (each inferred from its named producer) ---
+/** @internal */
+export type WaterContentDetermination = Produced<typeof WATER_CONTENT>;
+/** @internal */
+export type VolumetricMassDensityDetermination = Produced<typeof VOLUMETRIC_MASS_DENSITY>;
+/** @internal */
+export type OrganicMatterContentDetermination = Produced<typeof ORGANIC_MATTER>;
+/** @internal */
+export type CarbonateContentDetermination = Produced<typeof CARBONATE>;
+/** @internal */
+export type VolumetricMassDensityOfSolidsDetermination = Produced<typeof DENSITY_OF_SOLIDS>;
+/** @internal */
+export type MaximumUndrainedShearStrengthDetermination = Produced<typeof MAX_UNDRAINED_SHEAR>;
+/** @internal */
+export type ParticleSizeDistributionDetermination = Produced<typeof PARTICLE_SIZE>;
+/** @internal */
+export type ConsistencyLimitsDetermination = Produced<typeof CONSISTENCY_LIMITS>;
+/** @internal */
+export type SettlementCharacteristicsDetermination = Produced<typeof SETTLEMENT>;
+/** @internal */
+export type SettlementDeterminationStep = Produced<typeof SETTLEMENT_STEP>;
+/** @internal */
+export type SaturationStageAtCompression = Produced<typeof SATURATION_AT_COMPRESSION>;
+/** @internal */
+export type SaturatedPermeabilityDetermination = Produced<typeof PERMEABILITY>;
+/** @internal */
+export type ShearStressChangeDuringLoadingDetermination = Produced<typeof SHEAR_LOADING_DET>;
+/** @internal */
+export type ConsolidationStepAtHorizontalDeformation = Produced<typeof HORIZONTAL_CONSOLIDATION_STEP>;
+/** @internal */
+export type ShearStressChangeDuringHorizontalDeformationDetermination = Produced<
+  typeof SHEAR_HORIZONTAL_DET
+>;
+
+// --- Inline sub-types (derived one level from their parent determination) ---
+/** @internal */
+export type PlasticityAtSpecificWaterContent =
+  ConsistencyLimitsDetermination["plasticityAtSpecificWaterContent"][number];
+/** @internal */
+export type SaturatedPermeabilityAtSpecificDensity =
+  SaturatedPermeabilityDetermination["saturatedPermeabilityAtSpecificDensity"][number];
+/** @internal */
+export type SaturatedPermeabilityAtSpecificLoad =
+  SaturatedPermeabilityDetermination["saturatedPermeabilityAtSpecificLoad"][number];
+/** @internal */
+export type MembraneCorrection = NonNullable<
+  ShearStressChangeDuringLoadingDetermination["membraneCorrection"]
+>;
+/** @internal */
+export type DrainageStripCorrection = NonNullable<
+  ShearStressChangeDuringLoadingDetermination["drainageStripCorrection"]
+>;
+/** @internal */
+export type SpecimenMadeForLoading = NonNullable<
+  ShearStressChangeDuringLoadingDetermination["madeSpecimenForLoading"]
+>;
+/** @internal */
+export type SaturationStageAtLoading = NonNullable<
+  ShearStressChangeDuringLoadingDetermination["saturationStageAtLoading"]
+>;
+/** @internal */
+export type ConsolidationStageAtLoading = NonNullable<
+  ShearStressChangeDuringLoadingDetermination["consolidationStageAtLoading"]
+>;
+/** @internal */
+export type LoadStage = NonNullable<ShearStressChangeDuringLoadingDetermination["loadStage"]>;
+/** @internal */
+export type ConsolidationStageAtHorizontalDeformation = NonNullable<
+  ShearStressChangeDuringHorizontalDeformationDetermination["consolidationStageAtHorizontalDeformation"]
+>;
+/** @internal */
+export type ShearStageAtHorizontalDeformation = NonNullable<
+  ShearStressChangeDuringHorizontalDeformationDetermination["shearStage"]
+>;

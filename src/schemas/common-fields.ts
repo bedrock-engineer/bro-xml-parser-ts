@@ -15,6 +15,7 @@
 
 import type { Location } from "../types/index.js";
 import { text, date, boolean_, object_, custom } from "../core/producer.js";
+import type { Produced } from "../core/producer.js";
 import type { CustomProducer } from "../core/producer.js";
 
 /**
@@ -53,6 +54,9 @@ export const REGISTRATION_HISTORY = object_({
     reregistered: boolean_("./brocom:reregistered"),
   },
 });
+
+/** The BRO registration history, shared by every registration type. Inferred from {@link REGISTRATION_HISTORY}. @internal */
+export type RegistrationHistory = Produced<typeof REGISTRATION_HISTORY>;
 
 /**
  * A GML `Point` location → {@link Location}, as a custom producer.

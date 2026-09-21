@@ -13,7 +13,7 @@
  * `npm run check:xsd-coverage`.
  */
 
-import type { Producer, Presence } from "../core/producer.js";
+import type { Producer, Presence, Produced } from "../core/producer.js";
 import { object_, array, text, date, number_, boolean_ } from "../core/producer.js";
 import {
   COMMON_REGISTRATION_PRODUCERS,
@@ -292,6 +292,11 @@ const REPORT_HISTORY = object_({
   },
 });
 
+/** Report history (start/end + intermediate events). Inferred from {@link REPORT_HISTORY}. @internal */
+export type ReportHistory = Produced<typeof REPORT_HISTORY>;
+/** One dated intermediate report event. @internal */
+export type IntermediateEvent = ReportHistory["intermediateEvents"][number];
+
 export const BHRG_PRODUCER = object_({
   fields: {
     // === Core identification (shared brocom fields) ===
@@ -407,3 +412,46 @@ export const BHRG_PRODUCER = object_({
     nitgCode: text("./dsbhrg:NITGCode"),
   },
 });
+
+// ===========================================================================
+// Derived types — the schema (the producers above) is the single source.
+// ===========================================================================
+
+/** One descriptive-log layer of a BHR-G borehole. Inferred from {@link LAYER}. @internal */
+export type BHRGLayer = Produced<typeof LAYER>;
+/** Munsell colour of a layer. Inferred from {@link MUNSELL_COLOUR}. @internal */
+export type MunsellColour = Produced<typeof MUNSELL_COLOUR>;
+/** Sand fraction of a layer. Inferred from {@link SAND_FRACTION}. @internal */
+export type SandFraction = Produced<typeof SAND_FRACTION>;
+/** Shell fraction of a layer. Inferred from {@link SHELL_FRACTION}. @internal */
+export type ShellFraction = Produced<typeof SHELL_FRACTION>;
+/** Gravel fraction of a layer. Inferred from {@link GRAVEL_FRACTION}. @internal */
+export type GravelFraction = Produced<typeof GRAVEL_FRACTION>;
+/** Peat fraction of a layer. Inferred from {@link PEAT_FRACTION}. @internal */
+export type PeatFraction = Produced<typeof PEAT_FRACTION>;
+/** Mass/volume fraction distribution of a layer. Inferred from {@link FRACTION_DISTRIBUTION}. @internal */
+export type FractionDistribution = Produced<typeof FRACTION_DISTRIBUTION>;
+/** A thin stratum within a layer. Inferred from {@link THIN_STRATUM}. @internal */
+export type ThinStratum = Produced<typeof THIN_STRATUM>;
+/** A chunk within a layer. Inferred from {@link CHUNK}. @internal */
+export type Chunk = Produced<typeof CHUNK>;
+/** A mottle within a layer. Inferred from {@link MOTTLE}. @internal */
+export type Mottle = Produced<typeof MOTTLE>;
+
+// --- Inline sub-types (derived one level from their parent) ---
+/** @internal */
+export type SandConstituent = SandFraction["sandConstituents"][number];
+/** @internal */
+export type ShellConstituent = ShellFraction["shellConstituents"][number];
+/** @internal */
+export type GravelConstituent = GravelFraction["gravelConstituents"][number];
+/** @internal */
+export type PeatConstituent = PeatFraction["peatConstituents"][number];
+/** @internal */
+export type FineFractionDistributionOrganicSoil = NonNullable<
+  FractionDistribution["fineFractionDistributionOrganicSoil"]
+>;
+/** @internal */
+export type FineFractionDistributionShellySoil = NonNullable<
+  FractionDistribution["fineFractionDistributionShellySoil"]
+>;

@@ -41,15 +41,32 @@ marked _(target)_.
   *replaced* the leaky `(value, {node, element, adapter, namespaces})` resolver context — now the
   only escape hatch on the public custom-schema surface.
 - **custom** — the sole escape hatch, for irreducibly non-declarative extraction (CSV time-series,
-  detailed-vs-standard fraction fallback). Declares its output type so codegen never emits
-  `unknown`.
+  detailed-vs-standard fraction fallback). Declares its output type (a checked contract), so
+  inference never yields `unknown`.
 
-## Types & codegen _(target)_
+## Types
 
-- **A-codegen** — the schema is the single source of truth for types. A `codegen:types` script
-  walks the schema statically and emits committed, documented `interface` declarations under
-  `src/schemas/generated/`, carrying per-field `doc` → `/** */` and `group` → `@group`. CI fails on
-  staleness. Sets up candidate 4 (generate the schema itself from the XSDs).
+- **The schema is the single source of truth for types.** No output type is hand-written. Every
+  public data/nested type is *inferred* from its producer: `Produced<typeof PRODUCER>` for named
+  producers, one-level indexed access (`Parent["field"][number]`, `NonNullable<Parent["field"]>`)
+  for inline sub-shapes. Derived aliases live next to their producer in `src/schemas/*.ts` and are
+  re-exported from `node.ts`/`browser.ts`; `src/types/index.ts` holds only the ~15 genuinely
+  hand-written surfaces (adapters, `ParseMeta`, `Location`, `QualityRegime`, the `custom` contracts
+  `CPTMeasurement`/`DissipationMeasurement`, the five `*Data` aliases, unions, error class).
+- **presence-aware inference** — producers carry `Producer<T, P extends Presence>`; `P` is the
+  literal type of the runtime `presence` field (no phantom). `ProducedFields` reads `P` to map
+  `omit → optional` key, so inferred types match the runtime absence model exactly under
+  `exactOptionalPropertyTypes`.
+- **oneOf / columns inference** — `oneOf` infers an honest discriminated union from `base` +
+  `const` `branches`; `columns` infers a row type from a `const` `ColumnSpec` tuple (`RowOf`). Both
+  removed the last hand-written types. Type-level behaviour is locked by `--typecheck` tests.
+
+## Codegen _(future — v0.4.0)_
+
+- **A-codegen** — inference gives zero-drift types but anonymous hovers and no per-field docs. The
+  next step emits committed, *documented* `interface` declarations from the schema (per-field `doc`
+  → `/** */`, `group` → `@group`), superseding the inferred aliases for the public surface. Sets up
+  candidate 4 (generate the schema itself from the XSDs).
 
 ## Domain
 

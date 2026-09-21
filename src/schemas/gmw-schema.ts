@@ -161,11 +161,11 @@ export const GMW_PRODUCER = object_({
   },
 });
 
-/** One electrode on a geo-ohm cable. Inferred from {@link ELECTRODE}. */
+/** One electrode on a geo-ohm cable. Inferred from {@link ELECTRODE}. @internal */
 export type Electrode = Produced<typeof ELECTRODE>;
-/** One geo-ohm cable on a monitoring tube. Inferred from {@link GEO_OHM_CABLE}. */
+/** One geo-ohm cable on a monitoring tube. Inferred from {@link GEO_OHM_CABLE}. @internal */
 export type GeoOhmCable = Produced<typeof GEO_OHM_CABLE>;
-/** One monitoring tube. Inferred from {@link MONITORING_TUBE}. */
+/** One monitoring tube. Inferred from {@link MONITORING_TUBE}. @internal */
 export type MonitoringTube = Produced<typeof MONITORING_TUBE>;
-/** One dated well-history event. Inferred from {@link GMW_INTERMEDIATE_EVENT}. */
+/** One dated well-history event. Inferred from {@link GMW_INTERMEDIATE_EVENT}. @internal */
 export type GMWIntermediateEvent = Produced<typeof GMW_INTERMEDIATE_EVENT>;

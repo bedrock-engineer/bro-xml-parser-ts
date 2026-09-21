@@ -110,9 +110,9 @@ export const GLD_PRODUCER = object_({
   },
 });
 
-/** The GMW tube reference a GLD pertains to. Inferred from {@link MONITORING_POINT}. */
+/** The GMW tube reference a GLD pertains to. Inferred from {@link MONITORING_POINT}. @internal */
 export type GroundwaterMonitoringTubeRef = Produced<typeof MONITORING_POINT>;
-/** One `{time, value, qualifier}` point of an observation series. Inferred from {@link OBSERVATION_POINT}. */
+/** One `{time, value, qualifier}` point of an observation series. Inferred from {@link OBSERVATION_POINT}. @internal */
 export type GLDObservationPoint = Produced<typeof OBSERVATION_POINT>;
-/** One groundwater level observation. Inferred from {@link OBSERVATION}. */
+/** One groundwater level observation. Inferred from {@link OBSERVATION}. @internal */
 export type GLDObservation = Produced<typeof OBSERVATION>;
