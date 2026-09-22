@@ -8,6 +8,8 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-22
+
 ### Changed
 
 - **BREAKING: dropped the trailing underscores from three `producers` combinators.**
@@ -199,8 +201,9 @@ While the major version is `0`, breaking changes are released as minor versions.
   structures previously parsed dates inline with `new Date()`, duplicating logic
   and carrying the same bugs; these now route through `parseDate`.
 
-[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.5.0...HEAD
 
+[0.5.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.3.0...v0.4.0
 
 [0.3.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.2.0...v0.3.0
