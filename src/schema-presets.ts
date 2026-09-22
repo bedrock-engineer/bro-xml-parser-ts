@@ -24,7 +24,7 @@
  * ```
  */
 
-import { text, number_, date, boolean_, qualityClass } from "./core/producer.js";
+import { text, number, date, boolean, qualityClass } from "./core/producer.js";
 import { gmlLocation } from "./schemas/common-fields.js";
 
 // ============================================================================
@@ -46,7 +46,7 @@ export const CPT_LOCATION_ONLY = {
   broId: text("brocom:broId"),
   deliveredLocation: gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
   standardizedLocation: gmlLocation("./dscpt:standardizedLocation/brocom:location"),
-  deliveredVerticalPositionOffset: number_("./dscpt:deliveredVerticalPosition/cptcommon:offset"),
+  deliveredVerticalPositionOffset: number("./dscpt:deliveredVerticalPosition/cptcommon:offset"),
 };
 
 /**
@@ -59,7 +59,7 @@ export const CPT_METADATA_ONLY = {
   deliveredLocation: gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
   cptStandard: text("./dscpt:cptStandard"),
   qualityClass: qualityClass("./dscpt:conePenetrometerSurvey/cptcommon:qualityClass"),
-  finalDepth: number_("./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth"),
+  finalDepth: number("./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth"),
 };
 
 // ============================================================================
@@ -81,7 +81,7 @@ export const BORE_LOCATION_ONLY = {
   broId: text("brocom:broId"),
   deliveredLocation: gmlLocation("./dsbhrgt:deliveredLocation/bhrgtcom:location"),
   standardizedLocation: gmlLocation("./dsbhrgt:standardizedLocation/brocom:location"),
-  deliveredVerticalPositionOffset: number_("./dsbhrgt:deliveredVerticalPosition/bhrgtcom:offset"),
+  deliveredVerticalPositionOffset: number("./dsbhrgt:deliveredVerticalPosition/bhrgtcom:offset"),
 };
 
 /**
@@ -93,8 +93,8 @@ export const BORE_METADATA_ONLY = {
   researchReportDate: date("./dsbhrgt:reportHistory/dsbhrgt:reportStartDate"),
   deliveredLocation: gmlLocation("./dsbhrgt:deliveredLocation/bhrgtcom:location"),
   descriptionProcedure: text("./dsbhrgt:boreholeSampleDescription/bhrgtcom:descriptionProcedure"),
-  finalBoreDepth: number_("./dsbhrgt:boring/bhrgtcom:finalDepthBoring"),
-  boreRockReached: boolean_("./dsbhrgt:boring/bhrgtcom:rockReached"),
+  finalBoreDepth: number("./dsbhrgt:boring/bhrgtcom:finalDepthBoring"),
+  boreRockReached: boolean("./dsbhrgt:boring/bhrgtcom:rockReached"),
 };
 
 // ============================================================================
@@ -116,7 +116,7 @@ export const BHRG_LOCATION_ONLY = {
   broId: text("brocom:broId"),
   deliveredLocation: gmlLocation("./dsbhrg:deliveredLocation/bhrgcom:location"),
   standardizedLocation: gmlLocation("./dsbhrg:standardizedLocation/brocom:location"),
-  deliveredVerticalPositionOffset: number_("./dsbhrg:deliveredVerticalPosition/bhrgcom:offset"),
+  deliveredVerticalPositionOffset: number("./dsbhrg:deliveredVerticalPosition/bhrgcom:offset"),
 };
 
 /**
@@ -130,6 +130,6 @@ export const BHRG_METADATA_ONLY = {
   descriptionProcedure: text(
     "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptionProcedure",
   ),
-  finalBoreDepth: number_("./dsbhrg:boring/bhrgcom:Boring/bhrgcom:finalDepthBoring"),
-  boreRockReached: boolean_("./dsbhrg:boring/bhrgcom:Boring/bhrgcom:rockReached"),
+  finalBoreDepth: number("./dsbhrg:boring/bhrgcom:Boring/bhrgcom:finalDepthBoring"),
+  boreRockReached: boolean("./dsbhrg:boring/bhrgcom:Boring/bhrgcom:rockReached"),
 };

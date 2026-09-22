@@ -79,7 +79,7 @@ describe('Custom Schema Parsing', () => {
       // An inline producer map: each field's output type flows into the result.
       const mySchema = {
         id: producers.text('brocom:broId'),
-        depth: producers.number_(
+        depth: producers.number(
           './dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth'
         ),
         reportDate: producers.date('./dscpt:researchReportDate'),
@@ -228,7 +228,7 @@ describe('Custom Schema Parsing', () => {
     it('should allow extending a preset with additional fields', () => {
       const extendedSchema = {
         ...presets.CPT_ID_ONLY,
-        finalDepth: producers.number_(
+        finalDepth: producers.number(
           './dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth'
         ),
       };

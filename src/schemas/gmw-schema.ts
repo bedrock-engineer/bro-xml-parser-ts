@@ -18,7 +18,7 @@
  * current-state values live on the tubes.
  */
 
-import { object_, array, text, date, number_, integer, boolean_ } from "../core/producer.js";
+import { object, array, text, date, number, integer, boolean } from "../core/producer.js";
 import type { Produced } from "../core/producer.js";
 import {
   COMMON_REGISTRATION_PRODUCERS,
@@ -27,17 +27,17 @@ import {
 } from "./common-fields.js";
 
 /** One electrode on a geo-ohm cable. */
-const ELECTRODE = object_({
+const ELECTRODE = object({
   fields: {
     electrodeNumber: integer("./gmwcommon:electrodeNumber"),
     electrodePackingMaterial: text("./gmwcommon:electrodePackingMaterial"),
     electrodeStatus: text("./gmwcommon:electrodeStatus"),
-    electrodePosition: number_("./gmwcommon:electrodePosition"),
+    electrodePosition: number("./gmwcommon:electrodePosition"),
   },
 });
 
 /** One geo-ohm cable running along a monitoring tube. */
-const GEO_OHM_CABLE = object_({
+const GEO_OHM_CABLE = object({
   fields: {
     cableNumber: integer("./dsgmw:cableNumber"),
     cableInUse: text("./dsgmw:cableInUse"),
@@ -46,19 +46,19 @@ const GEO_OHM_CABLE = object_({
 });
 
 /** One monitoring tube, with its material/screen/insert surface flattened. */
-const MONITORING_TUBE = object_({
+const MONITORING_TUBE = object({
   fields: {
     tubeNumber: integer("./dsgmw:tubeNumber"),
     tubeType: text("./dsgmw:tubeType"),
-    artesianWellCapPresent: boolean_("./dsgmw:artesianWellCapPresent"),
-    sedimentSumpPresent: boolean_("./dsgmw:sedimentSumpPresent"),
+    artesianWellCapPresent: boolean("./dsgmw:artesianWellCapPresent"),
+    sedimentSumpPresent: boolean("./dsgmw:sedimentSumpPresent"),
     numberOfGeoOhmCables: integer("./dsgmw:numberOfGeoOhmCables"),
-    tubeTopDiameter: number_("./dsgmw:tubeTopDiameter"),
-    variableDiameter: boolean_("./dsgmw:variableDiameter"),
+    tubeTopDiameter: number("./dsgmw:tubeTopDiameter"),
+    variableDiameter: boolean("./dsgmw:variableDiameter"),
     tubeStatus: text("./dsgmw:tubeStatus"),
-    tubeTopPosition: number_("./dsgmw:tubeTopPosition"),
+    tubeTopPosition: number("./dsgmw:tubeTopPosition"),
     tubeTopPositioningMethod: text("./dsgmw:tubeTopPositioningMethod"),
-    tubePartInserted: boolean_("./dsgmw:tubePartInserted"),
+    tubePartInserted: boolean("./dsgmw:tubePartInserted"),
     tubeInUse: text("./dsgmw:tubeInUse"),
 
     // materialUsed
@@ -67,21 +67,21 @@ const MONITORING_TUBE = object_({
     glue: text("./dsgmw:materialUsed/gmwcommon:glue"),
 
     // screen
-    screenLength: number_("./dsgmw:screen/dsgmw:screenLength"),
+    screenLength: number("./dsgmw:screen/dsgmw:screenLength"),
     sockMaterial: text("./dsgmw:screen/dsgmw:sockMaterial"),
     screenProtection: text("./dsgmw:screen/dsgmw:screenProtection"),
-    screenTopPosition: number_("./dsgmw:screen/dsgmw:screenTopPosition"),
-    screenBottomPosition: number_("./dsgmw:screen/dsgmw:screenBottomPosition"),
+    screenTopPosition: number("./dsgmw:screen/dsgmw:screenTopPosition"),
+    screenBottomPosition: number("./dsgmw:screen/dsgmw:screenBottomPosition"),
 
     // plainTubePart
-    plainTubePartLength: number_("./dsgmw:plainTubePart/gmwcommon:plainTubePartLength"),
+    plainTubePartLength: number("./dsgmw:plainTubePart/gmwcommon:plainTubePartLength"),
 
     // sedimentSump
-    sedimentSumpLength: number_("./dsgmw:sedimentSump/gmwcommon:sedimentSumpLength"),
+    sedimentSumpLength: number("./dsgmw:sedimentSump/gmwcommon:sedimentSumpLength"),
 
     // insertedPart (present when tubePartInserted is true)
-    insertedPartLength: number_("./dsgmw:insertedPart/gmwcommon:insertedPartLength"),
-    insertedPartDiameter: number_("./dsgmw:insertedPart/gmwcommon:insertedPartDiameter"),
+    insertedPartLength: number("./dsgmw:insertedPart/gmwcommon:insertedPartLength"),
+    insertedPartDiameter: number("./dsgmw:insertedPart/gmwcommon:insertedPartDiameter"),
     insertedPartMaterial: text("./dsgmw:insertedPart/gmwcommon:insertedPartMaterial"),
 
     geoOhmCables: array({ each: "./dsgmw:geoOhmCable", item: GEO_OHM_CABLE }),
@@ -89,24 +89,24 @@ const MONITORING_TUBE = object_({
 });
 
 /** One dated well-history event (name + date). */
-const GMW_INTERMEDIATE_EVENT = object_({
+const GMW_INTERMEDIATE_EVENT = object({
   fields: {
     eventName: text("./dsgmw:eventName"),
     eventDate: date("./dsgmw:eventDate"),
   },
 });
 
-export const GMW_PRODUCER = object_({
+export const GMW_PRODUCER = object({
   fields: {
     // === Core identification (shared brocom fields) ===
     ...COMMON_REGISTRATION_PRODUCERS,
 
     // === Well metadata ===
-    withPrehistory: boolean_("./dsgmw:withPrehistory"),
+    withPrehistory: boolean("./dsgmw:withPrehistory"),
     deliveryContext: text("./dsgmw:deliveryContext"),
     constructionStandard: text("./dsgmw:constructionStandard"),
     initialFunction: text("./dsgmw:initialFunction"),
-    removed: boolean_("./dsgmw:removed"),
+    removed: boolean("./dsgmw:removed"),
     numberOfMonitoringTubes: integer("./dsgmw:numberOfMonitoringTubes"),
     groundLevelStable: text("./dsgmw:groundLevelStable"),
     wellStability: text("./dsgmw:wellStability"),
@@ -115,8 +115,8 @@ export const GMW_PRODUCER = object_({
     owner: text("./dsgmw:owner"),
     maintenanceResponsibleParty: text("./dsgmw:maintenanceResponsibleParty"),
     wellHeadProtector: text("./dsgmw:wellHeadProtector"),
-    isAbroad: boolean_("./dsgmw:isAbroad"),
-    geometricDataPubliclyAvailable: boolean_("./dsgmw:geometricDataPubliclyAvailable"),
+    isAbroad: boolean("./dsgmw:isAbroad"),
+    geometricDataPubliclyAvailable: boolean("./dsgmw:geometricDataPubliclyAvailable"),
 
     // === Location ===
     deliveredLocation: gmlLocation("./dsgmw:deliveredLocation/gmwcommon:location"),
@@ -127,14 +127,14 @@ export const GMW_PRODUCER = object_({
     coordinateTransformation: text("./dsgmw:standardizedLocation/brocom:coordinateTransformation"),
 
     // === Vertical position ===
-    deliveredVerticalPositionOffset: number_("./dsgmw:deliveredVerticalPosition/gmwcommon:offset"),
+    deliveredVerticalPositionOffset: number("./dsgmw:deliveredVerticalPosition/gmwcommon:offset"),
     deliveredVerticalPositionDatum: text(
       "./dsgmw:deliveredVerticalPosition/gmwcommon:verticalDatum",
     ),
     deliveredVerticalPositionReferencePoint: text(
       "./dsgmw:deliveredVerticalPosition/gmwcommon:localVerticalReferencePoint",
     ),
-    groundLevelPosition: number_("./dsgmw:deliveredVerticalPosition/gmwcommon:groundLevelPosition"),
+    groundLevelPosition: number("./dsgmw:deliveredVerticalPosition/gmwcommon:groundLevelPosition"),
     groundLevelPositioningMethod: text(
       "./dsgmw:deliveredVerticalPosition/gmwcommon:groundLevelPositioningMethod",
     ),

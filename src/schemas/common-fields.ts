@@ -14,7 +14,7 @@
  */
 
 import type { Location } from "../types/index.js";
-import { text, date, boolean_, object_, custom } from "../core/producer.js";
+import { text, date, boolean, object, custom } from "../core/producer.js";
 import type { Produced } from "../core/producer.js";
 import type { CustomProducer } from "../core/producer.js";
 
@@ -37,7 +37,7 @@ export const COMMON_REGISTRATION_PRODUCERS = {
  * `brocom:*` and identical across domains, so it is matched with a
  * namespace-agnostic `local-name()`. Absent container → `null` (optional).
  */
-export const REGISTRATION_HISTORY = object_({
+export const REGISTRATION_HISTORY = object({
   at: "./*[local-name()='registrationHistory']",
   fields: {
     objectRegistrationTime: date("./brocom:objectRegistrationTime"),
@@ -48,10 +48,10 @@ export const REGISTRATION_HISTORY = object_({
     underReviewTime: date("./brocom:underReviewTime"),
     deregistrationTime: date("./brocom:deregistrationTime"),
     reregistrationTime: date("./brocom:reregistrationTime"),
-    corrected: boolean_("./brocom:corrected"),
-    underReview: boolean_("./brocom:underReview"),
-    deregistered: boolean_("./brocom:deregistered"),
-    reregistered: boolean_("./brocom:reregistered"),
+    corrected: boolean("./brocom:corrected"),
+    underReview: boolean("./brocom:underReview"),
+    deregistered: boolean("./brocom:deregistered"),
+    reregistered: boolean("./brocom:reregistered"),
   },
 });
 

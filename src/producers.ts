@@ -4,8 +4,8 @@
  * One import carrying every building block the library uses internally to
  * describe how an XML node becomes a typed value:
  *
- *   - the leaf combinators (`text`, `date`, `number_`, `integer`, `boolean_`,
- *     `qualityClass`) and the structural combinators (`object_`, `array`,
+ *   - the leaf combinators (`text`, `date`, `number`, `integer`, `boolean`,
+ *     `qualityClass`) and the structural combinators (`object`, `array`,
  *     `oneOf`, and the `custom` / `scalar` escape hatches),
  *   - the domain helpers `gmlLocation` (GML `Point` → {@link Location}) and
  *     `columns` / `col` (BRO's column time-series CSVs),
@@ -22,7 +22,7 @@
  * const parser = new BROParser(new XMLAdapter());
  * const result = parser.parseCustom(xml, {
  *   ...p.COMMON_REGISTRATION_PRODUCERS,
- *   depth: p.number_("./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth"),
+ *   depth: p.number("./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth"),
  *   location: p.gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
  * }, "CPT");
  * result.depth;    // number | null — inferred, no casts
@@ -34,11 +34,11 @@ export {
   scalar,
   text,
   date,
-  number_,
+  number,
   integer,
-  boolean_,
+  boolean,
   qualityClass,
-  object_,
+  object,
   array,
   custom,
   oneOf,

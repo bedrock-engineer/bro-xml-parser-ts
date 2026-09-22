@@ -10,15 +10,15 @@
 
 import type { Producer, Presence, Produced, ProducedFields } from "../core/producer.js";
 import {
-  object_,
+  object,
   array,
   custom,
   oneOf,
   scalar,
   text,
   date,
-  number_,
-  boolean_,
+  number,
+  boolean,
 } from "../core/producer.js";
 import {
   COMMON_REGISTRATION_PRODUCERS,
@@ -57,7 +57,7 @@ function codeList(each: string): Producer<Array<string | null>> {
 
 // === Rock branch ===
 
-const ROCK_DESCRIPTION = object_({
+const ROCK_DESCRIPTION = object({
   fields: {
     rockType: text("./bhrgtcom:rockType"),
     cementType: text("./bhrgtcom:cementType"),
@@ -74,7 +74,7 @@ const ROCK_DESCRIPTION = object_({
     strengthClass: text("./bhrgtcom:strengthClass"),
     weathered: text("./bhrgtcom:weathered"),
     weatheringDegree: optional(
-      object_({
+      object({
         fields: {
           discolouration: text("./bhrgtcom:discolouration"),
           disintegration: text("./bhrgtcom:disintegration"),
@@ -86,7 +86,7 @@ const ROCK_DESCRIPTION = object_({
   },
 });
 
-const GRAINSHAPE = object_({
+const GRAINSHAPE = object({
   fields: {
     sizeFraction: text("./bhrgtcom:sizeFraction"),
     angularity: text("./bhrgtcom:angularity"),
@@ -99,17 +99,17 @@ const GRAINSHAPE = object_({
 
 /** Fields shared by every layer, regardless of soil/rock. */
 const LAYER_BASE = {
-  upperBoundary: number_("./bhrgtcom:upperBoundary"),
-  lowerBoundary: number_("./bhrgtcom:lowerBoundary"),
+  upperBoundary: number("./bhrgtcom:upperBoundary"),
+  lowerBoundary: number("./bhrgtcom:lowerBoundary"),
   upperBoundaryDetermination: text("./bhrgtcom:upperBoundaryDetermination"),
   lowerBoundaryDetermination: text("./bhrgtcom:lowerBoundaryDetermination"),
-  anthropogenic: boolean_("./bhrgtcom:anthropogenic"),
-  slant: boolean_("./bhrgtcom:slant"),
+  anthropogenic: boolean("./bhrgtcom:anthropogenic"),
+  slant: boolean("./bhrgtcom:slant"),
   bedding: text("./bhrgtcom:bedding", OMIT),
-  compositeLayer: boolean_("./bhrgtcom:compositeLayer", OMIT),
+  compositeLayer: boolean("./bhrgtcom:compositeLayer", OMIT),
   activityType: text("./bhrgtcom:activityType", OMIT),
-  bedded: boolean_("./bhrgtcom:bedded"),
-  internalStructureIntact: boolean_("./bhrgtcom:internalStructureIntact"),
+  bedded: boolean("./bhrgtcom:bedded"),
+  internalStructureIntact: boolean("./bhrgtcom:internalStructureIntact"),
   specialMaterial: text("./bhrgtcom:specialMaterial", OMIT),
 };
 
@@ -153,8 +153,8 @@ const LAYER = oneOf({
           OMIT,
         ),
         interbedding: text("./bhrgtcom:soil/bhrgtcom:interbedding", OMIT),
-        mixed: boolean_("./bhrgtcom:soil/bhrgtcom:mixed"),
-        mottled: boolean_("./bhrgtcom:soil/bhrgtcom:mottled"),
+        mixed: boolean("./bhrgtcom:soil/bhrgtcom:mixed"),
+        mottled: boolean("./bhrgtcom:soil/bhrgtcom:mottled"),
         fineSoilConsistency: text("./bhrgtcom:soil/bhrgtcom:fineSoilConsistency"),
         organicSoilConsistency: text("./bhrgtcom:soil/bhrgtcom:organicSoilConsistency"),
         organicSoilTexture: text("./bhrgtcom:soil/bhrgtcom:organicSoilTexture"),
@@ -196,50 +196,50 @@ export type BHRGTRockLayer = Extract<BHRGTLayer, { material: "rock" }>;
 // === Interval item producers ===
 
 const depthRange = {
-  beginDepth: number_("./bhrgtcom:beginDepth", REQUIRED),
-  endDepth: number_("./bhrgtcom:endDepth", REQUIRED),
+  beginDepth: number("./bhrgtcom:beginDepth", REQUIRED),
+  endDepth: number("./bhrgtcom:endDepth", REQUIRED),
 };
 
-const BORED_INTERVAL = object_({
+const BORED_INTERVAL = object({
   fields: {
     ...depthRange,
     boringTechnique: text("./bhrgtcom:boringTechnique"),
-    boredDiameter: number_("./bhrgtcom:boredDiameter"),
+    boredDiameter: number("./bhrgtcom:boredDiameter"),
   },
 });
 
-const SAMPLED_INTERVAL = object_({
+const SAMPLED_INTERVAL = object({
   fields: {
     ...depthRange,
     preTreatment: text("./bhrgtcom:preTreatment"),
     samplingMethod: text("./bhrgtcom:samplingMethod"),
     samplingQuality: text("./bhrgtcom:samplingQuality"),
-    orientatedSampled: boolean_("./bhrgtcom:orientatedSampled"),
+    orientatedSampled: boolean("./bhrgtcom:orientatedSampled"),
     sampler: optional(
-      object_({
+      object({
         fields: {
           samplerType: text("./bhrgtcom:samplerType"),
-          sampleContainerDiameter: number_("./bhrgtcom:sampleContainerDiameter"),
-          sampleContainerLength: number_("./bhrgtcom:sampleContainerLength"),
-          cuttingShoeInsideDiameter: number_("./bhrgtcom:cuttingShoeInsideDiameter"),
-          cuttingShoeOutsideDiameter: number_("./bhrgtcom:cuttingShoeOutsideDiameter"),
-          stockingUsed: boolean_("./bhrgtcom:stockingUsed"),
-          rightAngledCuttingShoe: boolean_("./bhrgtcom:rightAngledCuttingShoe"),
-          taperAngle: number_("./bhrgtcom:taperAngle"),
-          lubricationFluidUsed: boolean_("./bhrgtcom:lubricationFluidUsed"),
-          coreCatcherPresent: boolean_("./bhrgtcom:coreCatcherPresent"),
-          pistonPresent: boolean_("./bhrgtcom:pistonPresent"),
+          sampleContainerDiameter: number("./bhrgtcom:sampleContainerDiameter"),
+          sampleContainerLength: number("./bhrgtcom:sampleContainerLength"),
+          cuttingShoeInsideDiameter: number("./bhrgtcom:cuttingShoeInsideDiameter"),
+          cuttingShoeOutsideDiameter: number("./bhrgtcom:cuttingShoeOutsideDiameter"),
+          stockingUsed: boolean("./bhrgtcom:stockingUsed"),
+          rightAngledCuttingShoe: boolean("./bhrgtcom:rightAngledCuttingShoe"),
+          taperAngle: number("./bhrgtcom:taperAngle"),
+          lubricationFluidUsed: boolean("./bhrgtcom:lubricationFluidUsed"),
+          coreCatcherPresent: boolean("./bhrgtcom:coreCatcherPresent"),
+          pistonPresent: boolean("./bhrgtcom:pistonPresent"),
         },
       }),
       "./bhrgtcom:sampler",
     ),
     coreRecovery: optional(
-      object_({
+      object({
         fields: {
-          totalCoreRecovery: number_("./bhrgtcom:totalCoreRecovery"),
-          solidCoreRecovery: number_("./bhrgtcom:solidCoreRecovery"),
-          rockQualityDesignation: number_("./bhrgtcom:rockQualityDesignation"),
-          fieldDetermined: boolean_("./bhrgtcom:fieldDetermined"),
+          totalCoreRecovery: number("./bhrgtcom:totalCoreRecovery"),
+          solidCoreRecovery: number("./bhrgtcom:solidCoreRecovery"),
+          rockQualityDesignation: number("./bhrgtcom:rockQualityDesignation"),
+          fieldDetermined: boolean("./bhrgtcom:fieldDetermined"),
         },
       }),
       "./bhrgtcom:coreRecovery",
@@ -247,32 +247,32 @@ const SAMPLED_INTERVAL = object_({
   },
 });
 
-const COMPLETED_INTERVAL = object_({
+const COMPLETED_INTERVAL = object({
   fields: {
     ...depthRange,
-    permanentCasingPresent: boolean_("./bhrgtcom:permanentCasingPresent"),
-    diameterPermanentCasing: number_("./bhrgtcom:diameterPermanentCasing"),
+    permanentCasingPresent: boolean("./bhrgtcom:permanentCasingPresent"),
+    diameterPermanentCasing: number("./bhrgtcom:diameterPermanentCasing"),
     materialPermanentCasing: text("./bhrgtcom:materialPermanentCasing"),
     backfillMaterial: text("./bhrgtcom:backfillMaterial"),
-    backfillMaterialWashed: boolean_("./bhrgtcom:backfillMaterialWashed"),
-    backfillMaterialCertified: boolean_("./bhrgtcom:backfillMaterialCertified"),
+    backfillMaterialWashed: boolean("./bhrgtcom:backfillMaterialWashed"),
+    backfillMaterialCertified: boolean("./bhrgtcom:backfillMaterialCertified"),
   },
 });
 
-const POST_SED_DISCONTINUITY = object_({
+const POST_SED_DISCONTINUITY = object({
   fields: {
     ...depthRange,
     inRock: text("./bhrgtcom:inRock"),
     discontinuityType: text("./bhrgtcom:discontinuityType"),
     compositeDiscontinuity: text("./bhrgtcom:compositeDiscontinuity"),
-    spacing: number_("./bhrgtcom:spacing"),
+    spacing: number("./bhrgtcom:spacing"),
     smooth: text("./bhrgtcom:smooth"),
     apertureClass: text("./bhrgtcom:apertureClass"),
     infillMaterial: text("./bhrgtcom:infillMaterial"),
   },
 });
 
-export const BORE_PRODUCER = object_({
+export const BORE_PRODUCER = object({
   fields: {
     // === Core identification (shared brocom fields) ===
     ...COMMON_REGISTRATION_PRODUCERS,
@@ -284,34 +284,34 @@ export const BORE_PRODUCER = object_({
     standardizedLocation: gmlLocation("./dsbhrgt:standardizedLocation/brocom:location"),
 
     // === Vertical position ===
-    deliveredVerticalPositionOffset: number_(`${VPOS}/bhrgtcom:offset`),
+    deliveredVerticalPositionOffset: number(`${VPOS}/bhrgtcom:offset`),
     deliveredVerticalPositionDatum: text(`${VPOS}/bhrgtcom:verticalDatum`),
     deliveredVerticalPositionReferencePoint: text(`${VPOS}/bhrgtcom:localVerticalReferencePoint`),
 
     // === Boring metadata ===
     descriptionProcedure: text(`${SAMPLE_DESC}/bhrgtcom:descriptionProcedure`),
-    groundwaterLevel: number_(`${BORING}/bhrgtcom:groundwaterLevel`),
-    meanHighestGroundwaterLevel: number_(`${LOG}/bhrgtcom:meanHighestGroundwaterLevel`),
-    meanLowestGroundwaterLevel: number_(`${LOG}/bhrgtcom:meanLowestGroundwaterLevel`),
-    boreRockReached: boolean_(`${BORING}/bhrgtcom:rockReached`),
-    finalBoreDepth: number_(`${BORING}/bhrgtcom:finalDepthBoring`),
-    finalSampleDepth: number_(`${BORING}/bhrgtcom:finalDepthSampling`),
-    finalDepthPreparation: number_(`${BORING}/bhrgtcom:finalDepthPreparation`),
-    finalDepthExcavation: number_(`${BORING}/bhrgtcom:finalDepthExcavation`),
-    finalDepthTemporaryCasing: number_(`${BORING}/bhrgtcom:finalDepthTemporaryCasing`),
-    boreHoleCompleted: boolean_(`${BORING}/bhrgtcom:boreholeCompleted`),
+    groundwaterLevel: number(`${BORING}/bhrgtcom:groundwaterLevel`),
+    meanHighestGroundwaterLevel: number(`${LOG}/bhrgtcom:meanHighestGroundwaterLevel`),
+    meanLowestGroundwaterLevel: number(`${LOG}/bhrgtcom:meanLowestGroundwaterLevel`),
+    boreRockReached: boolean(`${BORING}/bhrgtcom:rockReached`),
+    finalBoreDepth: number(`${BORING}/bhrgtcom:finalDepthBoring`),
+    finalSampleDepth: number(`${BORING}/bhrgtcom:finalDepthSampling`),
+    finalDepthPreparation: number(`${BORING}/bhrgtcom:finalDepthPreparation`),
+    finalDepthExcavation: number(`${BORING}/bhrgtcom:finalDepthExcavation`),
+    finalDepthTemporaryCasing: number(`${BORING}/bhrgtcom:finalDepthTemporaryCasing`),
+    boreHoleCompleted: boolean(`${BORING}/bhrgtcom:boreholeCompleted`),
 
     // === Boring execution details ===
     boringStartDate: date(`${BORING}/bhrgtcom:boringStartDate`),
     boringEndDate: date(`${BORING}/bhrgtcom:boringEndDate`),
     boringProcedure: text(`${BORING}/bhrgtcom:boringProcedure`),
     boringTechnique: text(`${BORING}/bhrgtcom:boredInterval/bhrgtcom:boringTechnique`),
-    trajectoryExcavated: boolean_(`${BORING}/bhrgtcom:trajectoryExcavated`),
-    subsurfaceContaminated: boolean_(`${BORING}/bhrgtcom:subsurfaceContaminated`),
+    trajectoryExcavated: boolean(`${BORING}/bhrgtcom:trajectoryExcavated`),
+    subsurfaceContaminated: boolean(`${BORING}/bhrgtcom:subsurfaceContaminated`),
     stopCriterion: text(`${BORING}/bhrgtcom:stopCriterion`),
-    flushingMediumUsed: boolean_(`${BORING}/bhrgtcom:flushingMediumUsed`),
+    flushingMediumUsed: boolean(`${BORING}/bhrgtcom:flushingMediumUsed`),
     flushingAdditive: text(`${BORING}/bhrgtcom:flushingAdditive`),
-    temporaryCasingUsed: boolean_(`${BORING}/bhrgtcom:temporaryCasingUsed`),
+    temporaryCasingUsed: boolean(`${BORING}/bhrgtcom:temporaryCasingUsed`),
     preparation: text(`${BORING}/bhrgtcom:preparation`),
 
     // === Site characteristic ===
@@ -330,25 +330,25 @@ export const BORE_PRODUCER = object_({
     samplingProcedure: text(`${BORING}/bhrgtcom:samplingProcedure`),
     samplingMethod: text(`${SAMPLED}/bhrgtcom:samplingMethod`),
     samplingQuality: text(`${SAMPLED}/bhrgtcom:samplingQuality`),
-    orientatedSampled: boolean_(`${SAMPLER}/bhrgtcom:orientatedSampled`),
-    sampleContainerDiameter: number_(`${SAMPLER}/bhrgtcom:sampleContainerDiameter`),
-    sampleContainerLength: number_(`${SAMPLER}/bhrgtcom:sampleContainerLength`),
-    pistonPresent: boolean_(`${SAMPLER}/bhrgtcom:pistonPresent`),
-    coreCatcherPresent: boolean_(`${SAMPLER}/bhrgtcom:coreCatcherPresent`),
-    stockingUsed: boolean_(`${SAMPLER}/bhrgtcom:stockingUsed`),
-    lubricationFluidUsed: boolean_(`${SAMPLER}/bhrgtcom:lubricationFluidUsed`),
-    rightAngledCuttingShoe: boolean_(`${SAMPLER}/bhrgtcom:rightAngledCuttingShoe`),
-    cuttingShoeInsideDiameter: number_(`${SAMPLER}/bhrgtcom:cuttingShoeInsideDiameter`),
-    cuttingShoeOutsideDiameter: number_(`${SAMPLER}/bhrgtcom:cuttingShoeOutsideDiameter`),
-    taperAngle: number_(`${SAMPLER}/bhrgtcom:taperAngle`),
+    orientatedSampled: boolean(`${SAMPLER}/bhrgtcom:orientatedSampled`),
+    sampleContainerDiameter: number(`${SAMPLER}/bhrgtcom:sampleContainerDiameter`),
+    sampleContainerLength: number(`${SAMPLER}/bhrgtcom:sampleContainerLength`),
+    pistonPresent: boolean(`${SAMPLER}/bhrgtcom:pistonPresent`),
+    coreCatcherPresent: boolean(`${SAMPLER}/bhrgtcom:coreCatcherPresent`),
+    stockingUsed: boolean(`${SAMPLER}/bhrgtcom:stockingUsed`),
+    lubricationFluidUsed: boolean(`${SAMPLER}/bhrgtcom:lubricationFluidUsed`),
+    rightAngledCuttingShoe: boolean(`${SAMPLER}/bhrgtcom:rightAngledCuttingShoe`),
+    cuttingShoeInsideDiameter: number(`${SAMPLER}/bhrgtcom:cuttingShoeInsideDiameter`),
+    cuttingShoeOutsideDiameter: number(`${SAMPLER}/bhrgtcom:cuttingShoeOutsideDiameter`),
+    taperAngle: number(`${SAMPLER}/bhrgtcom:taperAngle`),
 
     // === Description metadata ===
-    boreholeLogChecked: boolean_(`${LOG}/bhrgtcom:boreholeLogChecked`),
+    boreholeLogChecked: boolean(`${LOG}/bhrgtcom:boreholeLogChecked`),
     descriptionQuality: text(`${LOG}/bhrgtcom:descriptionQuality`),
     descriptionLocation: text(`${LOG}/bhrgtcom:descriptionLocation`),
     descriptionReportDate: date(`${SAMPLE_DESC}/bhrgtcom:descriptionReportDate`),
     describedMaterial: text(`${LOG}/bhrgtcom:describedMaterial`),
-    continuouslySampled: boolean_(`${LOG}/bhrgtcom:continuouslySampled`),
+    continuouslySampled: boolean(`${LOG}/bhrgtcom:continuouslySampled`),
     sampleMoistness: text(`${LOG}/bhrgtcom:sampleMoistness`),
 
     // === Visual description (BHR-GT-BMB): soil/rock layers ===
@@ -366,7 +366,7 @@ export const BORE_PRODUCER = object_({
     }),
     notDescribedIntervals: array({
       each: `${LOG}/bhrgtcom:notDescribedInterval`,
-      item: object_({ fields: { ...depthRange, noDescriptionReason: text("./bhrgtcom:noDescriptionReason") } }),
+      item: object({ fields: { ...depthRange, noDescriptionReason: text("./bhrgtcom:noDescriptionReason") } }),
     }),
     postSedimentaryDiscontinuities: array({
       each: `${LOG}/bhrgtcom:postSedimentaryDiscontinuity`,
@@ -374,29 +374,29 @@ export const BORE_PRODUCER = object_({
     }),
     excavatedLayers: array({
       each: `${BORING}/bhrgtcom:excavatedLayer`,
-      item: object_({
+      item: object({
         fields: {
-          upperBoundary: number_("./bhrgtcom:upperBoundary", REQUIRED),
-          lowerBoundary: number_("./bhrgtcom:lowerBoundary", REQUIRED),
+          upperBoundary: number("./bhrgtcom:upperBoundary", REQUIRED),
+          lowerBoundary: number("./bhrgtcom:lowerBoundary", REQUIRED),
           excavatedMaterial: text("./bhrgtcom:excavatedMaterial"),
         },
       }),
     }),
     boringVelocity: array({
       each: `${BORING}/bhrgtcom:boringVelocity`,
-      item: object_({
+      item: object({
         fields: {
-          elapsedTime: number_("./bhrgtcom:elapsedTime"),
-          depth: number_("./bhrgtcom:depth"),
+          elapsedTime: number("./bhrgtcom:elapsedTime"),
+          depth: number("./bhrgtcom:depth"),
         },
       }),
     }),
 
     // === Fluid mud layer (optional, single) ===
     fluidMudLayer: optional(
-      object_({
+      object({
         fields: {
-          thickness: number_("./bhrgtcom:thickness"),
+          thickness: number("./bhrgtcom:thickness"),
           colour: text("./bhrgtcom:colour"),
           upperBoundaryPositioningMethod: text("./bhrgtcom:upperBoundaryPositioningMethod"),
           lowerBoundaryPositioningMethod: text("./bhrgtcom:lowerBoundaryPositioningMethod"),
@@ -407,14 +407,14 @@ export const BORE_PRODUCER = object_({
 
     // === Administrative history ===
     registrationHistory: REGISTRATION_HISTORY,
-    reportHistory: object_({
+    reportHistory: object({
       at: "./dsbhrgt:reportHistory",
       fields: {
         reportStartDate: date("./dsbhrgt:reportStartDate"),
         reportEndDate: date("./dsbhrgt:reportEndDate"),
         intermediateEvents: array({
           each: "./dsbhrgt:intermediateEvent",
-          item: object_({
+          item: object({
             fields: {
               eventName: text("./dsbhrgt:eventName"),
               eventDate: date("./dsbhrgt:eventDate"),
@@ -429,7 +429,7 @@ export const BORE_PRODUCER = object_({
     surveyPurpose: text("./dsbhrgt:surveyPurpose"),
     discipline: text("./dsbhrgt:discipline"),
     surveyProcedure: text("./dsbhrgt:surveyProcedure"),
-    siteCharacteristicDetermined: boolean_("./dsbhrgt:siteCharacteristicDetermined"),
+    siteCharacteristicDetermined: boolean("./dsbhrgt:siteCharacteristicDetermined"),
   },
 });
 

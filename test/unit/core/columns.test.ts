@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { decodeColumns, col, columns } from '@/core/columns';
-import { object_ } from '@/core/producer';
+import { object } from '@/core/producer';
 import { SchemaParser } from '@/core/schema-parser';
 import { NodeXMLAdapter } from '@/adapters/node-adapter';
 
@@ -109,7 +109,7 @@ describe('columns() producer bridge', () => {
   const parser = new SchemaParser(adapter, {});
 
   it('reads and decodes a values leaf into typed rows', () => {
-    const schema = object_({
+    const schema = object({
       fields: {
         series: columns<{ time: number | null; value: number | null }>('./values', [
           { name: 'time', parse: col.num },
@@ -128,7 +128,7 @@ describe('columns() producer bridge', () => {
   });
 
   it('yields [] when the values leaf is absent', () => {
-    const schema = object_({
+    const schema = object({
       fields: {
         series: columns<{ time: number | null }>('./values', [{ name: 'time', parse: col.num }]),
       },

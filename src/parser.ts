@@ -31,7 +31,7 @@ import type {
   BROFileType,
 } from "./types/index.js";
 import { BROParseError } from "./types/index.js";
-import { object_ } from "./core/producer.js";
+import { object } from "./core/producer.js";
 import type { Producer, ProducedFields, Presence } from "./core/producer.js";
 
 /**
@@ -333,7 +333,7 @@ export class BROParser {
    * // Define only the fields you need
    * const result = parser.parseCustom(xmlText, {
    *   id: p.text('brocom:broId'),                                       // string | null
-   *   depth: p.number_('./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth'),
+   *   depth: p.number('./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth'),
    *   location: p.gmlLocation('./dscpt:deliveredLocation/cptcommon:location'),
    * }, 'CPT');
    *
@@ -369,7 +369,7 @@ export class BROParser {
       }
     }
 
-    const { value, warnings } = this.parser.produce(doc, object_({ fields }), "dispatchDocument");
+    const { value, warnings } = this.parser.produce(doc, object({ fields }), "dispatchDocument");
     meta.warnings.push(...warnings);
 
     return { meta, ...value };

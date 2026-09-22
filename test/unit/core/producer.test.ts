@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { SchemaParser } from '@/core/schema-parser';
 import {
-  object_,
+  object,
   array,
   text,
-  number_,
+  number,
   custom,
   oneOf,
 } from '@/core/producer';
@@ -30,13 +30,13 @@ function produce<T>(inner: string, root: Parameters<typeof parser.produce>[1]) {
 
 describe('SchemaParser.produce', () => {
   it('decodes scalars and recurses into nested objects', () => {
-    const schema = object_({
+    const schema = object({
       fields: {
         name: text('./name'),
-        depth: number_('./depth'),
-        location: object_({
+        depth: number('./depth'),
+        location: object({
           at: './loc',
-          fields: { x: number_('./x'), y: number_('./y') },
+          fields: { x: number('./x'), y: number('./y') },
         }),
       },
     });
@@ -55,9 +55,9 @@ describe('SchemaParser.produce', () => {
   });
 
   it('nulls a nested object whose container is absent (optional)', () => {
-    const schema = object_({
+    const schema = object({
       fields: {
-        location: object_({ at: './loc', fields: { x: number_('./x') } }),
+        location: object({ at: './loc', fields: { x: number('./x') } }),
       },
     });
     const { value } = produce<{ location: unknown }>('<name>x</name>', schema);
@@ -65,7 +65,7 @@ describe('SchemaParser.produce', () => {
   });
 
   it('collects array items and yields [] when none match', () => {
-    const schema = object_({
+    const schema = object({
       fields: {
         nets: array({ each: './net', item: text('./id') }),
         empty: array({ each: './none', item: text('./id') }),
@@ -81,9 +81,9 @@ describe('SchemaParser.produce', () => {
 
   describe('absence model', () => {
     it('nulls the nearest enclosing object when a nested required field is missing', () => {
-      const schema = object_({
+      const schema = object({
         fields: {
-          tube: object_({
+          tube: object({
             at: './tube',
             fields: { id: text('./id', { presence: 'required' }) },
           }),
@@ -95,11 +95,11 @@ describe('SchemaParser.produce', () => {
     });
 
     it('drops array items that fail a required field, recording a warning', () => {
-      const schema = object_({
+      const schema = object({
         fields: {
           rows: array({
             each: './row',
-            item: object_({ fields: { v: number_('./v', { presence: 'required' }) } }),
+            item: object({ fields: { v: number('./v', { presence: 'required' }) } }),
           }),
         },
       });
@@ -113,14 +113,14 @@ describe('SchemaParser.produce', () => {
     });
 
     it('throws only when a required field is missing at the document root', () => {
-      const schema = object_({
+      const schema = object({
         fields: { id: text('./id', { presence: 'required' }) },
       });
       expect(() => produce('<other>x</other>', schema)).toThrow(/Required field missing/);
     });
 
     it('omits a key entirely when presence is "omit" and the value is absent', () => {
-      const schema = object_({
+      const schema = object({
         fields: {
           id: text('./id'),
           note: text('./note', { presence: 'omit' }),
@@ -134,7 +134,7 @@ describe('SchemaParser.produce', () => {
 
   describe('custom / NodeLens seam', () => {
     it('hands a custom producer a relative-only lens', () => {
-      const schema = object_({
+      const schema = object({
         fields: {
           csv: custom({
             at: './series',
@@ -162,12 +162,12 @@ describe('SchemaParser.produce', () => {
   });
 
   describe('oneOf discriminated union', () => {
-    const schema = object_({
+    const schema = object({
       fields: {
         layer: oneOf({
           at: './layer',
           tagAs: 'kind',
-          base: { top: number_('./top') },
+          base: { top: number('./top') },
           branches: [
             { when: './soil', at: './soil', tag: 'soil', fields: { name: text('./name') } },
             { when: './rock', at: './rock', tag: 'rock', fields: { hardness: text('./hardness') } },

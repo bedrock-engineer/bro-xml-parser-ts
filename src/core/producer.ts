@@ -207,7 +207,7 @@ export function date<P extends Presence = "optional">(
 }
 
 /** Decimal number (`number | null`). */
-export function number_<P extends Presence = "optional">(
+export function number<P extends Presence = "optional">(
   at?: string,
   opts: LeafOpts<P> = {},
 ): ScalarProducer<number | null, P> {
@@ -223,7 +223,7 @@ export function integer<P extends Presence = "optional">(
 }
 
 /** Boolean (`boolean | null`), understanding BRO's `ja`/`nee`. */
-export function boolean_<P extends Presence = "optional">(
+export function boolean<P extends Presence = "optional">(
   at?: string,
   opts: LeafOpts<P> = {},
 ): ScalarProducer<boolean | null, P> {
@@ -239,7 +239,7 @@ export function qualityClass<P extends Presence = "optional">(
 }
 
 /** A fixed set of named fields. Output type is inferred from `fields`. */
-export function object_<
+export function object<
   F extends Record<string, Producer<unknown, Presence>>,
   P extends Presence = "optional",
 >(opts: { fields: F; presence?: P } & BaseMeta): ObjectProducer<ProducedFields<F>, P> {

@@ -14,7 +14,7 @@
  */
 
 import type { Producer, Presence, Produced } from "../core/producer.js";
-import { object_, array, text, date, number_, boolean_ } from "../core/producer.js";
+import { object, array, text, date, number, boolean } from "../core/producer.js";
 import {
   COMMON_REGISTRATION_PRODUCERS,
   REGISTRATION_HISTORY,
@@ -36,7 +36,7 @@ function codeList(each: string): Producer<Array<string | null>, "omit"> {
 
 // === Nested soil sub-structures (fields relative to each sub-structure node) ===
 
-const MUNSELL_COLOUR = object_({
+const MUNSELL_COLOUR = object({
   fields: {
     munsellHue: text("./bhrgcom:munsellHue"),
     munsellValue: text("./bhrgcom:munsellValue"),
@@ -44,7 +44,7 @@ const MUNSELL_COLOUR = object_({
   },
 });
 
-const SAND_FRACTION = object_({
+const SAND_FRACTION = object({
   fields: {
     darkGrainContentClass: text("./bhrgcom:darkGrainContentClass"),
     darkGrainContentClassArchive: text("./bhrgcom:darkGrainContentClassArchive"),
@@ -56,10 +56,10 @@ const SAND_FRACTION = object_({
     anomalouslyCoarseContentClassArchive: text("./bhrgcom:anomalouslyCoarseContentClassArchive"),
     granuleContentClass: text("./bhrgcom:granuleContentClass"),
     granuleContentClassArchive: text("./bhrgcom:granuleContentClassArchive"),
-    estimatedMedian: number_("./bhrgcom:estimatedMedian"),
+    estimatedMedian: number("./bhrgcom:estimatedMedian"),
     sandConstituents: array({
       each: "./bhrgcom:sandConstituent",
-      item: object_({
+      item: object({
         fields: {
           grainColour: text("./bhrgcom:grainColour"),
           percentageClass: text("./bhrgcom:percentageClass"),
@@ -70,7 +70,7 @@ const SAND_FRACTION = object_({
   },
 });
 
-const SHELL_FRACTION = object_({
+const SHELL_FRACTION = object({
   fields: {
     gritContentClass: text("./bhrgcom:gritContentClass"),
     fragmentContentClass: text("./bhrgcom:fragmentContentClass"),
@@ -83,7 +83,7 @@ const SHELL_FRACTION = object_({
     weatheringDegree: text("./bhrgcom:weatheringDegree"),
     shellConstituents: array({
       each: "./bhrgcom:shellConstituent",
-      item: object_({
+      item: object({
         fields: {
           shellTaxon: text("./bhrgcom:shellTaxon"),
           relativeAbundance: text("./bhrgcom:relativeAbundance"),
@@ -95,7 +95,7 @@ const SHELL_FRACTION = object_({
   },
 });
 
-const GRAVEL_FRACTION = object_({
+const GRAVEL_FRACTION = object({
   fields: {
     gravelMedianClass: text("./bhrgcom:gravelMedianClass"),
     angularity: text("./bhrgcom:angularity"),
@@ -106,13 +106,13 @@ const GRAVEL_FRACTION = object_({
     sphericity: text("./bhrgcom:sphericity"),
     variegation: text("./bhrgcom:variegation"),
     gravelProvenance: text("./bhrgcom:gravelProvenance"),
-    estimatedMedian: number_("./bhrgcom:estimatedMedian"),
+    estimatedMedian: number("./bhrgcom:estimatedMedian"),
     gravelConstituents: array({
       each: "./bhrgcom:gravelConstituent",
-      item: object_({
+      item: object({
         fields: {
           gravelType: text("./bhrgcom:gravelType"),
-          fractionProportion: number_("./bhrgcom:fractionProportion"),
+          fractionProportion: number("./bhrgcom:fractionProportion"),
           archiveClass: text("./bhrgcom:archiveClass"),
         },
       }),
@@ -120,12 +120,12 @@ const GRAVEL_FRACTION = object_({
   },
 });
 
-const PEAT_FRACTION = object_({
+const PEAT_FRACTION = object({
   fields: {
     peatType: text("./bhrgcom:peatType"),
     peatConstituents: array({
       each: "./bhrgcom:peatConstituent",
-      item: object_({
+      item: object({
         fields: {
           plantRemainType: text("./bhrgcom:plantRemainType"),
           percentageClass: text("./bhrgcom:percentageClass"),
@@ -136,31 +136,31 @@ const PEAT_FRACTION = object_({
   },
 });
 
-const FRACTION_DISTRIBUTION = object_({
+const FRACTION_DISTRIBUTION = object({
   fields: {
     fractionDistributionComplete: text("./bhrgcom:fractionDistributionComplete"),
-    estimatedMassProportionOrganicMatter: number_("./bhrgcom:estimatedMassProportionOrganicMatter"),
-    estimatedMassProportionShellMatter: number_("./bhrgcom:estimatedMassProportionShellMatter"),
-    estimatedVolumeProportionShellMatter: number_("./bhrgcom:estimatedVolumeProportionShellMatter"),
-    estimatedMassProportionShell: number_("./bhrgcom:estimatedMassProportionShell"),
-    estimatedMassProportionGravel: number_("./bhrgcom:estimatedMassProportionGravel"),
-    estimatedVolumeProportionGravel: number_("./bhrgcom:estimatedVolumeProportionGravel"),
+    estimatedMassProportionOrganicMatter: number("./bhrgcom:estimatedMassProportionOrganicMatter"),
+    estimatedMassProportionShellMatter: number("./bhrgcom:estimatedMassProportionShellMatter"),
+    estimatedVolumeProportionShellMatter: number("./bhrgcom:estimatedVolumeProportionShellMatter"),
+    estimatedMassProportionShell: number("./bhrgcom:estimatedMassProportionShell"),
+    estimatedMassProportionGravel: number("./bhrgcom:estimatedMassProportionGravel"),
+    estimatedVolumeProportionGravel: number("./bhrgcom:estimatedVolumeProportionGravel"),
     fineFractionDistributionOrganicSoil: optional(
-      object_({
+      object({
         fields: {
-          estimatedMassProportionSand: number_("./bhrgcom:estimatedMassProportionSand"),
-          estimatedMassProportionSilt: number_("./bhrgcom:estimatedMassProportionSilt"),
-          estimatedMassProportionLutum: number_("./bhrgcom:estimatedMassProportionLutum"),
+          estimatedMassProportionSand: number("./bhrgcom:estimatedMassProportionSand"),
+          estimatedMassProportionSilt: number("./bhrgcom:estimatedMassProportionSilt"),
+          estimatedMassProportionLutum: number("./bhrgcom:estimatedMassProportionLutum"),
         },
       }),
       "./bhrgcom:fineFractionDistributionOrganicSoil",
     ),
     fineFractionDistributionShellySoil: optional(
-      object_({
+      object({
         fields: {
-          estimatedVolumeProportionSand: number_("./bhrgcom:estimatedVolumeProportionSand"),
-          estimatedVolumeProportionSilt: number_("./bhrgcom:estimatedVolumeProportionSilt"),
-          estimatedVolumeProportionLutum: number_("./bhrgcom:estimatedVolumeProportionLutum"),
+          estimatedVolumeProportionSand: number("./bhrgcom:estimatedVolumeProportionSand"),
+          estimatedVolumeProportionSilt: number("./bhrgcom:estimatedVolumeProportionSilt"),
+          estimatedVolumeProportionLutum: number("./bhrgcom:estimatedVolumeProportionLutum"),
         },
       }),
       "./bhrgcom:fineFractionDistributionShellySoil",
@@ -168,9 +168,9 @@ const FRACTION_DISTRIBUTION = object_({
   },
 });
 
-const THIN_STRATUM = object_({
+const THIN_STRATUM = object({
   fields: {
-    layerProportion: number_("./bhrgcom:layerProportion"),
+    layerProportion: number("./bhrgcom:layerProportion"),
     layerProportionClass: text("./bhrgcom:layerProportionClass"),
     layerProportionClassArchive: text("./bhrgcom:layerProportionClassArchive"),
     stratumThicknessClass: text("./bhrgcom:stratumThicknessClass"),
@@ -178,7 +178,7 @@ const THIN_STRATUM = object_({
   },
 });
 
-const CHUNK = object_({
+const CHUNK = object({
   fields: {
     soilType: text("./bhrgcom:soilType"),
     sizeClass: text("./bhrgcom:sizeClass"),
@@ -190,7 +190,7 @@ const CHUNK = object_({
   },
 });
 
-const MOTTLE = object_({
+const MOTTLE = object({
   fields: {
     colour: text("./bhrgcom:colour"),
     density: text("./bhrgcom:density"),
@@ -200,10 +200,10 @@ const MOTTLE = object_({
 
 // === One descriptive-log layer (fields relative to bhrgcom:Layer) ===
 
-const LAYER = object_({
+const LAYER = object({
   fields: {
-    upperBoundary: number_("./bhrgcom:upperBoundary", REQUIRED),
-    lowerBoundary: number_("./bhrgcom:lowerBoundary", REQUIRED),
+    upperBoundary: number("./bhrgcom:upperBoundary", REQUIRED),
+    lowerBoundary: number("./bhrgcom:lowerBoundary", REQUIRED),
     soilNameNEN5104: text("./bhrgcom:soil/bhrgcom:soilNameNEN5104", REQUIRED),
 
     // Layer-level (outside <soil>)
@@ -275,14 +275,14 @@ const LOG = `${SAMPLE_DESC}/bhrgcom:descriptiveBoreholeLog/bhrgcom:DescriptiveBo
  * Report history. BHR-G carries only an `event` list (no explicit report
  * start/end), so both dates are taken from the first event via `event[1]`.
  */
-const REPORT_HISTORY = object_({
+const REPORT_HISTORY = object({
   at: "./dsbhrg:reportHistory",
   fields: {
     reportStartDate: date("./bhrgcom:event[1]/bhrgcom:date"),
     reportEndDate: date("./bhrgcom:event[1]/bhrgcom:date"),
     intermediateEvents: array({
       each: "./bhrgcom:event",
-      item: object_({
+      item: object({
         fields: {
           eventName: text("./bhrgcom:name"),
           eventDate: date("./bhrgcom:date"),
@@ -297,7 +297,7 @@ export type ReportHistory = Produced<typeof REPORT_HISTORY>;
 /** One dated intermediate report event. @internal */
 export type IntermediateEvent = ReportHistory["intermediateEvents"][number];
 
-export const BHRG_PRODUCER = object_({
+export const BHRG_PRODUCER = object({
   fields: {
     // === Core identification (shared brocom fields) ===
     ...COMMON_REGISTRATION_PRODUCERS,
@@ -309,14 +309,14 @@ export const BHRG_PRODUCER = object_({
     standardizedLocation: gmlLocation("./dsbhrg:standardizedLocation/brocom:location"),
 
     // === Vertical position ===
-    deliveredVerticalPositionOffset: number_("./dsbhrg:deliveredVerticalPosition/bhrgcom:offset"),
+    deliveredVerticalPositionOffset: number("./dsbhrg:deliveredVerticalPosition/bhrgcom:offset"),
     deliveredVerticalPositionDatum: text(
       "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalDatum",
     ),
     deliveredVerticalPositionReferencePoint: text(
       "./dsbhrg:deliveredVerticalPosition/bhrgcom:localVerticalReferencePoint",
     ),
-    waterDepth: number_("./dsbhrg:deliveredVerticalPosition/bhrgcom:waterDepth"),
+    waterDepth: number("./dsbhrg:deliveredVerticalPosition/bhrgcom:waterDepth"),
     verticalPositioningDate: date(
       "./dsbhrg:deliveredVerticalPosition/bhrgcom:verticalPositioningDate",
     ),
@@ -335,9 +335,9 @@ export const BHRG_PRODUCER = object_({
     // === Boring metadata ===
     descriptionProcedure: text(`${SAMPLE_DESC}/bhrgcom:descriptionProcedure`),
     utensil: text(`${SAMPLE_DESC}/bhrgcom:utensil`),
-    boreRockReached: boolean_(`${BORING}/bhrgcom:rockReached`),
-    finalBoreDepth: number_(`${BORING}/bhrgcom:finalDepthBoring`),
-    finalSampleDepth: number_(`${BORING}/bhrgcom:finalDepthSampling`),
+    boreRockReached: boolean(`${BORING}/bhrgcom:rockReached`),
+    finalBoreDepth: number(`${BORING}/bhrgcom:finalDepthBoring`),
+    finalSampleDepth: number(`${BORING}/bhrgcom:finalDepthSampling`),
     boreHoleCompleted: text(`${BORING}/bhrgcom:boreholeCompleted`),
 
     // === Boring execution details ===
@@ -347,8 +347,8 @@ export const BHRG_PRODUCER = object_({
     boringTechnique: text(
       `${BORING}/bhrgcom:boredInterval/bhrgcom:BoredInterval/bhrgcom:boringTechnique`,
     ),
-    trajectoryExcavated: boolean_(`${BORING}/bhrgcom:trajectoryExcavated`),
-    subsurfaceContaminated: boolean_(`${BORING}/bhrgcom:subsurfaceContaminated`),
+    trajectoryExcavated: boolean(`${BORING}/bhrgcom:trajectoryExcavated`),
+    subsurfaceContaminated: boolean(`${BORING}/bhrgcom:subsurfaceContaminated`),
     stopCriterion: text(`${BORING}/bhrgcom:stopCriterion`),
     flushingAdditiveUsed: text(`${BORING}/bhrgcom:flushingAdditiveUsed`),
 
@@ -367,7 +367,7 @@ export const BHRG_PRODUCER = object_({
     descriptionLocation: text(`${LOG}/bhrgcom:descriptionLocation`),
     descriptionReportDate: date(`${SAMPLE_DESC}/bhrgcom:descriptionReportDate`),
     describedMaterial: text(`${LOG}/bhrgcom:describedMaterial`),
-    continuouslySampled: boolean_(`${LOG}/bhrgcom:continuouslySampled`),
+    continuouslySampled: boolean(`${LOG}/bhrgcom:continuouslySampled`),
     sampleMoistness: text(`${LOG}/bhrgcom:sampleMoistness`),
 
     // === Layer data ===
@@ -376,26 +376,26 @@ export const BHRG_PRODUCER = object_({
     // === Boring interval arrays ===
     boredIntervals: array({
       each: `${BORING}/bhrgcom:boredInterval/bhrgcom:BoredInterval`,
-      item: object_({
+      item: object({
         fields: {
-          beginDepth: number_("./bhrgcom:beginDepth", REQUIRED),
-          endDepth: number_("./bhrgcom:endDepth", REQUIRED),
+          beginDepth: number("./bhrgcom:beginDepth", REQUIRED),
+          endDepth: number("./bhrgcom:endDepth", REQUIRED),
           boringTechnique: text("./bhrgcom:boringTechnique"),
-          boredDiameter: number_("./bhrgcom:boredDiameter"),
+          boredDiameter: number("./bhrgcom:boredDiameter"),
         },
       }),
     }),
     sampledIntervals: array({
       each: `${BORING}/bhrgcom:sampledInterval/bhrgcom:SampledInterval`,
-      item: object_({
+      item: object({
         fields: {
-          beginDepth: number_("./bhrgcom:beginDepth", REQUIRED),
-          endDepth: number_("./bhrgcom:endDepth", REQUIRED),
+          beginDepth: number("./bhrgcom:beginDepth", REQUIRED),
+          endDepth: number("./bhrgcom:endDepth", REQUIRED),
           preTreatment: text("./bhrgcom:preTreatment"),
           samplingMethod: text("./bhrgcom:samplingMethod"),
           samplingQuality: text("./bhrgcom:samplingQuality"),
           // Not present in BHR-G (only BHR-GT) — always null.
-          orientatedSampled: boolean_("./bhrgcom:orientatedSampled"),
+          orientatedSampled: boolean("./bhrgcom:orientatedSampled"),
         },
       }),
     }),

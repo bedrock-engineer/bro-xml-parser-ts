@@ -13,15 +13,15 @@
 import type { NodeLens, Produced } from "../core/producer.js";
 import type { CPTMeasurement, DissipationMeasurement } from "../types/index.js";
 import {
-  object_,
+  object,
   array,
   custom,
   scalar,
   text,
   date,
-  number_,
+  number,
   integer,
-  boolean_,
+  boolean,
   qualityClass,
 } from "../core/producer.js";
 import {
@@ -108,7 +108,7 @@ const DISSIPATION_MEASUREMENTS = custom<Array<DissipationMeasurement>>({
  * One dissipation test (pore-pressure decay time-series at a fixed depth), a
  * sibling of the cone-penetration test inside `conePenetrometerSurvey`.
  */
-const DISSIPATION_TEST = object_({
+const DISSIPATION_TEST = object({
   fields: {
     penetrationLength: scalar<number>({
       at: "./cptcommon:penetrationLength",
@@ -120,11 +120,11 @@ const DISSIPATION_TEST = object_({
 });
 
 /** A layer removed before the CPT was performed (e.g. asphalt, gravel fill). */
-const REMOVED_LAYER = object_({
+const REMOVED_LAYER = object({
   fields: {
     sequenceNumber: integer("./cptcommon:sequenceNumber"),
-    upperBoundary: number_("./cptcommon:upperBoundary"),
-    lowerBoundary: number_("./cptcommon:lowerBoundary"),
+    upperBoundary: number("./cptcommon:upperBoundary"),
+    lowerBoundary: number("./cptcommon:lowerBoundary"),
     description: text("./cptcommon:description"),
   },
 });
@@ -134,7 +134,7 @@ export type DissipationTest = Produced<typeof DISSIPATION_TEST>;
 /** A layer removed before the CPT. Inferred from {@link REMOVED_LAYER}. @internal */
 export type RemovedLayer = Produced<typeof REMOVED_LAYER>;
 
-export const CPT_PRODUCER = object_({
+export const CPT_PRODUCER = object({
   fields: {
     // === Core identification (shared brocom fields) ===
     ...COMMON_REGISTRATION_PRODUCERS,
@@ -164,10 +164,10 @@ export const CPT_PRODUCER = object_({
     ),
 
     // === Vertical position ===
-    deliveredVerticalPositionOffset: number_(`${VPOS}/cptcommon:offset`),
+    deliveredVerticalPositionOffset: number(`${VPOS}/cptcommon:offset`),
     deliveredVerticalPositionDatum: text(`${VPOS}/cptcommon:verticalDatum`),
     deliveredVerticalPositionReferencePoint: text(`${VPOS}/cptcommon:localVerticalReferencePoint`),
-    waterDepth: number_(`${VPOS}/cptcommon:waterDepth`),
+    waterDepth: number(`${VPOS}/cptcommon:waterDepth`),
     verticalPositioningDate: date(`${VPOS}/cptcommon:verticalPositioningDate`),
     verticalPositioningMethod: text(`${VPOS}/cptcommon:verticalPositioningMethod`),
     verticalPositioningOperator: text(`${VPOS}/cptcommon:verticalPositioningOperator`),
@@ -175,15 +175,15 @@ export const CPT_PRODUCER = object_({
     // === Survey context ===
     deliveryContext: text("./dscpt:deliveryContext"),
     surveyPurpose: text("./dscpt:surveyPurpose"),
-    additionalInvestigationPerformed: boolean_("./dscpt:additionalInvestigationPerformed"),
+    additionalInvestigationPerformed: boolean("./dscpt:additionalInvestigationPerformed"),
 
     // === Test metadata ===
     cptMethod: text(`${SURVEY}/cptcommon:cptMethod`),
     stopCriterion: text(`${SURVEY}/cptcommon:stopCriterion`),
-    sensorAzimuth: number_(`${SURVEY}/cptcommon:sensorAzimuth`),
-    dissipationtestPerformed: boolean_(`${SURVEY}/cptcommon:dissipationTestPerformed`),
+    sensorAzimuth: number(`${SURVEY}/cptcommon:sensorAzimuth`),
+    dissipationtestPerformed: boolean(`${SURVEY}/cptcommon:dissipationTestPerformed`),
     qualityClass: qualityClass(`${SURVEY}/cptcommon:qualityClass`),
-    groundwaterLevel: number_("./dscpt:additionalInvestigation/cptcommon:groundwaterLevel"),
+    groundwaterLevel: number("./dscpt:additionalInvestigation/cptcommon:groundwaterLevel"),
 
     // === Additional investigation ===
     investigationDate: date("./dscpt:additionalInvestigation/cptcommon:investigationDate"),
@@ -193,18 +193,18 @@ export const CPT_PRODUCER = object_({
       each: "./dscpt:additionalInvestigation/cptcommon:removedLayer",
       item: REMOVED_LAYER,
     }),
-    predrilledDepth: number_(`${SURVEY}/cptcommon:trajectory/cptcommon:predrilledDepth`),
-    finalDepth: number_(`${SURVEY}/cptcommon:trajectory/cptcommon:finalDepth`),
+    predrilledDepth: number(`${SURVEY}/cptcommon:trajectory/cptcommon:predrilledDepth`),
+    finalDepth: number(`${SURVEY}/cptcommon:trajectory/cptcommon:finalDepth`),
 
     // === Processing flags ===
     finalProcessingDate: date(`${SURVEY}/cptcommon:finalProcessingDate`),
-    signalProcessingPerformed: boolean_(
+    signalProcessingPerformed: boolean(
       `${SURVEY}/cptcommon:procedure/cptcommon:signalProcessingPerformed`,
     ),
-    interruptionProcessingPerformed: boolean_(
+    interruptionProcessingPerformed: boolean(
       `${SURVEY}/cptcommon:procedure/cptcommon:interruptionProcessingPerformed`,
     ),
-    expertCorrectionPerformed: boolean_(
+    expertCorrectionPerformed: boolean(
       `${SURVEY}/cptcommon:procedure/cptcommon:expertCorrectionPerformed`,
     ),
 
@@ -213,30 +213,30 @@ export const CPT_PRODUCER = object_({
     cptType: text(`${CONE}/cptcommon:conePenetrometerType`),
     coneSurfaceArea: integer(`${CONE}/cptcommon:coneSurfaceArea`),
     coneDiameter: integer(`${CONE}/cptcommon:coneDiameter`),
-    coneSurfaceQuotient: number_(`${CONE}/cptcommon:coneSurfaceQuotient`),
+    coneSurfaceQuotient: number(`${CONE}/cptcommon:coneSurfaceQuotient`),
     coneToFrictionSleeveDistance: integer(`${CONE}/cptcommon:coneToFrictionSleeveDistance`),
     coneToFrictionSleeveSurfaceArea: integer(`${CONE}/cptcommon:frictionSleeveSurfaceArea`),
-    coneToFrictionSleeveSurfaceQuotient: number_(`${CONE}/cptcommon:frictionSleeveSurfaceQuotient`),
+    coneToFrictionSleeveSurfaceQuotient: number(`${CONE}/cptcommon:frictionSleeveSurfaceQuotient`),
 
     // === Zero-load measurements (equipment calibration) ===
-    zlmConeResistanceBefore: number_(`${ZLM}/cptcommon:coneResistanceBefore`),
-    zlmConeResistanceAfter: number_(`${ZLM}/cptcommon:coneResistanceAfter`),
+    zlmConeResistanceBefore: number(`${ZLM}/cptcommon:coneResistanceBefore`),
+    zlmConeResistanceAfter: number(`${ZLM}/cptcommon:coneResistanceAfter`),
     zlmInclinationEwBefore: integer(`${ZLM}/cptcommon:inclinationEWBefore`),
     zlmInclinationEwAfter: integer(`${ZLM}/cptcommon:inclinationEWAfter`),
     zlmInclinationNsBefore: integer(`${ZLM}/cptcommon:inclinationNSBefore`),
     zlmInclinationNsAfter: integer(`${ZLM}/cptcommon:inclinationNSAfter`),
     zlmInclinationResultantBefore: integer(`${ZLM}/cptcommon:inclinationResultantBefore`),
     zlmInclinationResultantAfter: integer(`${ZLM}/cptcommon:inclinationResultantAfter`),
-    zlmLocalFrictionBefore: number_(`${ZLM}/cptcommon:localFrictionBefore`),
-    zlmLocalFrictionAfter: number_(`${ZLM}/cptcommon:localFrictionAfter`),
-    zlmPorePressureU1Before: number_(`${ZLM}/cptcommon:porePressureU1Before`),
-    zlmPorePressureU1After: number_(`${ZLM}/cptcommon:porePressureU1After`),
-    zlmPorePressureU2Before: number_(`${ZLM}/cptcommon:porePressureU2Before`),
-    zlmPorePressureU2After: number_(`${ZLM}/cptcommon:porePressureU2After`),
-    zlmPorePressureU3Before: number_(`${ZLM}/cptcommon:porePressureU3Before`),
-    zlmPorePressureU3After: number_(`${ZLM}/cptcommon:porePressureU3After`),
-    zlmElectricalConductivityBefore: number_(`${ZLM}/cptcommon:electricalConductivityBefore`),
-    zlmElectricalConductivityAfter: number_(`${ZLM}/cptcommon:electricalConductivityAfter`),
+    zlmLocalFrictionBefore: number(`${ZLM}/cptcommon:localFrictionBefore`),
+    zlmLocalFrictionAfter: number(`${ZLM}/cptcommon:localFrictionAfter`),
+    zlmPorePressureU1Before: number(`${ZLM}/cptcommon:porePressureU1Before`),
+    zlmPorePressureU1After: number(`${ZLM}/cptcommon:porePressureU1After`),
+    zlmPorePressureU2Before: number(`${ZLM}/cptcommon:porePressureU2Before`),
+    zlmPorePressureU2After: number(`${ZLM}/cptcommon:porePressureU2After`),
+    zlmPorePressureU3Before: number(`${ZLM}/cptcommon:porePressureU3Before`),
+    zlmPorePressureU3After: number(`${ZLM}/cptcommon:porePressureU3After`),
+    zlmElectricalConductivityBefore: number(`${ZLM}/cptcommon:electricalConductivityBefore`),
+    zlmElectricalConductivityAfter: number(`${ZLM}/cptcommon:electricalConductivityAfter`),
 
     // === Measurement data (embedded CSV) ===
     data: custom({ at: SURVEY, produce: parseMeasurements }),

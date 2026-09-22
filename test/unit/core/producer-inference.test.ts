@@ -1,5 +1,5 @@
 import { describe, it, expectTypeOf } from 'vitest';
-import { object_, text, number_, array } from '@/core/producer';
+import { object, text, number, array } from '@/core/producer';
 import type { Produced } from '@/core/producer';
 
 /**
@@ -9,11 +9,11 @@ import type { Produced } from '@/core/producer';
  */
 describe('presence-aware ProducedFields', () => {
   it('maps omit → optional key, keeps others required', () => {
-    const P = object_({
+    const P = object({
       fields: {
         keep: text('a'),
         drop: text('b', { presence: 'omit' }),
-        num: number_('c'),
+        num: number('c'),
         list: array({ each: 'd', item: text(), presence: 'omit' }),
       },
     });

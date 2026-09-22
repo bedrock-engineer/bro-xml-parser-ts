@@ -73,7 +73,7 @@ const result = parser.parseCustom(
   xmlText,
   {
     id: p.text("brocom:broId"),
-    depth: p.number_(".//cptcommon:finalDepth"),
+    depth: p.number(".//cptcommon:finalDepth"),
     location: p.gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
   },
   "CPT",
@@ -82,8 +82,8 @@ const result = parser.parseCustom(
 ```
 
 The `producers` namespace carries every building block the library uses internally:
-scalar combinators (`text`, `number_`, `integer`, `date`, `boolean_`, `qualityClass`),
-structural combinators (`object_`, `array`, `oneOf`, `custom`), the domain helpers
+scalar combinators (`text`, `number`, `integer`, `date`, `boolean`, `qualityClass`),
+structural combinators (`object`, `array`, `oneOf`, `custom`), the domain helpers
 (`gmlLocation`, `columns`), and the shared field-maps (`COMMON_REGISTRATION_PRODUCERS`,
 `REGISTRATION_HISTORY`) you can spread into a schema.
 

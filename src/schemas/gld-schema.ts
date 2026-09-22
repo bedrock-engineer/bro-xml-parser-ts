@@ -9,7 +9,7 @@
  * Coverage is verified with `npm run check:xsd-coverage`.
  */
 
-import { object_, array, text, date, number_, integer, scalar } from "../core/producer.js";
+import { object, array, text, date, number, integer, scalar } from "../core/producer.js";
 import type { Produced } from "../core/producer.js";
 import {
   COMMON_REGISTRATION_PRODUCERS,
@@ -31,10 +31,10 @@ function namedValue(href: string): string {
 }
 
 /** One `{time, value, qualifier}` point of an observation's time-series. */
-const OBSERVATION_POINT = object_({
+const OBSERVATION_POINT = object({
   fields: {
     time: date("./wml2:time"),
-    value: number_("./wml2:value"),
+    value: number("./wml2:value"),
     unit: text("./wml2:value/@uom"),
     qualifier: text(
       "./wml2:metadata/wml2:TVPMeasurementMetadata/wml2:qualifier/swe:Category/swe:value",
@@ -43,7 +43,7 @@ const OBSERVATION_POINT = object_({
 });
 
 /** One groundwater level observation (an OGC `om:OM_Observation`). */
-const OBSERVATION = object_({
+const OBSERVATION = object({
   fields: {
     observationId: text("./@gml:id"),
     observationType: text(
@@ -73,7 +73,7 @@ const OBSERVATION = object_({
 });
 
 /** The GMW tube a GLD research pertains to. */
-const MONITORING_POINT = object_({
+const MONITORING_POINT = object({
   at: "./dsgld:monitoringPoint/gldcommon:GroundwaterMonitoringTube",
   fields: {
     broId: text("./gldcommon:broId"),
@@ -81,7 +81,7 @@ const MONITORING_POINT = object_({
   },
 });
 
-export const GLD_PRODUCER = object_({
+export const GLD_PRODUCER = object({
   fields: {
     // === Core identification (shared brocom fields) ===
     ...COMMON_REGISTRATION_PRODUCERS,

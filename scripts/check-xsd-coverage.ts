@@ -57,13 +57,13 @@ const __dirname = path.dirname(__filename);
 function combinatorFor(decoder: string | null): string {
   switch (decoder) {
     case "parseFloat":
-      return "number_";
+      return "number";
     case "parseInt":
       return "integer";
     case "parseDate":
       return "date";
     case "parseBoolean":
-      return "boolean_";
+      return "boolean";
     default:
       return "text";
   }
@@ -350,7 +350,7 @@ function buildReport(
     const xpath = "." + g.path; // path already starts with "/..."
     if (g.cardinality.endsWith("*")) {
       // Repeatable: an array of items. Emit an array producer whose item is the
-      // best-guess leaf combinator, to be fleshed out into an object_ if needed.
+      // best-guess leaf combinator, to be fleshed out into an object if needed.
       scaffoldLines.push(`  ${fieldName}: p.array({ each: "${xpath}", item: p.${combinator}() }), // repeatable (${g.cardinality})`);
     } else {
       scaffoldLines.push(`  ${fieldName}: p.${combinator}("${xpath}"),`);
