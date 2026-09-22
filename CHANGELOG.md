@@ -8,6 +8,15 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: dropped the trailing underscores from three `producers` combinators.**
+  `p.number_` → `p.number`, `p.boolean_` → `p.boolean`, `p.object_` → `p.object`. The
+  underscores guarded against a keyword collision that the namespaced API never
+  reaches, and were inconsistent with the other combinators (`text`, `date`,
+  `integer`, `array`, …) and with zod/io-ts/valibot. Migration is mechanical:
+  `.number_(` → `.number(`, `.boolean_(` → `.boolean(`, `.object_(` → `.object(`.
+
 ## [0.4.0] - 2026-09-21
 
 ### Added
