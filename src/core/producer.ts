@@ -14,7 +14,7 @@
  *   - `oneOf`   — an honest discriminated union (shared `base` + tagged `branches`).
  *   - `custom`  — the sole escape hatch, handed a narrow {@link NodeLens}.
  *
- * Absence model (see CONTEXT.md): a `required` field that is missing nulls its
+ * Absence model: a `required` field that is missing nulls its
  * *nearest enclosing object*; arrays *drop* null items (recording a warning);
  * only the document root throws. `required` is opt-in, so nothing cascades unless
  * a schema author asks for it.
