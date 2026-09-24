@@ -3,6 +3,7 @@ import { BROParser } from '@/parser';
 import { NodeXMLAdapter } from '@/adapters/node-adapter';
 import { fixtures } from '@test/helpers/fixture-loader';
 import type { BHRGTData } from '@/types';
+import type { Coded } from '@/core/producer';
 
 describe('BHR-GT-BMA newly added determination fields', () => {
   let parser: BROParser;
@@ -22,8 +23,8 @@ describe('BHR-GT-BMA newly added determination fields', () => {
   describe('scalar fields', () => {
     it('extracts conusType on consistency limits (fall-cone)', () => {
       const bore = parser.parseBHRGT(fixtures.bhrGtBma.oedometerSaturation());
-      const cl = firstDetermination<{ conusType: string }>(bore, 'consistencyLimitsDetermination');
-      expect(cl?.conusType).toBe('zweedseConus30graden');
+      const cl = firstDetermination<{ conusType: Coded | null }>(bore, 'consistencyLimitsDetermination');
+      expect(cl?.conusType?.code).toBe('zweedseConus30graden');
     });
 
     it('extracts penetrationDepth on plasticity data points', () => {
@@ -48,11 +49,11 @@ describe('BHR-GT-BMA newly added determination fields', () => {
 
     it('extracts sampleContainerVolume on density-of-solids determination', () => {
       const bore = parser.parseBHRGT(fixtures.bhrGtBma.organicMatterDensity());
-      const vmds = firstDetermination<{ sampleContainerVolume: string }>(
+      const vmds = firstDetermination<{ sampleContainerVolume: Coded | null }>(
         bore,
         'volumetricMassDensityOfSolidsDetermination',
       );
-      expect(vmds?.sampleContainerVolume).toBe('100ml');
+      expect(vmds?.sampleContainerVolume?.code).toBe('100ml');
     });
   });
 
@@ -60,10 +61,10 @@ describe('BHR-GT-BMA newly added determination fields', () => {
     it('extracts madeSpecimenForLoading on a remoulded triaxial specimen', () => {
       const bore = parser.parseBHRGT(fixtures.bhrGtBma.triaxialMadeSpecimen());
       const tri = firstDetermination<
-        Array<{ madeSpecimenForLoading?: { makingMethod: string; dryVolumetricMassDensity: number } }>
+        Array<{ madeSpecimenForLoading?: { makingMethod: Coded | null; dryVolumetricMassDensity: number } }>
       >(bore, 'shearStressChangeDuringLoadingDetermination');
       const made = tri?.find((t) => t.madeSpecimenForLoading)?.madeSpecimenForLoading;
-      expect(made?.makingMethod).toBe('samenstellenStampenVochtig');
+      expect(made?.makingMethod?.code).toBe('samenstellenStampenVochtig');
       expect(made?.dryVolumetricMassDensity).toBe(1.763);
     });
 
@@ -72,7 +73,7 @@ describe('BHR-GT-BMA newly added determination fields', () => {
       const sc = firstDetermination<{
         saturationStageAtCompression?: {
           porousDiscWet: boolean;
-          usedMedium: string;
+          usedMedium: Coded | null;
           backPressure: number;
           constantHeight: boolean;
           specimenHeightAfterwards: number;
@@ -82,7 +83,7 @@ describe('BHR-GT-BMA newly added determination fields', () => {
       const sat = sc?.saturationStageAtCompression;
       expect(sat).toBeDefined();
       expect(sat?.porousDiscWet).toBe(true);
-      expect(sat?.usedMedium).toBe('leidingwater');
+      expect(sat?.usedMedium?.code).toBe('leidingwater');
       expect(sat?.backPressure).toBe(300);
       expect(sat?.specimenHeightAfterwards).toBe(21.8);
       expect(sat?.disturbanceInduced).toBe(false);

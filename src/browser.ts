@@ -39,7 +39,7 @@ export { SUPPORTED_VERSIONS } from "./core/version-detector.js";
 export type { DataType } from "./core/version-detector.js";
 
 export { CPT_PRODUCER } from "./schemas/cpt-schema.js";
-export type { DissipationTest, RemovedLayer } from "./schemas/cpt-schema.js";
+export type { DissipationTest, RemovedLayer } from "./types/index.js";
 export { BORE_PRODUCER } from "./schemas/bore-schema.js";
 export type {
   BHRGTLayer,
@@ -59,7 +59,7 @@ export type {
   BoringVelocityMeasurement,
   NotDescribedInterval,
   FluidMudLayer,
-} from "./schemas/bore-schema.js";
+} from "./schemas/bore-types.js";
 export type {
   HeightAtSpecificTime,
   StressAtSpecificSettlement,
@@ -99,7 +99,7 @@ export type {
   GLDObservation,
   GLDObservationPoint,
   GroundwaterMonitoringTubeRef,
-} from "./schemas/gld-schema.js";
+} from "./schemas/gld-types.js";
 export { BHRG_PRODUCER } from "./schemas/bhrg-schema.js";
 export type {
   BHRGLayer,
@@ -120,14 +120,14 @@ export type {
   ThinStratum,
   ReportHistory,
   IntermediateEvent,
-} from "./schemas/bhrg-schema.js";
+} from "./schemas/bhrg-types.js";
 export { GMW_PRODUCER } from "./schemas/gmw-schema.js";
 export type {
   MonitoringTube,
   GeoOhmCable,
   Electrode,
   GMWIntermediateEvent,
-} from "./schemas/gmw-schema.js";
+} from "./schemas/gmw-types.js";
 export { GLD_PRODUCER } from "./schemas/gld-schema.js";
 
 export { BRO_NAMESPACES, KNOWN_BRO_PREFIXES } from "./namespaces.js";
@@ -138,7 +138,11 @@ export { BRO_SOIL_COLORS, getSoilColor, isValidSoilColor, getSoilColorNames } fr
 export * as producers from "./producers.js";
 
 // The producer schema types, for authoring and inferring custom schemas.
-export type { Producer, NodeLens, Produced, ProducedFields } from "./core/producer.js";
+export type { Producer, NodeLens, Produced, ProducedFields, Coded } from "./core/producer.js";
+
+// The typed path-tree selector over a producer schema (see BROParser.parseSelection).
+export { project } from "./core/select.js";
+export type { Leaf, ArraySel, SelectableProducer, ProjectResult } from "./core/select.js";
 
 // Export schema presets for common use cases
 export * as presets from "./schema-presets.js";

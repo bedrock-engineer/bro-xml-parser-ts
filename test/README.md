@@ -47,7 +47,7 @@ npm run test:coverage
 
 Test individual functions in isolation:
 
-- **Type decoders** - parseFloat, parseInt, parseBoolean, parseDate, parseQualityClass
+- **Type decoders** - parseFloat, parseInt, parseBoolean, parseDate
 - **Version detection** - Schema version validation, error handling
 - **Core modules** - Schema parsing logic
 

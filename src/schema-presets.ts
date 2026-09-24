@@ -1,135 +1,112 @@
 /**
  * Schema presets for common extraction patterns.
  *
- * Each preset is a bare map of field name → {@link Producer}, built from the
- * `producers` authoring surface. Pass one to {@link BROParser.parseCustom}; the
- * return type is inferred from the map (each field's producer output type, plus
- * `meta`). Presets can be used directly or spread into a larger custom map.
+ * Each preset is a {@link project} selection over the full producer schema, so it
+ * carries no hand-written XPaths — just the fields to keep, by name. Pass one to
+ * {@link BROParser.parseSelection}; the return type is the projected shape plus
+ * `meta`.
  *
  * @example
  * ```typescript
- * import { BROParser, presets, producers as p } from '@bedrock-engineer/bro-xml';
+ * import { BROParser, presets } from '@bedrock-engineer/bro-xml-parser/node';
  *
  * const parser = new BROParser(new XMLAdapter());
- *
- * // Use a preset directly
- * const locationData = parser.parseCustom(xml, presets.CPT_LOCATION_ONLY, 'CPT');
- * locationData.deliveredLocation; // Location | null — inferred
- *
- * // Or extend a preset
- * const result = parser.parseCustom(xml, {
- *   ...presets.CPT_METADATA_ONLY,
- *   customField: p.text('./my/custom/path'),
- * }, 'CPT');
+ * const location = parser.parseSelection(xml, presets.CPT_LOCATION_ONLY, 'CPT');
+ * location.deliveredLocation; // Location | null — inferred
  * ```
+ *
+ * To extend a preset, write your own {@link project} selection over the same
+ * producer (e.g. `CPT_PRODUCER`) with the extra fields.
  */
 
-import { text, number, date, boolean, qualityClass } from "./core/producer.js";
-import { gmlLocation } from "./schemas/common-fields.js";
+import { project } from "./core/select.js";
+import { CPT_PRODUCER } from "./schemas/cpt-schema.js";
+import { BORE_PRODUCER } from "./schemas/bore-schema.js";
+import { BHRG_PRODUCER } from "./schemas/bhrg-schema.js";
 
 // ============================================================================
 // CPT Presets
 // ============================================================================
 
-/**
- * CPT: Just the BRO ID and quality regime
- */
-export const CPT_ID_ONLY = {
-  broId: text("brocom:broId"),
-  qualityRegime: text("brocom:qualityRegime"),
-};
+/** CPT: just the BRO ID and quality regime. */
+export const CPT_ID_ONLY = project(CPT_PRODUCER, (t) => ({
+  broId: t.broId,
+  qualityRegime: t.qualityRegime,
+}));
 
-/**
- * CPT: Location data only (delivered and standardized coordinates)
- */
-export const CPT_LOCATION_ONLY = {
-  broId: text("brocom:broId"),
-  deliveredLocation: gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
-  standardizedLocation: gmlLocation("./dscpt:standardizedLocation/brocom:location"),
-  deliveredVerticalPositionOffset: number("./dscpt:deliveredVerticalPosition/cptcommon:offset"),
-};
+/** CPT: location data only (delivered + standardized coordinates). */
+export const CPT_LOCATION_ONLY = project(CPT_PRODUCER, (t) => ({
+  broId: t.broId,
+  deliveredLocation: t.deliveredLocation.location,
+  standardizedLocation: t.standardizedLocation.location,
+  deliveredVerticalPositionOffset: t.deliveredVerticalPosition.offset,
+}));
 
-/**
- * CPT: Basic metadata without measurement data
- */
-export const CPT_METADATA_ONLY = {
-  broId: text("brocom:broId"),
-  qualityRegime: text("brocom:qualityRegime"),
-  researchReportDate: date("./dscpt:researchReportDate"),
-  deliveredLocation: gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
-  cptStandard: text("./dscpt:cptStandard"),
-  qualityClass: qualityClass("./dscpt:conePenetrometerSurvey/cptcommon:qualityClass"),
-  finalDepth: number("./dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth"),
-};
+/** CPT: basic metadata without measurement data. */
+export const CPT_METADATA_ONLY = project(CPT_PRODUCER, (t) => ({
+  broId: t.broId,
+  qualityRegime: t.qualityRegime,
+  researchReportDate: t.researchReportDate,
+  deliveredLocation: t.deliveredLocation.location,
+  cptStandard: t.cptStandard,
+  qualityClass: t.conePenetrometerSurvey.qualityClass,
+  finalDepth: t.conePenetrometerSurvey.trajectory.finalDepth,
+}));
 
 // ============================================================================
 // BHR-GT (Geotechnical Borehole) Presets
 // ============================================================================
 
-/**
- * BHR-GT: Just the BRO ID and quality regime
- */
-export const BORE_ID_ONLY = {
-  broId: text("brocom:broId"),
-  qualityRegime: text("brocom:qualityRegime"),
-};
+/** BHR-GT: just the BRO ID and quality regime. */
+export const BORE_ID_ONLY = project(BORE_PRODUCER, (t) => ({
+  broId: t.broId,
+  qualityRegime: t.qualityRegime,
+}));
 
-/**
- * BHR-GT: Location data only
- */
-export const BORE_LOCATION_ONLY = {
-  broId: text("brocom:broId"),
-  deliveredLocation: gmlLocation("./dsbhrgt:deliveredLocation/bhrgtcom:location"),
-  standardizedLocation: gmlLocation("./dsbhrgt:standardizedLocation/brocom:location"),
-  deliveredVerticalPositionOffset: number("./dsbhrgt:deliveredVerticalPosition/bhrgtcom:offset"),
-};
+/** BHR-GT: location data only. */
+export const BORE_LOCATION_ONLY = project(BORE_PRODUCER, (t) => ({
+  broId: t.broId,
+  deliveredLocation: t.deliveredLocation.location,
+  standardizedLocation: t.standardizedLocation.location,
+  deliveredVerticalPositionOffset: t.deliveredVerticalPosition.offset,
+}));
 
-/**
- * BHR-GT: Basic metadata without layer data
- */
-export const BORE_METADATA_ONLY = {
-  broId: text("brocom:broId"),
-  qualityRegime: text("brocom:qualityRegime"),
-  researchReportDate: date("./dsbhrgt:reportHistory/dsbhrgt:reportStartDate"),
-  deliveredLocation: gmlLocation("./dsbhrgt:deliveredLocation/bhrgtcom:location"),
-  descriptionProcedure: text("./dsbhrgt:boreholeSampleDescription/bhrgtcom:descriptionProcedure"),
-  finalBoreDepth: number("./dsbhrgt:boring/bhrgtcom:finalDepthBoring"),
-  boreRockReached: boolean("./dsbhrgt:boring/bhrgtcom:rockReached"),
-};
+/** BHR-GT: basic metadata without layer data. */
+export const BORE_METADATA_ONLY = project(BORE_PRODUCER, (t) => ({
+  broId: t.broId,
+  qualityRegime: t.qualityRegime,
+  researchReportDate: t.researchReportDate,
+  deliveredLocation: t.deliveredLocation.location,
+  descriptionProcedure: t.boreholeSampleDescription.descriptionProcedure,
+  finalBoreDepth: t.boring.finalDepthBoring,
+  boreRockReached: t.boring.rockReached,
+}));
 
 // ============================================================================
 // BHR-G (Geological Borehole) Presets
 // ============================================================================
 
-/**
- * BHR-G: Just the BRO ID and quality regime
- */
-export const BHRG_ID_ONLY = {
-  broId: text("brocom:broId"),
-  qualityRegime: text("brocom:qualityRegime"),
-};
+/** BHR-G: just the BRO ID and quality regime. */
+export const BHRG_ID_ONLY = project(BHRG_PRODUCER, (t) => ({
+  broId: t.broId,
+  qualityRegime: t.qualityRegime,
+}));
 
-/**
- * BHR-G: Location data only
- */
-export const BHRG_LOCATION_ONLY = {
-  broId: text("brocom:broId"),
-  deliveredLocation: gmlLocation("./dsbhrg:deliveredLocation/bhrgcom:location"),
-  standardizedLocation: gmlLocation("./dsbhrg:standardizedLocation/brocom:location"),
-  deliveredVerticalPositionOffset: number("./dsbhrg:deliveredVerticalPosition/bhrgcom:offset"),
-};
+/** BHR-G: location data only. */
+export const BHRG_LOCATION_ONLY = project(BHRG_PRODUCER, (t) => ({
+  broId: t.broId,
+  deliveredLocation: t.deliveredLocation.location,
+  standardizedLocation: t.standardizedLocation.location,
+  deliveredVerticalPositionOffset: t.deliveredVerticalPosition.offset,
+}));
 
-/**
- * BHR-G: Basic metadata without layer data
- */
-export const BHRG_METADATA_ONLY = {
-  broId: text("brocom:broId"),
-  qualityRegime: text("brocom:qualityRegime"),
-  researchReportDate: date("./dsbhrg:researchReportDate"),
-  deliveredLocation: gmlLocation("./dsbhrg:deliveredLocation/bhrgcom:location"),
-  descriptionProcedure: text(
-    "./dsbhrg:boreholeSampleDescription/bhrgcom:BoreholeSampleDescription/bhrgcom:descriptionProcedure",
-  ),
-  finalBoreDepth: number("./dsbhrg:boring/bhrgcom:Boring/bhrgcom:finalDepthBoring"),
-  boreRockReached: boolean("./dsbhrg:boring/bhrgcom:Boring/bhrgcom:rockReached"),
-};
+/** BHR-G: basic metadata without layer data. */
+export const BHRG_METADATA_ONLY = project(BHRG_PRODUCER, (t) => ({
+  broId: t.broId,
+  qualityRegime: t.qualityRegime,
+  researchReportDate: t.researchReportDate,
+  deliveredLocation: t.deliveredLocation.location,
+  descriptionProcedure: t.boreholeSampleDescription.descriptionProcedure,
+  finalBoreDepth: t.boring.finalDepthBoring,
+  boreRockReached: t.boring.rockReached,
+}));

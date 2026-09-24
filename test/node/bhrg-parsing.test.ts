@@ -46,71 +46,76 @@ describe('BHRG Parsing (Node)', () => {
     const xml = fixtures.bhrG.dispatch();
     const bhrg = parser.parseBHRG(xml);
 
-    expect(bhrg.data.length).toBe(4);
+    const layers = bhrg.boreholeSampleDescription?.descriptiveBoreholeLog?.[0]?.layer ?? [];
+    expect(layers.length).toBe(4);
 
-    const firstLayer = bhrg.data[0];
+    const firstLayer = layers[0];
     expect(firstLayer.upperBoundary).toBe(0.0);
     expect(firstLayer.lowerBoundary).toBe(0.5);
-    expect(firstLayer.soilNameNEN5104).toBe('klei');
-    expect(firstLayer.color).toBe('bruin');
+    expect(firstLayer.soil?.soilNameNEN5104?.code).toBe('klei');
+    expect(firstLayer.soil?.colour?.code).toBe('bruin');
   });
 
   it('should extract optional layer properties', () => {
     const xml = fixtures.bhrG.dispatch();
     const bhrg = parser.parseBHRG(xml);
 
-    // First layer has anthropogenic and rooted
-    const firstLayer = bhrg.data[0];
+    const layers = bhrg.boreholeSampleDescription?.descriptiveBoreholeLog?.[0]?.layer ?? [];
+
+    // First layer has anthropogenic and rooted (tri-state → raw string)
+    const firstLayer = layers[0];
     expect(firstLayer.anthropogenic).toBe('ja');
     expect(firstLayer.rooted).toBe('ja');
-    expect(firstLayer.organicMatterContentClassNEN5104).toBe('matigHumeusH2');
+    expect(firstLayer.soil?.organicMatterContentClassNEN5104?.code).toBe('matigHumeusH2');
 
-    // Second layer has sand median class
-    const secondLayer = bhrg.data[1];
-    expect(secondLayer.soilNameNEN5104).toBe('zand');
-    expect(secondLayer.sandMedianClass).toBe('fijn');
-    expect(secondLayer.color).toBe('geelbruin');
+    // Second layer describes sand. The XSD nests sandMedianClass under
+    // soil.sandFraction; this (IMBRO/A archive) fixture places it directly under
+    // <soil>, so the schema-faithful path does not surface it.
+    const secondLayer = layers[1];
+    expect(secondLayer.soil?.soilNameNEN5104?.code).toBe('zand');
+    expect(secondLayer.soil?.sandFraction?.sandMedianClass?.code).toBeUndefined();
+    expect(secondLayer.soil?.colour?.code).toBe('geelbruin');
 
     // Third layer has gravel and carbonate content
-    const thirdLayer = bhrg.data[2];
-    expect(thirdLayer.soilNameNEN5104).toBe('zandMetGrind');
-    expect(thirdLayer.gravelContentClass).toBe('zwakGrindigG1');
-    expect(thirdLayer.carbonateContentClass).toBe('kalkhoudendCa1');
+    const thirdLayer = layers[2];
+    expect(thirdLayer.soil?.soilNameNEN5104?.code).toBe('zandMetGrind');
+    expect(thirdLayer.soil?.gravelContentClass?.code).toBe('zwakGrindigG1');
+    expect(thirdLayer.soil?.carbonateContentClass?.code).toBe('kalkhoudendCa1');
   });
 
   it('should extract BHRG metadata', () => {
     const xml = fixtures.bhrG.dispatch();
     const bhrg = parser.parseBHRG(xml);
 
-    expect(bhrg.descriptionProcedure).toBe('NEN5104');
-    expect(bhrg.finalBoreDepth).toBe(8.5);
-    expect(bhrg.finalSampleDepth).toBe(8.5);
-    expect(bhrg.boreRockReached).toBe(false);
-    expect(bhrg.boreHoleCompleted).toBe('ja');
+    expect(bhrg.boreholeSampleDescription?.descriptionProcedure?.code).toBe('NEN5104');
+    expect(bhrg.boring?.finalDepthBoring).toBe(8.5);
+    expect(bhrg.boring?.finalDepthSampling).toBe(8.5);
+    expect(bhrg.boring?.rockReached).toBe(false);
+    expect(bhrg.boring?.boreholeCompleted).toBe('ja');
   });
 
   it('should extract location data', () => {
     const xml = fixtures.bhrG.dispatch();
     const bhrg = parser.parseBHRG(xml);
 
-    assertValidLocation(bhrg.deliveredLocation);
-    expect(bhrg.deliveredLocation?.x).toBe(155000.0);
-    expect(bhrg.deliveredLocation?.y).toBe(463000.0);
-    expect(bhrg.deliveredLocation?.epsg).toBe('EPSG:28992');
+    assertValidLocation(bhrg.deliveredLocation?.location ?? null);
+    expect(bhrg.deliveredLocation?.location?.x).toBe(155000.0);
+    expect(bhrg.deliveredLocation?.location?.y).toBe(463000.0);
+    expect(bhrg.deliveredLocation?.location?.epsg).toBe('EPSG:28992');
 
-    assertValidLocation(bhrg.standardizedLocation);
-    expect(bhrg.standardizedLocation?.x).toBe(52.123456);
-    expect(bhrg.standardizedLocation?.y).toBe(5.234567);
-    expect(bhrg.standardizedLocation?.epsg).toBe('EPSG:4258');
+    assertValidLocation(bhrg.standardizedLocation?.location ?? null);
+    expect(bhrg.standardizedLocation?.location?.x).toBe(52.123456);
+    expect(bhrg.standardizedLocation?.location?.y).toBe(5.234567);
+    expect(bhrg.standardizedLocation?.location?.epsg).toBe('EPSG:4258');
   });
 
   it('should extract vertical position data', () => {
     const xml = fixtures.bhrG.dispatch();
     const bhrg = parser.parseBHRG(xml);
 
-    expect(bhrg.deliveredVerticalPositionOffset).toBe(5.50);
-    expect(bhrg.deliveredVerticalPositionDatum).toBe('NAP');
-    expect(bhrg.deliveredVerticalPositionReferencePoint).toBe('maaiveld');
+    expect(bhrg.deliveredVerticalPosition?.offset).toBe(5.50);
+    expect(bhrg.deliveredVerticalPosition?.verticalDatum?.code).toBe('NAP');
+    expect(bhrg.deliveredVerticalPosition?.localVerticalReferencePoint?.code).toBe('maaiveld');
   });
 
   it('should extract research report date', () => {
@@ -124,15 +129,16 @@ describe('BHRG Parsing (Node)', () => {
     const xml = fixtures.bhrG.dispatch2();
     const bhrg = parser.parseBHRG(xml);
 
-    expect(bhrg.data.length).toBeGreaterThan(0);
+    const layers = bhrg.boreholeSampleDescription?.descriptiveBoreholeLog?.[0]?.layer ?? [];
+    expect(layers.length).toBeGreaterThan(0);
 
-    const firstLayer = bhrg.data[0];
+    const firstLayer = layers[0];
     // These are coded values from urn:bro:bhrg:BoundaryPositioningMethod
-    expect(firstLayer.upperBoundaryDetermination).toBe('waargenomen');
-    expect(firstLayer.lowerBoundaryDetermination).toBe('onbekend');
+    expect(firstLayer.upperBoundaryDetermination?.code).toBe('waargenomen');
+    expect(firstLayer.lowerBoundaryDetermination?.code).toBe('onbekend');
 
-    const secondLayer = bhrg.data[1];
-    expect(secondLayer.lowerBoundaryDetermination).toBe('voorbepaald');
+    const secondLayer = layers[1];
+    expect(secondLayer.lowerBoundaryDetermination?.code).toBe('voorbepaald');
   });
 
   // === Interval Arrays Tests ===
@@ -141,10 +147,10 @@ describe('BHRG Parsing (Node)', () => {
     const xml = fixtures.bhrG.dispatch2();
     const bhrg = parser.parseBHRG(xml);
 
-    expect(bhrg.boredIntervals).toBeDefined();
-    expect(bhrg.boredIntervals.length).toBeGreaterThan(0);
+    expect(bhrg.boring?.boredInterval).toBeDefined();
+    expect(bhrg.boring!.boredInterval.length).toBeGreaterThan(0);
 
-    const firstInterval = bhrg.boredIntervals[0];
+    const firstInterval = bhrg.boring!.boredInterval[0];
     expect(firstInterval.beginDepth).toBeTypeOf('number');
     expect(firstInterval.endDepth).toBeTypeOf('number');
     expect(firstInterval.boringTechnique).toBeTruthy();
@@ -154,10 +160,10 @@ describe('BHRG Parsing (Node)', () => {
     const xml = fixtures.bhrG.dispatch2();
     const bhrg = parser.parseBHRG(xml);
 
-    expect(bhrg.sampledIntervals).toBeDefined();
-    expect(bhrg.sampledIntervals.length).toBeGreaterThan(0);
+    expect(bhrg.boring?.sampledInterval).toBeDefined();
+    expect(bhrg.boring!.sampledInterval.length).toBeGreaterThan(0);
 
-    const firstInterval = bhrg.sampledIntervals[0];
+    const firstInterval = bhrg.boring!.sampledInterval[0];
     expect(firstInterval.beginDepth).toBeTypeOf('number');
     expect(firstInterval.endDepth).toBeTypeOf('number');
   });
@@ -178,8 +184,8 @@ describe('BHRG Parsing (Node)', () => {
 
     expect(bhrg.reportHistory).toBeDefined();
     // BHR-G uses event-based structure
-    expect(bhrg.reportHistory!.intermediateEvents).toBeDefined();
-    expect(bhrg.reportHistory!.intermediateEvents.length).toBeGreaterThan(0);
+    expect(bhrg.reportHistory!.event).toBeDefined();
+    expect(bhrg.reportHistory!.event.length).toBeGreaterThan(0);
   });
 
   it('should extract top-level metadata fields', () => {
@@ -189,6 +195,6 @@ describe('BHRG Parsing (Node)', () => {
     expect(bhrg.deliveryContext).toBeTruthy();
     expect(bhrg.surveyPurpose).toBeTruthy();
     expect(bhrg.discipline).toBeTruthy();
-    expect(bhrg.nitgCode).toBeTruthy(); // BHR-G has legacy NITG code
+    expect(bhrg.nITGCode).toBeTruthy(); // BHR-G has legacy NITG code
   });
 });

@@ -39,11 +39,11 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     const cl = bore.analysis!.investigatedIntervals[0].consistencyLimitsDetermination!;
-    expect(cl.determinationProcedure).toBe('ISO17892d12v2018');
-    expect(cl.determinationMethod).toBe('casagrandeKleistaaf');
+    expect(cl.determinationProcedure?.code).toBe('ISO17892d12v2018');
+    expect(cl.determinationMethod?.code).toBe('casagrandeKleistaaf');
     expect(cl.fractionLarger500um).toBe(7.60);
-    expect(cl.usedMedium).toBe('leidingwater');
-    expect(cl.performanceIrregularity).toBe('massaProefstukVloeigrens');
+    expect(cl.usedMedium?.code).toBe('leidingwater');
+    expect(cl.performanceIrregularity?.code).toBe('massaProefstukVloeigrens');
   });
 
   it('should extract calculated limit values', () => {

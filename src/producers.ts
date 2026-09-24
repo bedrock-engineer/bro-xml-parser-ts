@@ -4,8 +4,8 @@
  * One import carrying every building block the library uses internally to
  * describe how an XML node becomes a typed value:
  *
- *   - the leaf combinators (`text`, `date`, `number`, `integer`, `boolean`,
- *     `qualityClass`) and the structural combinators (`object`, `array`,
+ *   - the leaf combinators (`text`, `date`, `number`, `integer`, `boolean`)
+ *     and the structural combinators (`object`, `array`,
  *     `oneOf`, and the `custom` / `scalar` escape hatches),
  *   - the domain helpers `gmlLocation` (GML `Point` → {@link Location}) and
  *     `columns` / `col` (BRO's column time-series CSVs),
@@ -37,12 +37,13 @@ export {
   number,
   integer,
   boolean,
-  qualityClass,
+  code,
   object,
   array,
   custom,
   oneOf,
 } from "./core/producer.js";
+export type { Coded } from "./core/producer.js";
 
 export { columns, col } from "./core/columns.js";
 export type { ColumnSpec, ColumnParser, RowOf } from "./core/columns.js";

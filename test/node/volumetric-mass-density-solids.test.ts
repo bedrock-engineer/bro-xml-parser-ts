@@ -32,7 +32,7 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
 
     expect(interval).toBeDefined();
     expect(interval!.endDepth).toBe(1.82);
-    expect(interval!.analysisType).toBe('basisparameter');
+    expect(interval!.analysisType?.code).toBe('basisparameter');
     expect(interval!.waterContentDetermined).toBe(true);
     expect(interval!.volumetricMassDensityDetermined).toBe(true);
     expect(interval!.volumetricMassDensitySolidsDetermined).toBe(true);
@@ -48,8 +48,8 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
 
     const det = interval!.volumetricMassDensityOfSolidsDetermination;
     expect(det).toBeDefined();
-    expect(det!.determinationProcedure).toBe('ISO17892d3v2016');
-    expect(det!.determinationMethod).toBe('pyknometerGas');
+    expect(det!.determinationProcedure?.code).toBe('ISO17892d3v2016');
+    expect(det!.determinationMethod?.code).toBe('pyknometerGas');
     expect(det!.volumetricMassDensityOfSolids).toBe(2.413);
   });
 
@@ -63,9 +63,9 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
 
     const det = interval!.volumetricMassDensityDetermination;
     expect(det).toBeDefined();
-    expect(det!.determinationProcedure).toBe('ISO17892d2v2014');
-    expect(det!.determinationMethod).toBe('volumeVoorbepaald');
-    expect(det!.sampleMoistness).toBe('veldvochtig');
+    expect(det!.determinationProcedure?.code).toBe('ISO17892d2v2014');
+    expect(det!.determinationMethod?.code).toBe('volumeVoorbepaald');
+    expect(det!.sampleMoistness?.code).toBe('veldvochtig');
     expect(det!.volumetricMassDensity).toBe(1.386);
   });
 
@@ -79,12 +79,12 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
 
     expect(interval).toBeDefined();
     expect(interval!.endDepth).toBe(1.75);
-    expect(interval!.analysisType).toBe('korrelgrootteverdeling');
+    expect(interval!.analysisType?.code).toBe('korrelgrootteverdeling');
 
     // Particle size distribution
     const psd = interval!.particleSizeDistributionDetermination;
     expect(psd).toBeDefined();
-    expect(psd!.determinationProcedure).toBe('ISO17892d4v2016enISO13317d3v2001');
+    expect(psd!.determinationProcedure?.code).toBe('ISO17892d4v2016enISO13317d3v2001');
     expect(psd!.fractionSmaller63um).toBe(41.2);
     expect(psd!.fractionLarger63um).toBe(58.8);
 

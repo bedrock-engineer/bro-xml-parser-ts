@@ -6,8 +6,9 @@
  * themselves producers, an array producer's item is a producer, and so on all
  * the way down. {@link SchemaParser.produce} interprets this tree.
  *
- * Five kinds, each built by a combinator:
+ * Six kinds, each built by a combinator:
  *   - `scalar`  — a leaf: text (or an attribute) decoded into `T`.
+ *   - `code`    — a leaf: a BRO coded value (`{ code, codeSpace }`), text + its domain.
  *   - `object`  — a fixed set of named fields, each a producer.
  *   - `array`   — a repeated subtree: `each` selects item nodes, `item` produces one.
  *   - `oneOf`   — an honest discriminated union (shared `base` + tagged `branches`).
@@ -24,8 +25,27 @@ import {
   parseFloat,
   parseInt,
   parseBoolean,
-  parseQualityClass,
 } from "../decoders/type-decoders.js";
+
+/**
+ * A BRO coded value: the `code` text plus the `codeSpace` domain URI that the XML
+ * carries as a `codeSpace` attribute (e.g. `urn:bro:cpt:QualityClass`).
+ *
+ * First-class data, so the domain is never guessed from a field name — the
+ * `describe` helper in the `/reference-codes` subpath resolves it correctly by
+ * `codeSpace`. An absent or nil coded element parses to `null`; a present one is
+ * always a full `{ code, codeSpace }`.
+ */
+export interface Coded {
+  code: string;
+  codeSpace: string;
+}
+
+/**
+ * A sink for non-fatal decode messages (bad numeric text, etc.). The engine
+ * passes one that appends to `meta.warnings`; direct callers may omit it.
+ */
+type WarnSink = (message: string) => void;
 
 /** How a producer behaves when it finds no data. */
 export type Presence =
@@ -78,10 +98,23 @@ interface ProducerMeta {
  */
 export interface ScalarProducer<T, P extends Presence = "optional"> extends ProducerMeta {
   kind: "scalar";
-  decode: (raw: string | null) => T;
+  decode: (raw: string | null, warn?: WarnSink) => T;
   /** Absence behaviour (default `"optional"`). */
   presence?: P;
   /** Phantom output type — never present at runtime. */
+  readonly _out?: T;
+}
+
+/**
+ * A leaf coded value. Like {@link ScalarProducer} it is text-presence driven, but
+ * its decode also receives the node's `codeSpace` attribute so it can build a
+ * {@link Coded}. It is a first-class leaf (not a {@link CustomProducer}) so the
+ * presence/absence model applies uniformly.
+ */
+export interface CodeProducer<T, P extends Presence = "optional"> extends ProducerMeta {
+  kind: "code";
+  decode: (text: string | null, codeSpace: string | null) => T;
+  presence?: P;
   readonly _out?: T;
 }
 
@@ -109,7 +142,7 @@ export interface CustomProducer<T, P extends Presence = "optional"> extends Prod
 }
 
 /** One tagged branch of a {@link OneOfProducer}. */
-export interface OneOfBranch {
+interface OneOfBranch {
   /** XPath whose existence selects this branch (first match wins). */
   when: string;
   /** Relative XPath to the branch's node (defaults to the oneOf node). */
@@ -132,10 +165,14 @@ export interface OneOfProducer<T, P extends Presence = "optional"> extends Produ
 
 export type Producer<T, P extends Presence = "optional"> =
   | ScalarProducer<T, P>
+  | CodeProducer<T, P>
   | ObjectProducer<T, P>
   | ArrayProducer<T, P>
   | CustomProducer<T, P>
   | OneOfProducer<T, P>;
+
+/** Leaf producer kinds: value-bearing, driven by text presence. */
+export type LeafKind = "scalar" | "code";
 
 /** Flatten an intersection into a single object literal for legible hovers. */
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
@@ -168,7 +205,7 @@ export type ProducedFields<F> = Simplify<
 interface BaseMeta { at?: string; doc?: string; group?: string }
 type LeafOpts<P extends Presence = "optional"> = BaseMeta & { presence?: P };
 type ScalarOpts<T, P extends Presence = "optional"> = LeafOpts<P> & {
-  decode: (raw: string | null) => T;
+  decode: (raw: string | null, warn?: WarnSink) => T;
 };
 
 /** A leaf producer with an explicit decoder. */
@@ -183,7 +220,7 @@ export function scalar<T, P extends Presence = "optional">(
  * `at: undefined` (which `exactOptionalPropertyTypes` rejects).
  */
 function leaf<T, P extends Presence>(
-  decode: (raw: string | null) => T,
+  decode: (raw: string | null, warn?: WarnSink) => T,
   at: string | undefined,
   opts: LeafOpts<P>,
 ): ScalarProducer<T, P> {
@@ -230,27 +267,52 @@ export function boolean<P extends Presence = "optional">(
   return leaf<boolean | null, P>(parseBoolean, at, opts);
 }
 
-/** BRO quality class (`number | null`), understanding `"klasse2"` and `"2"`. */
-export function qualityClass<P extends Presence = "optional">(
+/**
+ * A BRO coded value (`{ code, codeSpace } | null`). Reads the element's text and
+ * its `codeSpace` attribute; absent/nil (no text) → `null`. A first-class leaf, so
+ * presence (`optional`/`required`/`omit`) and array-item handling apply as they do
+ * to {@link text} / {@link number}.
+ */
+export function code<P extends Presence = "optional">(
   at?: string,
   opts: LeafOpts<P> = {},
-): ScalarProducer<number | null, P> {
-  return leaf<number | null, P>(parseQualityClass, at, opts);
+): CodeProducer<Coded | null, P> {
+  return {
+    kind: "code",
+    decode: (text, codeSpace) =>
+      text === null || codeSpace === null ? null : { code: text, codeSpace },
+    ...(at !== undefined ? { at } : {}),
+    ...opts,
+  };
 }
 
-/** A fixed set of named fields. Output type is inferred from `fields`. */
+/**
+ * A fixed set of named fields. Output type is inferred from `fields`.
+ *
+ * The concrete `fields` map type is also carried in the phantom `_fields`, so the
+ * `project` selector can mirror the producer's structure at the type level (an
+ * atomic `custom` field stays a leaf even when its value type looks structural).
+ */
 export function object<
   F extends Record<string, Producer<unknown, Presence>>,
   P extends Presence = "optional",
->(opts: { fields: F; presence?: P } & BaseMeta): ObjectProducer<ProducedFields<F>, P> {
+>(
+  opts: { fields: F; presence?: P } & BaseMeta,
+): ObjectProducer<ProducedFields<F>, P> & { readonly _fields?: F } {
   const { fields, ...meta } = opts;
   return { kind: "object", fields, ...meta };
 }
 
-/** A repeated subtree. `each` selects item nodes; `item` produces one value. */
-export function array<E, P extends Presence = "optional">(
-  opts: { each: string; item: Producer<E, Presence>; presence?: P } & BaseMeta,
-): ArrayProducer<Array<E>, P> {
+/**
+ * A repeated subtree. `each` selects item nodes; `item` produces one value. The
+ * item producer's type is carried in the phantom `_item` (see {@link object}).
+ */
+export function array<
+  I extends Producer<unknown, Presence>,
+  P extends Presence = "optional",
+>(
+  opts: { each: string; item: I; presence?: P } & BaseMeta,
+): ArrayProducer<Array<Produced<I>>, P> & { readonly _item?: I } {
   const { each, item, ...meta } = opts;
   return { kind: "array", each, item, ...meta };
 }
@@ -298,7 +360,10 @@ export function oneOf<
   P extends Presence = "optional",
 >(
   opts: { tagAs: TagKey; base?: Base; branches: Branches; presence?: P } & BaseMeta,
-): OneOfProducer<OneOfOut<TagKey, Base, Branches>, P> {
+): OneOfProducer<OneOfOut<TagKey, Base, Branches>, P> & {
+  readonly _base?: Base;
+  readonly _branches?: Branches;
+} {
   const { tagAs, base = {}, branches, ...meta } = opts;
   return { kind: "oneOf", tagAs, base, branches, ...meta };
 }

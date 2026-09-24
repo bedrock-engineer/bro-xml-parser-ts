@@ -228,8 +228,44 @@ export interface Leaf {
   cardinality: string;
   /** best-effort xsd base type local name (e.g. "date", "decimal", "boolean") */
   baseType: string;
+  /** the `fixed` value of the type's `codeSpace` attribute, if this is a coded leaf (e.g. "urn:bro:cpt:QualityClass") */
+  domain?: string;
   /** xs:documentation text on the leaf element (BRO ships Dutch Definition/Explanation), if any */
   doc?: string;
+}
+
+/** The `fixed` value of a `codeSpace` attribute on a complexType's simpleContent, if any. */
+function findFixedCodeSpace(container: Element): string | undefined {
+  const simpleContent = directChildElements(container, "simpleContent")[0];
+  const scope = simpleContent
+    ? (directChildElements(simpleContent, "extension")[0] ??
+      directChildElements(simpleContent, "restriction")[0])
+    : undefined;
+  const attrParent = scope ?? container;
+  for (const attr of directChildElements(attrParent, "attribute")) {
+    if (attr.getAttribute("name") === "codeSpace") {
+      const fixed = attr.getAttribute("fixed");
+      if (fixed) return fixed;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The coded domain of a leaf: the `fixed` `codeSpace` on its type. Present only
+ * for coded elements (a `{ code, codeSpace }` value in BRO), so its presence is
+ * itself the "this leaf is coded" signal.
+ */
+function codeSpaceDomain(typeQ: QName | null, inlineType: Element | null): string | undefined {
+  if (inlineType && inlineType.localName === "complexType") {
+    const d = findFixedCodeSpace(inlineType);
+    if (d) return d;
+  }
+  if (typeQ) {
+    const ct = complexTypes.get(typeKey(typeQ.uri, typeQ.local));
+    if (ct) return findFixedCodeSpace(ct);
+  }
+  return undefined;
 }
 
 /** Collapsed text of an element's own `xs:annotation/xs:documentation` (whitespace-normalized). */
@@ -268,6 +304,12 @@ function resolveSimpleBase(uri: string, local: string, seen: Set<string>): strin
 
 /** Determine the base type local name for a leaf element's type. */
 function leafBaseType(typeQ: QName | null, inlineType: Element | null): string {
+  // BRO's bi-state ja/nee indicator is a boolean, not the string it restricts —
+  // recognise it by name before the restriction collapses to string. Both spellings
+  // occur (elements type it as the `...Type` or reference the `...Enumeration`
+  // directly). The tri-state IndicationYesNoUnknown{Type,Enumeration} (ja/nee/onbekend)
+  // is deliberately excluded: it must keep `onbekend`, so it stays plain text.
+  if (typeQ && /^IndicationYesNo(Type|Enumeration)$/.test(typeQ.local)) return "boolean";
   if (inlineType) {
     if (inlineType.localName === "simpleType") {
       const restriction = directChildElements(inlineType, "restriction")[0];
@@ -323,7 +365,14 @@ function leafBaseType(typeQ: QName | null, inlineType: Element | null): string {
  * pollute paths ("boreholeSampleAnalysis/BoreholeSampleAnalysis/..."). Returns the
  * real content's type (and inline type element), or null if it isn't a wrapper.
  */
-function unwrapProperty(typeQ: QName): { typeQ: QName | null; inline: Element | null } | null {
+interface Unwrapped {
+  typeQ: QName | null;
+  inline: Element | null;
+  /** The wrapped object element (e.g. `Boring`) — a real element in the instance. */
+  element: QName | null;
+}
+
+function unwrapProperty(typeQ: QName): Unwrapped | null {
   if (!/PropertyType$/.test(typeQ.local)) return null;
   const ct = complexTypes.get(typeKey(typeQ.uri, typeQ.local));
   if (!ct) return null;
@@ -340,7 +389,7 @@ function unwrapProperty(typeQ: QName): { typeQ: QName | null; inline: Element | 
       const t = g.getAttribute("type");
       const inline =
         directChildElements(g, "complexType")[0] ?? directChildElements(g, "simpleType")[0] ?? null;
-      return { typeQ: t ? resolveQName(t, docUrlOf(g)) : null, inline };
+      return { typeQ: t ? resolveQName(t, docUrlOf(g)) : null, inline, element: q };
     }
     return null;
   }
@@ -349,7 +398,11 @@ function unwrapProperty(typeQ: QName): { typeQ: QName | null; inline: Element | 
     directChildElements(child, "complexType")[0] ??
     directChildElements(child, "simpleType")[0] ??
     null;
-  return { typeQ: t ? resolveQName(t, ownerUrl) : null, inline };
+  const name = child.getAttribute("name");
+  const element = name
+    ? { uri: loadedDocs.get(ownerUrl)?.targetNamespace ?? "", local: name }
+    : null;
+  return { typeQ: t ? resolveQName(t, ownerUrl) : null, inline, element };
 }
 
 /**
@@ -377,62 +430,6 @@ function complexTypeHasElements(ct: Element): boolean {
   return (
     childElements(ct, "element").length > 0 || directChildElements(ct, "complexContent").length > 0
   );
-}
-
-/**
- * Flatten a complexType's element particles into leaves, recursing into BRO
- * complexTypes and stopping at opaque namespaces / simple types / simpleContent.
- */
-function flattenComplexType(
-  ct: Element,
-  pathPrefix: string,
-  leaves: Leaf[],
-  seenTypes: Set<string>,
-  depth: number,
-): void {
-  if (depth > MAX_DEPTH) return;
-
-  // complexContent extension: pull in base type's particles first.
-  for (const cc of directChildElements(ct, "complexContent")) {
-    const ext =
-      directChildElements(cc, "extension")[0] ?? directChildElements(cc, "restriction")[0];
-    if (ext) {
-      const base = ext.getAttribute("base");
-      if (base) {
-        const q = resolveQName(base, docUrlOf(ct));
-        if (q && isBroNamespace(q.uri)) {
-          const baseCt = complexTypes.get(typeKey(q.uri, q.local));
-          const bk = typeKey(q.uri, q.local);
-          if (baseCt && !seenTypes.has(bk)) {
-            const nextSeen = new Set(seenTypes);
-            nextSeen.add(bk);
-            flattenComplexType(baseCt, pathPrefix, leaves, nextSeen, depth + 1);
-          }
-        }
-      }
-      // process the extension's own particles below (recurse into ext as if a type body)
-      processParticles(ext, pathPrefix, leaves, seenTypes, depth);
-    }
-  }
-
-  processParticles(ct, pathPrefix, leaves, seenTypes, depth);
-}
-
-/** Walk sequence/choice/all particles under a container element (complexType or extension). */
-function processParticles(
-  container: Element,
-  pathPrefix: string,
-  leaves: Leaf[],
-  seenTypes: Set<string>,
-  depth: number,
-): void {
-  // Collect element particles that are descendants of this container but not nested
-  // inside a child complexType. We only descend through model-group elements.
-  const elements = collectParticleElements(container);
-
-  for (const el of elements) {
-    handleElementParticle(el, pathPrefix, leaves, seenTypes, depth);
-  }
 }
 
 /**
@@ -469,13 +466,87 @@ function collectParticleElements(container: Element): Element[] {
   return out;
 }
 
-function handleElementParticle(
-  el: Element,
-  pathPrefix: string,
-  leaves: Leaf[],
-  seenTypes: Set<string>,
-  depth: number,
-): void {
+/**
+ * Flatten a registration-object type into deduped leaves (the coverage view).
+ * Derived from {@link buildTree}: one walker, two shapes.
+ */
+export function flattenRoot(rootType: QName): Leaf[] {
+  return dedupeLeaves(collectLeaves(buildTree(rootType)));
+}
+
+/** Collect the leaf nodes of a node tree as flat {@link Leaf} records. */
+function collectLeaves(nodes: TreeNode[]): Leaf[] {
+  const out: Leaf[] = [];
+  for (const n of nodes) {
+    if (n.kind === "leaf") {
+      out.push({
+        qualified: n.qualified,
+        local: n.local,
+        path: n.path,
+        cardinality: n.cardinality,
+        baseType: n.baseType ?? "unknown",
+        ...(n.domain ? { domain: n.domain } : {}),
+        doc: n.doc,
+      });
+    } else if (n.children) {
+      out.push(...collectLeaves(n.children));
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Structure-preserving tree (for codegen: nested interfaces + schema spec)
+// ---------------------------------------------------------------------------
+
+/**
+ * A node in the nested XSD type tree. Unlike {@link Leaf} (a flat coverage view),
+ * this preserves object nesting and per-node repeatability (`array`), which a
+ * faithful generated interface/schema needs.
+ */
+export interface TreeNode {
+  /** camelCase field name (from the local element name). */
+  name: string;
+  /** `prefix:localName`. */
+  qualified: string;
+  local: string;
+  /** example XPath from the registration object to this node. */
+  path: string;
+  /** min..max occurrence. */
+  cardinality: string;
+  /** `true` when maxOccurs > 1 — the field is an array. */
+  array: boolean;
+  kind: "object" | "leaf";
+  /** leaf: xsd base type local name (`date`/`decimal`/`boolean`/…). */
+  baseType?: string;
+  /** leaf: the `fixed` codeSpace domain, if coded. */
+  domain?: string;
+  /**
+   * object/array: the GML property/object wrapper element (e.g. `bhrgcom:Boring`)
+   * that sits between this element and its fields in the instance. When set, the
+   * node's `at`/`each` must descend through it (`./boring/bhrgcom:Boring`).
+   */
+  wrapper?: string;
+  doc?: string;
+  /** object: child nodes. */
+  children?: TreeNode[];
+}
+
+/** Resolve an element particle's identity + type (shared shape with the flattener). */
+interface ResolvedElement {
+  name: string;
+  qualified: string;
+  elemNs: string;
+  cardinality: string;
+  array: boolean;
+  typeQ: QName | null;
+  effInline: Element | null;
+  /** GML property/object wrapper element, if the type is a property-type wrapper. */
+  wrapper?: string;
+  doc?: string;
+}
+
+function resolveElement(el: Element): ResolvedElement | null {
   const ref = el.getAttribute("ref");
   let name: string | null = el.getAttribute("name");
   let typeAttr: string | null = el.getAttribute("type");
@@ -505,85 +576,162 @@ function handleElementParticle(
       }
     }
   } else {
-    // Locally declared element belongs to its schema's targetNamespace.
     elemNs = loadedDocs.get(ownerUrl)?.targetNamespace ?? "";
   }
 
-  if (!name) return;
+  if (!name) return null;
 
-  const doc = documentationOf(docEl);
-  const prefix = prefixForUri(elemNs);
-  const qualified = `${prefix}:${name}`;
-  const path = `${pathPrefix}/${qualified}`;
+  const maxOccurs = el.getAttribute("maxOccurs");
+  const array = maxOccurs === "unbounded" || (maxOccurs !== null && Number(maxOccurs) > 1);
   const cardinality = `${el.getAttribute("minOccurs") ?? "1"}..${
-    el.getAttribute("maxOccurs") === "unbounded" ? "*" : (el.getAttribute("maxOccurs") ?? "1")
+    maxOccurs === "unbounded" ? "*" : (maxOccurs ?? "1")
   }`;
 
-  // Resolve the element's type, unwrapping GML property-type wrappers.
   let typeQ = typeAttr ? resolveQName(typeAttr, ownerUrl) : null;
   let effInline = inlineType;
+  let wrapper: string | undefined;
   for (let guard = 0; typeQ && isBroNamespace(typeQ.uri) && guard < 6; guard++) {
     const unwrapped = unwrapProperty(typeQ);
     if (!unwrapped) break;
     typeQ = unwrapped.typeQ;
     if (unwrapped.inline) effInline = unwrapped.inline;
+    if (unwrapped.element) {
+      wrapper = `${prefixForUri(unwrapped.element.uri)}:${unwrapped.element.local}`;
+    }
   }
 
-  // BRO partial-date fields (PartialDateType: choice of date/yearMonth/year/voidReason)
-  // are parsed wholesale by the parseDate decoder - collapse to a single leaf.
-  // Matches the type directly OR an (inline/named) complexType that extends it
-  // (e.g. BHR-G verticalPositioningDate adds a nilReason attribute).
-  if ((typeQ && /PartialDate/i.test(typeQ.local)) || isPartialDateExtension(typeQ, effInline)) {
-    leaves.push({ qualified, local: name, path, cardinality, baseType: "date", doc });
-    return;
+  return {
+    name,
+    qualified: `${prefixForUri(elemNs)}:${name}`,
+    elemNs,
+    cardinality,
+    array,
+    typeQ,
+    effInline,
+    ...(wrapper ? { wrapper } : {}),
+    doc: documentationOf(docEl),
+  };
+}
+
+function elementParticleTree(
+  el: Element,
+  pathPrefix: string,
+  seenTypes: Set<string>,
+  depth: number,
+): TreeNode | null {
+  if (depth > MAX_DEPTH) return null;
+  const r = resolveElement(el);
+  if (!r) return null;
+
+  const path = `${pathPrefix}/${r.qualified}`;
+  const base = {
+    name: toFieldName(r.name),
+    qualified: r.qualified,
+    local: r.name,
+    path,
+    cardinality: r.cardinality,
+    array: r.array,
+    doc: r.doc,
+  };
+
+  // BRO partial-date fields collapse to a single date leaf (as in the flattener).
+  if ((r.typeQ && /PartialDate/i.test(r.typeQ.local)) || isPartialDateExtension(r.typeQ, r.effInline)) {
+    return { ...base, kind: "leaf", baseType: "date" };
   }
 
-  // Decide: leaf or recurse.
   const typeIsBroComplex =
-    typeQ &&
-    isBroNamespace(typeQ.uri) &&
-    complexTypes.has(typeKey(typeQ.uri, typeQ.local)) &&
-    complexTypeHasElements(complexTypes.get(typeKey(typeQ.uri, typeQ.local))!) &&
-    // simpleContent complexTypes are value-bearing leaves (direct child only)
-    directChildElements(complexTypes.get(typeKey(typeQ.uri, typeQ.local))!, "simpleContent")
+    r.typeQ &&
+    isBroNamespace(r.typeQ.uri) &&
+    complexTypes.has(typeKey(r.typeQ.uri, r.typeQ.local)) &&
+    complexTypeHasElements(complexTypes.get(typeKey(r.typeQ.uri, r.typeQ.local))!) &&
+    directChildElements(complexTypes.get(typeKey(r.typeQ.uri, r.typeQ.local))!, "simpleContent")
       .length === 0;
 
   const inlineIsComplex =
-    effInline &&
-    effInline.localName === "complexType" &&
-    complexTypeHasElements(effInline) &&
-    directChildElements(effInline, "simpleContent").length === 0;
+    r.effInline &&
+    r.effInline.localName === "complexType" &&
+    complexTypeHasElements(r.effInline) &&
+    directChildElements(r.effInline, "simpleContent").length === 0;
+
+  // A GML property/object wrapper (e.g. `Boring`) sits between this element and its
+  // fields in the instance — descend through it and record it on the node.
+  const childPath = r.wrapper ? `${path}/${r.wrapper}` : path;
+  const wrap = r.wrapper ? { wrapper: r.wrapper } : {};
 
   if (typeIsBroComplex) {
-    const ck = typeKey(typeQ!.uri, typeQ!.local);
+    const ck = typeKey(r.typeQ!.uri, r.typeQ!.local);
     if (seenTypes.has(ck)) {
-      // recursive type - record as leaf to avoid infinite loop
-      leaves.push({ qualified, local: name, path, cardinality, baseType: "recursive", doc });
-      return;
+      return { ...base, kind: "leaf", baseType: "recursive" };
     }
     const nextSeen = new Set(seenTypes);
     nextSeen.add(ck);
-    flattenComplexType(complexTypes.get(ck)!, path, leaves, nextSeen, depth + 1);
-    return;
+    return {
+      ...base,
+      kind: "object",
+      ...wrap,
+      children: buildTreeFromComplexType(complexTypes.get(ck)!, childPath, nextSeen, depth + 1),
+    };
   }
 
   if (inlineIsComplex) {
-    flattenComplexType(effInline!, path, leaves, new Set(seenTypes), depth + 1);
-    return;
+    return {
+      ...base,
+      kind: "object",
+      ...wrap,
+      children: buildTreeFromComplexType(r.effInline!, childPath, new Set(seenTypes), depth + 1),
+    };
   }
 
-  // Opaque-namespace types (gml/swe/om) and simple types -> leaf.
-  const baseType = leafBaseType(typeQ, effInline);
-  leaves.push({ qualified, local: name, path, cardinality, baseType, doc });
+  const baseType = leafBaseType(r.typeQ, r.effInline);
+  const domain = codeSpaceDomain(r.typeQ, r.effInline);
+  return { ...base, kind: "leaf", baseType, ...(domain ? { domain } : {}) };
 }
 
-/** Flatten a registration-object type (already loaded) into deduped leaves. */
-export function flattenRoot(rootType: QName): Leaf[] {
+function buildTreeFromComplexType(
+  ct: Element,
+  pathPrefix: string,
+  seenTypes: Set<string>,
+  depth: number,
+): TreeNode[] {
+  const out: TreeNode[] = [];
+  if (depth > MAX_DEPTH) return out;
+
+  for (const cc of directChildElements(ct, "complexContent")) {
+    const ext =
+      directChildElements(cc, "extension")[0] ?? directChildElements(cc, "restriction")[0];
+    if (!ext) continue;
+    const baseAttr = ext.getAttribute("base");
+    if (baseAttr) {
+      const q = resolveQName(baseAttr, docUrlOf(ct));
+      if (q && isBroNamespace(q.uri)) {
+        const bk = typeKey(q.uri, q.local);
+        const baseCt = complexTypes.get(bk);
+        if (baseCt && !seenTypes.has(bk)) {
+          const nextSeen = new Set(seenTypes);
+          nextSeen.add(bk);
+          out.push(...buildTreeFromComplexType(baseCt, pathPrefix, nextSeen, depth + 1));
+        }
+      }
+    }
+    for (const el of collectParticleElements(ext)) {
+      const node = elementParticleTree(el, pathPrefix, seenTypes, depth);
+      if (node) out.push(node);
+    }
+  }
+
+  for (const el of collectParticleElements(ct)) {
+    const node = elementParticleTree(el, pathPrefix, seenTypes, depth);
+    if (node) out.push(node);
+  }
+
+  return out;
+}
+
+/** Build the nested type tree for a registration-object type (already loaded). */
+export function buildTree(rootType: QName): TreeNode[] {
   const ct = complexTypes.get(typeKey(rootType.uri, rootType.local));
   if (!ct) return [];
-  const leaves: Leaf[] = [];
-  flattenComplexType(ct, "", leaves, new Set([typeKey(rootType.uri, rootType.local)]), 0);
-  return dedupeLeaves(leaves);
+  return buildTreeFromComplexType(ct, "", new Set([typeKey(rootType.uri, rootType.local)]), 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -631,6 +779,27 @@ export function guessDecoder(baseType: string): string | null {
   if (t === "decimal" || t === "double" || t === "float" || t.includes("measure"))
     return "parseFloat";
   return null;
+}
+
+/** Map a {@link guessDecoder} result to the `producers` combinator that wraps it. */
+export function combinatorFor(decoder: string | null): string {
+  switch (decoder) {
+    case "parseFloat":
+      return "number";
+    case "parseInt":
+      return "integer";
+    case "parseDate":
+      return "date";
+    case "parseBoolean":
+      return "boolean";
+    default:
+      return "text";
+  }
+}
+
+/** The `producers` leaf combinator for an xsd base type (untyped/string → `text`). */
+export function baseTypeToCombinator(baseType: string): string {
+  return combinatorFor(guessDecoder(baseType));
 }
 
 function dedupeLeaves(leaves: Leaf[]): Leaf[] {

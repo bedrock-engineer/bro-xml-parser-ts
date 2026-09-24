@@ -56,6 +56,21 @@ const bhr_gt = parser.parseBHRGT(xmlText);
 const bhr_g = parser.parseBHRG(xmlText);
 ```
 
+### Coded values
+
+Fields that carry a BRO code (quality class, soil name, method, …) parse to a
+`Coded` object — the `code` plus the `codeSpace` domain the XML declares — or
+`null` when absent:
+
+```typescript
+cpt.qualityClass;
+// { code: "klasse2", codeSpace: "urn:bro:cpt:QualityClass" } | null
+cpt.qualityClass?.code === "klasse2";
+```
+
+Keeping the `codeSpace` from the instance is what lets [`describe`](#reference-codes)
+resolve the human-readable text without ever guessing the domain.
+
 ## Custom Schemas
 
 Extract only the fields you need:
@@ -82,7 +97,7 @@ const result = parser.parseCustom(
 ```
 
 The `producers` namespace carries every building block the library uses internally:
-scalar combinators (`text`, `number`, `integer`, `date`, `boolean`, `qualityClass`),
+leaf combinators (`text`, `number`, `integer`, `date`, `boolean`, `code`),
 structural combinators (`object`, `array`, `oneOf`, `custom`), the domain helpers
 (`gmlLocation`, `columns`), and the shared field-maps (`COMMON_REGISTRATION_PRODUCERS`,
 `REGISTRATION_HISTORY`) you can spread into a schema.
@@ -111,19 +126,25 @@ See [`src/types/index.ts`](./src/types/index.ts) for full type definitions.
 
 BRO/XML values use camelCase domain codes like `"langwerpig"`, `"mechanischDiscontinu"`, or `"ISO19901d8v2014"` some are intuitive, some are cryptic. The BRO publishes official human-readable descriptions for all of these codes.
 
-This library exports lookup functions auto-generated from the [BRO reference codes API](https://publiek.broservices.nl/bro/refcodes/v1/codes), so you can resolve any code to its full description:
+Coded values parse to `{ code, codeSpace }` (a `Coded`), carrying the domain the
+XML declares. Resolve any of them with the single `describe` function, generated
+from the [BRO reference codes API](https://publiek.broservices.nl/bro/refcodes/v1/codes):
 
 ```typescript
-import { getBhrgtGeotechnicalSoilNameDescription } from "@bedrock-engineer/bro-xml-parser/reference-codes";
+import { describe } from "@bedrock-engineer/bro-xml-parser/reference-codes";
 
 const bore = parser.parseBHRGT(xmlText);
 
 bore.data.forEach((layer) => {
-  const description = getBhrgtGeotechnicalSoilNameDescription(layer.geotechnicalSoilName);
+  const description = describe(layer.geotechnicalSoilName); // domain-correct by construction
   console.log(`${layer.upperBoundary}–${layer.lowerBoundary}m: ${description}`);
   // e.g. "0–2m: Grove minerale grond, waarvan de grove fractie uit zand bestaat..."
 });
 ```
+
+Because a `Coded` carries its own `codeSpace`, `describe` never has to guess which
+table a code belongs to. The per-domain `*_CODES` tables and the `CODES_BY_DOMAIN`
+index are also exported for advanced use.
 
 Run `npm run codegen:reference-codes` to regenerate the lookup tables from the latest API.
 

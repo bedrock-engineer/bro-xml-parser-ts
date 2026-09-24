@@ -16,9 +16,20 @@ function isMissingNumber(value: string): boolean {
 }
 
 /**
+ * A sink for non-fatal decode messages. The {@link SchemaParser} passes one that
+ * appends to `meta.warnings`; when omitted (direct callers) messages go to
+ * `console.warn`, preserving the previous behaviour.
+ */
+type WarnSink = (message: string) => void;
+
+function warnVia(warn: WarnSink | undefined, message: string): void {
+  (warn ?? console.warn)(message);
+}
+
+/**
  * Parse float, handle null values and -999999 sentinel
  */
-export function parseFloat(value: string | null | undefined): number | null {
+export function parseFloat(value: string | null | undefined, warn?: WarnSink): number | null {
   // BRO encodes a missing numeric value as an empty string, the -999999
   // sentinel, or the literal "NaN" (common in embedded measurement CSVs).
   if (!value || value.trim() === "" || value === String(SENTINEL) || isMissingNumber(value)) {
@@ -28,18 +39,18 @@ export function parseFloat(value: string | null | undefined): number | null {
   try {
     const num = Number.parseFloat(value);
     if (isNaN(num)) {
-      console.warn(`Failed to parse float value: "${value}"`);
+      warnVia(warn, `Failed to parse float value: "${value}"`);
       return null;
     }
     return num;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.warn(`Failed to parse float value: "${value}" - ${message}`);
+    warnVia(warn, `Failed to parse float value: "${value}" - ${message}`);
     return null;
   }
 }
 
-export function parseInt(value: string | null | undefined): number | null {
+export function parseInt(value: string | null | undefined, warn?: WarnSink): number | null {
   if (!value || value.trim() === "" || value === String(SENTINEL) || isMissingNumber(value)) {
     return null;
   }
@@ -47,13 +58,13 @@ export function parseInt(value: string | null | undefined): number | null {
   try {
     const num = Number.parseInt(value, 10);
     if (isNaN(num)) {
-      console.warn(`Failed to parse integer value: "${value}"`);
+      warnVia(warn, `Failed to parse integer value: "${value}"`);
       return null;
     }
     return num;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.warn(`Failed to parse integer value: "${value}" - ${message}`);
+    warnVia(warn, `Failed to parse integer value: "${value}" - ${message}`);
     return null;
   }
 }
@@ -128,23 +139,4 @@ export function parseDate(value: string | null | undefined): string | null {
   }
 
   return null;
-}
-
-/**
- * Parse quality class (handles "klasse2" or "2" format)
- */
-export function parseQualityClass(value: string | null): number | null {
-  if (!value) {
-    return null;
-  }
-
-  // Handle "klasse2" format
-  const regex = /klasse(\d+)/i;
-  const match = regex.exec(value);
-  if (match?.[1]) {
-    return Number.parseInt(match[1], 10);
-  }
-
-  // Handle plain number
-  return parseInt(value);
 }

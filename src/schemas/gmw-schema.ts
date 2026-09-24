@@ -1,171 +1,168 @@
 /**
- * GMW (Grondwatermonitoringput / groundwater monitoring well) schema.
+ * GMW schema — GENERATED from the official XSD by scripts/codegen-schema.ts.
+ * Do not edit by hand. Structural warts are supplied by ./gmw-curation.ts.
  *
- * Maps the dsgmw/1.1 registration object (`GMW_PPO` / `GMW_PO` / `GMW_O`, which
- * all share one leaf surface) to {@link GMWData}. The well is array-heavy: one or
- * more monitoring tubes (each with a flattened
- * materialUsed/screen/plainTubePart/sedimentSump/insertedPart surface and its own
- * geo-ohm cables → electrodes), an intermediate-event log, and surveyed
- * borehole-research ids.
- *
- * Field coverage is verified exhaustively against the official XSD with
- * `npm run check:xsd-coverage` (GMW: 0 gaps).
- *
- * Note on the intermediate-event `eventData` diff: the XSD nests, under each
- * `wellHistory/intermediateEvent`, an `eventData` change record whose leaf names
- * (tubeMaterial, glue, electrodePosition, ...) are a subset of the monitoring-tube
- * fields modelled below. That per-event diff is deliberately not expanded; the
- * current-state values live on the tubes.
+ * @generated from https://schema.broservices.nl/xsd/dsgmw/1.1/dsgmw-messages.xsd
  */
 
-import { object, array, text, date, number, integer, boolean } from "../core/producer.js";
-import type { Produced } from "../core/producer.js";
-import {
-  COMMON_REGISTRATION_PRODUCERS,
-  REGISTRATION_HISTORY,
-  gmlLocation,
-} from "./common-fields.js";
+import { array, boolean, code, date, integer, number, object, text } from "../core/producer.js";
+import { gmlLocation } from "./common-fields.js";
 
-/** One electrode on a geo-ohm cable. */
-const ELECTRODE = object({
-  fields: {
-    electrodeNumber: integer("./gmwcommon:electrodeNumber"),
-    electrodePackingMaterial: text("./gmwcommon:electrodePackingMaterial"),
-    electrodeStatus: text("./gmwcommon:electrodeStatus"),
-    electrodePosition: number("./gmwcommon:electrodePosition"),
-  },
-});
-
-/** One geo-ohm cable running along a monitoring tube. */
-const GEO_OHM_CABLE = object({
-  fields: {
-    cableNumber: integer("./dsgmw:cableNumber"),
-    cableInUse: text("./dsgmw:cableInUse"),
-    electrodes: array({ each: "./dsgmw:electrode", item: ELECTRODE }),
-  },
-});
-
-/** One monitoring tube, with its material/screen/insert surface flattened. */
-const MONITORING_TUBE = object({
-  fields: {
-    tubeNumber: integer("./dsgmw:tubeNumber"),
-    tubeType: text("./dsgmw:tubeType"),
-    artesianWellCapPresent: boolean("./dsgmw:artesianWellCapPresent"),
-    sedimentSumpPresent: boolean("./dsgmw:sedimentSumpPresent"),
-    numberOfGeoOhmCables: integer("./dsgmw:numberOfGeoOhmCables"),
-    tubeTopDiameter: number("./dsgmw:tubeTopDiameter"),
-    variableDiameter: boolean("./dsgmw:variableDiameter"),
-    tubeStatus: text("./dsgmw:tubeStatus"),
-    tubeTopPosition: number("./dsgmw:tubeTopPosition"),
-    tubeTopPositioningMethod: text("./dsgmw:tubeTopPositioningMethod"),
-    tubePartInserted: boolean("./dsgmw:tubePartInserted"),
-    tubeInUse: text("./dsgmw:tubeInUse"),
-
-    // materialUsed
-    tubePackingMaterial: text("./dsgmw:materialUsed/gmwcommon:tubePackingMaterial"),
-    tubeMaterial: text("./dsgmw:materialUsed/gmwcommon:tubeMaterial"),
-    glue: text("./dsgmw:materialUsed/gmwcommon:glue"),
-
-    // screen
-    screenLength: number("./dsgmw:screen/dsgmw:screenLength"),
-    sockMaterial: text("./dsgmw:screen/dsgmw:sockMaterial"),
-    screenProtection: text("./dsgmw:screen/dsgmw:screenProtection"),
-    screenTopPosition: number("./dsgmw:screen/dsgmw:screenTopPosition"),
-    screenBottomPosition: number("./dsgmw:screen/dsgmw:screenBottomPosition"),
-
-    // plainTubePart
-    plainTubePartLength: number("./dsgmw:plainTubePart/gmwcommon:plainTubePartLength"),
-
-    // sedimentSump
-    sedimentSumpLength: number("./dsgmw:sedimentSump/gmwcommon:sedimentSumpLength"),
-
-    // insertedPart (present when tubePartInserted is true)
-    insertedPartLength: number("./dsgmw:insertedPart/gmwcommon:insertedPartLength"),
-    insertedPartDiameter: number("./dsgmw:insertedPart/gmwcommon:insertedPartDiameter"),
-    insertedPartMaterial: text("./dsgmw:insertedPart/gmwcommon:insertedPartMaterial"),
-
-    geoOhmCables: array({ each: "./dsgmw:geoOhmCable", item: GEO_OHM_CABLE }),
-  },
-});
-
-/** One dated well-history event (name + date). */
-const GMW_INTERMEDIATE_EVENT = object({
-  fields: {
-    eventName: text("./dsgmw:eventName"),
-    eventDate: date("./dsgmw:eventDate"),
-  },
-});
 
 export const GMW_PRODUCER = object({
   fields: {
-    // === Core identification (shared brocom fields) ===
-    ...COMMON_REGISTRATION_PRODUCERS,
-
-    // === Well metadata ===
+    broId: text("./brocom:broId"),
+    deliveryAccountableParty: text("./brocom:deliveryAccountableParty"),
+    objectIdAccountableParty: text("./brocom:objectIdAccountableParty"),
+    deliveryResponsibleParty: text("./brocom:deliveryResponsibleParty"),
+    qualityRegime: text("./brocom:qualityRegime"),
     withPrehistory: boolean("./dsgmw:withPrehistory"),
-    deliveryContext: text("./dsgmw:deliveryContext"),
-    constructionStandard: text("./dsgmw:constructionStandard"),
-    initialFunction: text("./dsgmw:initialFunction"),
+    deliveryContext: code("./dsgmw:deliveryContext"),
+    constructionStandard: code("./dsgmw:constructionStandard"),
+    initialFunction: code("./dsgmw:initialFunction"),
     removed: boolean("./dsgmw:removed"),
     numberOfMonitoringTubes: integer("./dsgmw:numberOfMonitoringTubes"),
     groundLevelStable: text("./dsgmw:groundLevelStable"),
-    wellStability: text("./dsgmw:wellStability"),
+    wellStability: code("./dsgmw:wellStability"),
     nitgCode: text("./dsgmw:nitgCode"),
     wellCode: text("./dsgmw:wellCode"),
     owner: text("./dsgmw:owner"),
     maintenanceResponsibleParty: text("./dsgmw:maintenanceResponsibleParty"),
-    wellHeadProtector: text("./dsgmw:wellHeadProtector"),
+    wellHeadProtector: code("./dsgmw:wellHeadProtector"),
+    deliveredLocation: object({ at: "./dsgmw:deliveredLocation", fields: {
+      location: gmlLocation("./gmwcommon:location"),
+      horizontalPositioningMethod: code("./gmwcommon:horizontalPositioningMethod"),
+    } }),
+    deliveredVerticalPosition: object({ at: "./dsgmw:deliveredVerticalPosition", fields: {
+      localVerticalReferencePoint: code("./gmwcommon:localVerticalReferencePoint"),
+      offset: number("./gmwcommon:offset"),
+      verticalDatum: code("./gmwcommon:verticalDatum"),
+      groundLevelPosition: number("./gmwcommon:groundLevelPosition"),
+      groundLevelPositioningMethod: code("./gmwcommon:groundLevelPositioningMethod"),
+    } }),
+    standardizedLocation: object({ at: "./dsgmw:standardizedLocation", fields: {
+      location: gmlLocation("./brocom:location"),
+      coordinateTransformation: code("./brocom:coordinateTransformation"),
+    } }),
+    registrationHistory: object({ at: "./dsgmw:registrationHistory", fields: {
+      objectRegistrationTime: date("./brocom:objectRegistrationTime"),
+      registrationStatus: code("./brocom:registrationStatus"),
+      latestAdditionTime: date("./brocom:latestAdditionTime"),
+      registrationCompletionTime: date("./brocom:registrationCompletionTime"),
+      corrected: boolean("./brocom:corrected"),
+      latestCorrectionTime: date("./brocom:latestCorrectionTime"),
+      underReview: boolean("./brocom:underReview"),
+      underReviewTime: date("./brocom:underReviewTime"),
+      deregistered: boolean("./brocom:deregistered"),
+      deregistrationTime: date("./brocom:deregistrationTime"),
+      reregistered: boolean("./brocom:reregistered"),
+      reregistrationTime: date("./brocom:reregistrationTime"),
+    } }),
+    wellHistory: object({ at: "./dsgmw:wellHistory", fields: {
+      wellConstructionDate: date("./dsgmw:wellConstructionDate"),
+      wellRemovalDate: date("./dsgmw:wellRemovalDate"),
+      intermediateEvent: array({ each: "./dsgmw:intermediateEvent", item: object({ fields: {
+        eventName: code("./dsgmw:eventName"),
+        eventDate: date("./dsgmw:eventDate"),
+        eventData: object({ at: "./dsgmw:eventData", fields: {
+          tubeData: array({ each: "./dsgmw:tubeData", item: object({ fields: {
+            tubeNumber: integer("./dsgmw:tubeNumber"),
+            tubeTopDiameter: number("./dsgmw:tubeTopDiameter"),
+            variableDiameter: boolean("./dsgmw:variableDiameter"),
+            tubeStatus: code("./dsgmw:tubeStatus"),
+            tubeTopPosition: number("./dsgmw:tubeTopPosition"),
+            tubeTopPositioningMethod: code("./dsgmw:tubeTopPositioningMethod"),
+            tubePartInserted: boolean("./dsgmw:tubePartInserted"),
+            tubeMaterial: code("./dsgmw:tubeMaterial"),
+            glue: code("./dsgmw:glue"),
+            screenTopPosition: number("./dsgmw:screenTopPosition"),
+            screenBottomPosition: number("./dsgmw:screenBottomPosition"),
+            plainTubePartLength: number("./dsgmw:plainTubePartLength"),
+            insertedPartLength: number("./dsgmw:insertedPartLength"),
+            insertedPartDiameter: number("./dsgmw:insertedPartDiameter"),
+            insertedPartMaterial: code("./dsgmw:insertedPartMaterial"),
+          } }) }),
+          electrodeData: array({ each: "./dsgmw:electrodeData", item: object({ fields: {
+            tubeNumber: integer("./dsgmw:tubeNumber"),
+            cableNumber: integer("./dsgmw:cableNumber"),
+            electrodeNumber: integer("./dsgmw:electrodeNumber"),
+            electrodeStatus: code("./dsgmw:electrodeStatus"),
+            electrodePosition: number("./dsgmw:electrodePosition"),
+          } }) }),
+          wellData: object({ at: "./dsgmw:wellData", fields: {
+            owner: text("./dsgmw:owner"),
+            maintenanceResponsibleParty: text("./dsgmw:maintenanceResponsibleParty"),
+            groundLevelPosition: number("./dsgmw:groundLevelPosition"),
+            groundLevelPositioningMethod: code("./dsgmw:groundLevelPositioningMethod"),
+            wellHeadProtector: code("./dsgmw:wellHeadProtector"),
+          } }),
+          survey: array({ each: "./dsgmw:survey/dsgmw:Survey", item: object({ fields: {
+            geotechnicalCPTSurveyData: object({ at: "./dsgmw:GeotechnicalCPTSurveyData", fields: {
+              broId: text("./dsgmw:broId"),
+            } }),
+            boreholeResearchData: object({ at: "./dsgmw:BoreholeResearchData", fields: {
+              broId: text("./dsgmw:broId"),
+            } }),
+          } }) }),
+        } }),
+      } }) }),
+    } }),
+    monitoringTube: array({ each: "./dsgmw:monitoringTube", item: object({ fields: {
+      tubeNumber: integer("./dsgmw:tubeNumber"),
+      tubeType: code("./dsgmw:tubeType"),
+      artesianWellCapPresent: text("./dsgmw:artesianWellCapPresent"),
+      sedimentSumpPresent: text("./dsgmw:sedimentSumpPresent"),
+      numberOfGeoOhmCables: integer("./dsgmw:numberOfGeoOhmCables"),
+      tubeTopDiameter: number("./dsgmw:tubeTopDiameter"),
+      variableDiameter: text("./dsgmw:variableDiameter"),
+      tubeStatus: code("./dsgmw:tubeStatus"),
+      tubeTopPosition: number("./dsgmw:tubeTopPosition"),
+      tubeTopPositioningMethod: code("./dsgmw:tubeTopPositioningMethod"),
+      tubePartInserted: boolean("./dsgmw:tubePartInserted"),
+      tubeInUse: text("./dsgmw:tubeInUse"),
+      materialUsed: object({ at: "./dsgmw:materialUsed", fields: {
+        tubePackingMaterial: code("./gmwcommon:tubePackingMaterial"),
+        tubeMaterial: code("./gmwcommon:tubeMaterial"),
+        glue: code("./gmwcommon:glue"),
+      } }),
+      screen: object({ at: "./dsgmw:screen", fields: {
+        screenLength: number("./dsgmw:screenLength"),
+        screenProtection: code("./dsgmw:screenProtection"),
+        sockMaterial: code("./dsgmw:sockMaterial"),
+        screenTopPosition: number("./dsgmw:screenTopPosition"),
+        screenBottomPosition: number("./dsgmw:screenBottomPosition"),
+      } }),
+      plainTubePart: object({ at: "./dsgmw:plainTubePart", fields: {
+        plainTubePartLength: number("./gmwcommon:plainTubePartLength"),
+      } }),
+      sedimentSump: object({ at: "./dsgmw:sedimentSump", fields: {
+        sedimentSumpLength: number("./gmwcommon:sedimentSumpLength"),
+      } }),
+      insertedPart: object({ at: "./dsgmw:insertedPart", fields: {
+        insertedPartLength: number("./gmwcommon:insertedPartLength"),
+        insertedPartDiameter: number("./gmwcommon:insertedPartDiameter"),
+        insertedPartMaterial: code("./gmwcommon:insertedPartMaterial"),
+      } }),
+      geoOhmCable: array({ each: "./dsgmw:geoOhmCable", item: object({ fields: {
+        cableNumber: integer("./dsgmw:cableNumber"),
+        cableInUse: text("./dsgmw:cableInUse"),
+        electrode: array({ each: "./dsgmw:electrode", item: object({ fields: {
+          electrodeNumber: integer("./gmwcommon:electrodeNumber"),
+          electrodePackingMaterial: code("./gmwcommon:electrodePackingMaterial"),
+          electrodeStatus: code("./gmwcommon:electrodeStatus"),
+          electrodePosition: number("./gmwcommon:electrodePosition"),
+        } }) }),
+      } }) }),
+    } }) }),
     isAbroad: boolean("./dsgmw:isAbroad"),
     geometricDataPubliclyAvailable: boolean("./dsgmw:geometricDataPubliclyAvailable"),
-
-    // === Location ===
-    deliveredLocation: gmlLocation("./dsgmw:deliveredLocation/gmwcommon:location"),
-    horizontalPositioningMethod: text(
-      "./dsgmw:deliveredLocation/gmwcommon:horizontalPositioningMethod",
-    ),
-    standardizedLocation: gmlLocation("./dsgmw:standardizedLocation/brocom:location"),
-    coordinateTransformation: text("./dsgmw:standardizedLocation/brocom:coordinateTransformation"),
-
-    // === Vertical position ===
-    deliveredVerticalPositionOffset: number("./dsgmw:deliveredVerticalPosition/gmwcommon:offset"),
-    deliveredVerticalPositionDatum: text(
-      "./dsgmw:deliveredVerticalPosition/gmwcommon:verticalDatum",
-    ),
-    deliveredVerticalPositionReferencePoint: text(
-      "./dsgmw:deliveredVerticalPosition/gmwcommon:localVerticalReferencePoint",
-    ),
-    groundLevelPosition: number("./dsgmw:deliveredVerticalPosition/gmwcommon:groundLevelPosition"),
-    groundLevelPositioningMethod: text(
-      "./dsgmw:deliveredVerticalPosition/gmwcommon:groundLevelPositioningMethod",
-    ),
-
-    // === Well history ===
-    wellConstructionDate: date("./dsgmw:wellHistory/dsgmw:wellConstructionDate"),
-    wellRemovalDate: date("./dsgmw:wellHistory/dsgmw:wellRemovalDate"),
-    intermediateEvents: array({
-      each: "./dsgmw:wellHistory/dsgmw:intermediateEvent",
-      item: GMW_INTERMEDIATE_EVENT,
-    }),
-
-    // === Monitoring tubes (with geo-ohm cables / electrodes) ===
-    monitoringTubes: array({ each: "./dsgmw:monitoringTube", item: MONITORING_TUBE }),
-
-    // === Related surveys ===
-    surveyBoreholeResearchIds: array({
-      each: "./dsgmw:survey",
-      item: text(".//*[local-name()='broId']"),
-    }),
-
-    // === Administrative history ===
-    registrationHistory: REGISTRATION_HISTORY,
+    survey: array({ each: "./dsgmw:survey/gmwcommon:Survey", item: object({ fields: {
+      boreholeResearch: object({ at: "./gmwcommon:BoreholeResearch", fields: {
+        broId: text("./gmwcommon:broId"),
+      } }),
+      geotechnicalCPTSurvey: object({ at: "./gmwcommon:GeotechnicalCPTSurvey", fields: {
+        broId: text("./gmwcommon:broId"),
+      } }),
+    } }) }),
   },
 });
-
-/** One electrode on a geo-ohm cable. Inferred from {@link ELECTRODE}. @internal */
-export type Electrode = Produced<typeof ELECTRODE>;
-/** One geo-ohm cable on a monitoring tube. Inferred from {@link GEO_OHM_CABLE}. @internal */
-export type GeoOhmCable = Produced<typeof GEO_OHM_CABLE>;
-/** One monitoring tube. Inferred from {@link MONITORING_TUBE}. @internal */
-export type MonitoringTube = Produced<typeof MONITORING_TUBE>;
-/** One dated well-history event. Inferred from {@link GMW_INTERMEDIATE_EVENT}. @internal */
-export type GMWIntermediateEvent = Produced<typeof GMW_INTERMEDIATE_EVENT>;

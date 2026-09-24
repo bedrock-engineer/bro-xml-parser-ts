@@ -32,7 +32,7 @@ import type {
 } from "./types/index.js";
 import { BROParseError } from "./types/index.js";
 import { object } from "./core/producer.js";
-import type { Producer, ProducedFields, Presence } from "./core/producer.js";
+import type { Producer, ProducedFields, Presence, ObjectProducer } from "./core/producer.js";
 
 /**
  * Main BRO Parser class
@@ -200,10 +200,10 @@ export class BROParser {
    * const parser = new BROParser(new XMLAdapter());
    * const gmw = parser.parseGMW(xmlString);
    *
-   * console.log(gmw.broId);                         // "GMW000000048066"
-   * console.log(gmw.numberOfMonitoringTubes);       // 1
-   * console.log(gmw.monitoringTubes[0].screenLength); // 1.0
-   * console.log(gmw.meta.schemaVersion);            // "1.1"
+   * console.log(gmw.broId);                              // "GMW000000048066"
+   * console.log(gmw.numberOfMonitoringTubes);            // 1
+   * console.log(gmw.monitoringTube[0].screen?.screenLength); // 1.0
+   * console.log(gmw.meta.schemaVersion);                 // "1.1"
    * ```
    */
   parseGMW(xmlText: string): GMWData {
@@ -240,7 +240,7 @@ export class BROParser {
    *
    * console.log(gld.broId);                       // "GLD000000010000"
    * console.log(gld.monitoringPoint?.broId);      // "GMW000000020142"
-   * console.log(gld.observations[0].points.length); // 8760
+   * console.log(gld.observation[0].points.length); // 8760
    * ```
    */
   parseGLD(xmlText: string): GLDData {
@@ -347,32 +347,60 @@ export class BROParser {
     dataType?: BROFileType,
   ): ProducedFields<F> & { meta: ParseMeta } {
     const doc = this.adapter.parseXML(xmlText);
-
-    // Validate version if dataType is provided
-    let meta: ParseMeta;
-    if (dataType) {
-      const versionResult = detectAndValidateVersion(doc, dataType);
-      meta = this.createMeta(versionResult);
-    } else {
-      // Auto-detect type
-      const versionInfo = getVersionInfo(doc);
-      if (versionInfo) {
-        const versionResult = detectAndValidateVersion(doc, versionInfo.type);
-        meta = this.createMeta(versionResult);
-      } else {
-        meta = {
-          schemaVersion: "unknown",
-          schemaNamespace: "unknown",
-          dataType: "CPT", // fallback
-          warnings: ["Could not detect BRO data type"],
-        };
-      }
-    }
+    const meta = this.resolveMeta(doc, dataType);
 
     const { value, warnings } = this.parser.produce(doc, object({ fields }), "dispatchDocument");
     meta.warnings.push(...warnings);
 
     return { meta, ...value };
+  }
+
+  /**
+   * Parse BRO XML with a `project()` selection — a selector over the full producer
+   * schema (`CPT_PRODUCER`, …). The result is the projected shape plus `meta`, with
+   * no hand-written XPaths.
+   *
+   * @example
+   * ```typescript
+   * import { project, CPT_PRODUCER } from '@bedrock-engineer/bro-xml-parser/node';
+   *
+   * const survey = project(CPT_PRODUCER, (t) => ({
+   *   id: t.broId,
+   *   depth: t.finalDepth,
+   *   klass: t.qualityClass,           // Coded | null
+   * }));
+   * const r = parser.parseSelection(xml, survey, 'CPT'); // { id, depth, klass, meta }
+   * ```
+   */
+  parseSelection<T>(
+    xmlText: string,
+    selection: ObjectProducer<T>,
+    dataType?: BROFileType,
+  ): T & { meta: ParseMeta } {
+    const doc = this.adapter.parseXML(xmlText);
+    const meta = this.resolveMeta(doc, dataType);
+
+    const { value, warnings } = this.parser.produce(doc, selection, "dispatchDocument");
+    meta.warnings.push(...warnings);
+
+    return { meta, ...value };
+  }
+
+  /** Resolve {@link ParseMeta}: validate `dataType` if given, else auto-detect. */
+  private resolveMeta(doc: Document, dataType?: BROFileType): ParseMeta {
+    if (dataType) {
+      return this.createMeta(detectAndValidateVersion(doc, dataType));
+    }
+    const versionInfo = getVersionInfo(doc);
+    if (versionInfo) {
+      return this.createMeta(detectAndValidateVersion(doc, versionInfo.type));
+    }
+    return {
+      schemaVersion: "unknown",
+      schemaNamespace: "unknown",
+      dataType: "CPT", // fallback
+      warnings: ["Could not detect BRO data type"],
+    };
   }
 
   /**

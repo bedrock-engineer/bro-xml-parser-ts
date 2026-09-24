@@ -46,8 +46,13 @@ const URN_PREFIX_TO_DATATYPE: Record<string, string | null> = {
 };
 
 /**
- * Domains to generate (filtered from all available domains)
- * Only include domains that are actually used in our parsed types
+ * Domains to generate (filtered from all available domains).
+ *
+ * The per-type prefixes plus the shared common domains — those written
+ * `urn:bro:<CapitalizedName>` with no sub-namespace segment (e.g.
+ * `urn:bro:CoordinateTransformation`). The common ones are load-bearing:
+ * coded elements like `brocom:coordinateTransformation` carry a shared domain,
+ * and omitting them left `describe` unable to resolve those codes.
  */
 const INCLUDED_DOMAIN_PREFIXES = [
   "urn:bro:cpt:",
@@ -55,6 +60,15 @@ const INCLUDED_DOMAIN_PREFIXES = [
   "urn:bro:bhrg:",
   "urn:bro:bhrgcommon:",
 ];
+
+/** A shared common domain: `urn:bro:` directly followed by a capitalized name. */
+function isCommonDomain(uri: string): boolean {
+  return /^urn:bro:[A-Z]/.test(uri);
+}
+
+function isIncludedDomain(uri: string): boolean {
+  return INCLUDED_DOMAIN_PREFIXES.some((prefix) => uri.startsWith(prefix)) || isCommonDomain(uri);
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -199,13 +213,6 @@ function urnToConstName(urn: string): string {
   return toScreamingSnakeCase(prefix) + "_" + toScreamingSnakeCase(name) + "_CODES";
 }
 
-function urnToFunctionName(urn: string): string {
-  // urn:bro:bhrgt:GeotechnicalSoilName -> getBhrgtGeotechnicalSoilNameDescription
-  const { prefix, name } = extractUrnParts(urn);
-  const capitalizedPrefix = prefix.charAt(0).toUpperCase() + prefix.slice(1);
-  return "get" + capitalizedPrefix + name + "Description";
-}
-
 function toKebabCase(str: string): string {
   return str
     .replace(/([a-z])([A-Z])/g, "$1-$2")
@@ -234,7 +241,6 @@ function formatKey(key: string): string {
 
 function generateFile(urn: string, codes: RefCode[]): string {
   const constName = urnToConstName(urn);
-  const funcName = urnToFunctionName(urn);
   const domainName = urn.split(":").pop() || "Unknown";
 
   const codeEntries = codes
@@ -242,7 +248,10 @@ function generateFile(urn: string, codes: RefCode[]): string {
     .join("\n");
 
   return `/**
- * ${domainName} codes and descriptions from the official BRO reference.
+ * ${domainName} code descriptions from the official BRO reference.
+ *
+ * Keyed by code; resolve a {@link Coded} value's description with \`describe\`
+ * rather than importing this table directly.
  *
  * @generated from ${urn}
  * @see https://publiek.broservices.nl/bro/refcodes/v1/codes?domain=${encodeURIComponent(urn)}
@@ -251,16 +260,41 @@ function generateFile(urn: string, codes: RefCode[]): string {
 export const ${constName}: Record<string, string> = {
 ${codeEntries}
 };
+`;
+}
 
 /**
- * Get the Dutch description for a ${domainName} code.
- *
- * @param code - The code value
- * @returns The Dutch description, or undefined if the code is not recognized
+ * The `CODES_BY_DOMAIN` index that `describe` looks up: full domain URI (the
+ * value of an element's `codeSpace`) -> its code->description table.
  */
-export function ${funcName}(code: string): string | undefined {
-  return ${constName}[code];
-}
+function generateCodesByDomainFile(domains: Array<{ uri: string; fileName: string }>): string {
+  const imports = domains
+    .map((d) => {
+      const constName = urnToConstName(d.uri);
+      const moduleName = d.fileName.replace(".ts", ".js");
+      return `import { ${constName} } from "./${moduleName}";`;
+    })
+    .join("\n");
+
+  const entries = domains
+    .map((d) => `  "${d.uri}": ${urnToConstName(d.uri)},`)
+    .join("\n");
+
+  return `/**
+ * Reference code tables indexed by their full BRO domain URI.
+ *
+ * The URI is exactly the value a coded element carries in its \`codeSpace\`
+ * attribute, so \`describe(coded)\` is a direct two-step lookup with no
+ * field-name guessing — the crosswalk this replaces.
+ *
+ * @generated
+ */
+
+${imports}
+
+export const CODES_BY_DOMAIN: Record<string, Record<string, string>> = {
+${entries}
+};
 `;
 }
 
@@ -268,9 +302,8 @@ function generateIndexFile(domains: Array<{ uri: string; fileName: string }>): s
   const exports = domains
     .map((d) => {
       const constName = urnToConstName(d.uri);
-      const funcName = urnToFunctionName(d.uri);
       const moduleName = d.fileName.replace(".ts", ".js");
-      return `export { ${constName}, ${funcName} } from './${moduleName}';`;
+      return `export { ${constName} } from './${moduleName}';`;
     })
     .join("\n");
 
@@ -280,9 +313,15 @@ function generateIndexFile(domains: Array<{ uri: string; fileName: string }>): s
  * Official code lists from the BRO (Basisregistratie Ondergrond) reference API.
  * These provide human-readable descriptions for coded values in BRO XML files.
  *
+ * Resolve a value with \`describe(coded)\`; the per-domain \`*_CODES\` tables and
+ * the \`CODES_BY_DOMAIN\` index are exported for advanced use.
+ *
  * @generated
  * @see https://publiek.broservices.nl/bro/refcodes/v1/domains
  */
+
+export { describe, prettifyBroCode } from "./describe.js";
+export { CODES_BY_DOMAIN } from "./codes-by-domain.js";
 
 ${exports}
 `;
@@ -298,10 +337,8 @@ async function main() {
   const allDomains = await fetchDomains();
   console.log(`Found ${allDomains.length} total domains\n`);
 
-  // Filter to included prefixes
-  const includedDomains = allDomains.filter(
-    (d) => d.uri && INCLUDED_DOMAIN_PREFIXES.some((prefix) => d.uri.startsWith(prefix)),
-  );
+  // Filter to included prefixes + shared common domains
+  const includedDomains = allDomains.filter((d) => d.uri && isIncludedDomain(d.uri));
   console.log(`Filtered to ${includedDomains.length} relevant domains\n`);
 
   // Ensure output directory exists
@@ -309,10 +346,12 @@ async function main() {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  // Clear existing generated files (keep index.ts for now)
+  // Clear existing generated files. Keep the hand-written `describe.ts` and the
+  // regenerated `index.ts` / `codes-by-domain.ts`.
+  const KEEP = new Set(["index.ts", "describe.ts", "codes-by-domain.ts"]);
   const existingFiles = fs.readdirSync(OUTPUT_DIR);
   for (const file of existingFiles) {
-    if (file.endsWith(".ts") && file !== "index.ts") {
+    if (file.endsWith(".ts") && !KEEP.has(file)) {
       fs.unlinkSync(path.join(OUTPUT_DIR, file));
     }
   }
@@ -353,8 +392,15 @@ async function main() {
     }
   }
 
-  // Generate index file
-  console.log("\nGenerating index.ts...");
+  // Generate the domain index (CODES_BY_DOMAIN) + the barrel.
+  console.log("\nGenerating codes-by-domain.ts...");
+  fs.writeFileSync(
+    path.join(OUTPUT_DIR, "codes-by-domain.ts"),
+    generateCodesByDomainFile(generated),
+    "utf-8",
+  );
+
+  console.log("Generating index.ts...");
   const indexContent = generateIndexFile(generated);
   fs.writeFileSync(path.join(OUTPUT_DIR, "index.ts"), indexContent, "utf-8");
 

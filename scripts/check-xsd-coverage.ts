@@ -44,30 +44,12 @@ import {
   flattenRoot,
   dedupeByQualified,
   guessDecoder,
+  combinatorFor,
   toFieldName,
 } from "./lib/bro-xsd.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-/**
- * Map a guessed decoder (from {@link guessDecoder}) to the `producers`
- * combinator that wraps it. A `null` guess (untyped/string leaf) → `text`.
- */
-function combinatorFor(decoder: string | null): string {
-  switch (decoder) {
-    case "parseFloat":
-      return "number";
-    case "parseInt":
-      return "integer";
-    case "parseDate":
-      return "date";
-    case "parseBoolean":
-      return "boolean";
-    default:
-      return "text";
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Configuration

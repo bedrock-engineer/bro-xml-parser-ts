@@ -1,250 +1,120 @@
 /**
- * CPT (Cone Penetration Test) schema.
+ * CPT schema — GENERATED from the official XSD by scripts/codegen-schema.ts.
+ * Do not edit by hand. Structural warts are supplied by ./cpt-curation.ts.
  *
- * Maps the dscpt/1.1 registration object to {@link CPTData}. Most of the ~60
- * metadata fields are scalars; the embedded measurement CSV (`data`) and the
- * dissipation-test time-series (`dissipationTests`) are {@link custom} producers
- * driven by a {@link NodeLens}.
- *
- * Field coverage is verified against the official XSD with
- * `npm run check:xsd-coverage`.
+ * @generated from https://schema.broservices.nl/xsd/dscpt/1.1/dscpt-messages.xsd
  */
 
-import type { NodeLens, Produced } from "../core/producer.js";
-import type { CPTMeasurement, DissipationMeasurement } from "../types/index.js";
-import {
-  object,
-  array,
-  custom,
-  scalar,
-  text,
-  date,
-  number,
-  integer,
-  boolean,
-  qualityClass,
-} from "../core/producer.js";
-import {
-  COMMON_REGISTRATION_PRODUCERS,
-  REGISTRATION_HISTORY,
-  gmlLocation,
-} from "./common-fields.js";
-import { decodeColumns, col, type ColumnSpec } from "../core/columns.js";
-import { parseFloat } from "../decoders/type-decoders.js";
-
-const SURVEY = "./dscpt:conePenetrometerSurvey";
-const CONE = `${SURVEY}/cptcommon:conePenetrometer`;
-const ZLM = `${CONE}/cptcommon:zeroLoadMeasurement`;
-const VPOS = "./dscpt:deliveredVerticalPosition";
-
-/** Fixed columns of a dissipation-test time-series. */
-const DISSIPATION_COLUMNS: Array<ColumnSpec> = [
-  { name: "elapsedTime", parse: col.num },
-  { name: "coneResistance", parse: col.num, optional: true },
-  { name: "porePressureU1", parse: col.num, optional: true },
-  { name: "porePressureU2", parse: col.num, optional: true },
-  { name: "porePressureU3", parse: col.num, optional: true },
-];
-
-/**
- * Parse the embedded measurement CSV from the `conePenetrometerSurvey` node.
- *
- * The `parameters` element flags (ja/nee) which columns are present, in
- * document order; the CSV in `values` always carries every column, so the
- * decode spec maps only the flagged positions (others are skipped with `null`).
- * Rows are then sorted by penetration length (BRO does not guarantee depth order
- * in the values block).
- */
-function parseMeasurements(lens: NodeLens): Array<CPTMeasurement> {
-  const enc = (attr: string, fallback: string): string =>
-    lens.attr(`.//swe:encoding/swe:TextEncoding/@${attr}`) ?? fallback;
-  const decimalSeparator = enc("decimalSeparator", ".");
-  if (decimalSeparator !== ".") {
-    console.warn(`Non-standard decimal separator: ${decimalSeparator} (expected ".")`);
-  }
-
-  // A spec entry per parameter position, in document order: a column for the
-  // "ja" positions, `null` (skip) for the rest. Scope to the first `parameters`
-  // block — dissipation tests carry their own values/encoding.
-  const parameters = lens.all(".//cptcommon:parameters")[0];
-  const spec: Array<ColumnSpec | null> = (parameters ? parameters.all("./*") : []).map((param) => {
-    const columnName = param.name();
-    const included = (param.text() ?? "").toLowerCase() === "ja";
-    return columnName && included ? { name: columnName, parse: col.num } : null;
-  });
-  if (spec.every((c) => c === null)) {
-    return [];
-  }
-
-  const rows = decodeColumns<CPTMeasurement>(lens.textAt(".//cptcommon:values"), spec, {
-    rowSeparator: enc("blockSeparator", ";"),
-    colSeparator: enc("tokenSeparator", ","),
-  })
-    // Drop all-null rows.
-    .filter((m) => Object.values(m).some((v) => v !== null && v !== undefined));
-
-  return rows.sort((a, b) => a.penetrationLength - b.penetrationLength);
-}
-
-/**
- * A dissipation test's pore-pressure decay CSV. Kept custom because the row/col
- * separators are read from the test's own `swe:TextEncoding`.
- */
-const DISSIPATION_MEASUREMENTS = custom<Array<DissipationMeasurement>>({
-  produce: (test) => {
-    const enc = "./cptcommon:disResult/swe:encoding/swe:TextEncoding";
-    return decodeColumns<DissipationMeasurement>(
-      test.textAt("./cptcommon:disResult/cptcommon:values"),
-      DISSIPATION_COLUMNS,
-      {
-        rowSeparator: test.attr(`${enc}/@blockSeparator`) ?? ";",
-        colSeparator: test.attr(`${enc}/@tokenSeparator`) ?? ",",
-      },
-    );
-  },
-});
-
-/**
- * One dissipation test (pore-pressure decay time-series at a fixed depth), a
- * sibling of the cone-penetration test inside `conePenetrometerSurvey`.
- */
-const DISSIPATION_TEST = object({
-  fields: {
-    penetrationLength: scalar<number>({
-      at: "./cptcommon:penetrationLength",
-      decode: (raw) => parseFloat(raw) ?? 0,
-    }),
-    phenomenonTime: date("./om:phenomenonTime//gml:timePosition"),
-    measurements: DISSIPATION_MEASUREMENTS,
-  },
-});
-
-/** A layer removed before the CPT was performed (e.g. asphalt, gravel fill). */
-const REMOVED_LAYER = object({
-  fields: {
-    sequenceNumber: integer("./cptcommon:sequenceNumber"),
-    upperBoundary: number("./cptcommon:upperBoundary"),
-    lowerBoundary: number("./cptcommon:lowerBoundary"),
-    description: text("./cptcommon:description"),
-  },
-});
-
-/** One dissipation test (pore-pressure decay). Inferred from {@link DISSIPATION_TEST}. @internal */
-export type DissipationTest = Produced<typeof DISSIPATION_TEST>;
-/** A layer removed before the CPT. Inferred from {@link REMOVED_LAYER}. @internal */
-export type RemovedLayer = Produced<typeof REMOVED_LAYER>;
+import { array, boolean, code, date, integer, number, object, text } from "../core/producer.js";
+import { gmlLocation } from "./common-fields.js";
+import { CONE_PENETRATION_TEST, DISSIPATION_TESTS } from "./cpt-curation.js";
 
 export const CPT_PRODUCER = object({
   fields: {
-    // === Core identification (shared brocom fields) ===
-    ...COMMON_REGISTRATION_PRODUCERS,
-
-    researchOperator: text("./dscpt:researchOperator"),
+    broId: text("./brocom:broId"),
+    deliveryAccountableParty: text("./brocom:deliveryAccountableParty"),
+    objectIdAccountableParty: text("./brocom:objectIdAccountableParty"),
+    deliveryResponsibleParty: text("./brocom:deliveryResponsibleParty"),
+    qualityRegime: text("./brocom:qualityRegime"),
+    deliveryContext: code("./dscpt:deliveryContext"),
+    surveyPurpose: code("./dscpt:surveyPurpose"),
     researchReportDate: date("./dscpt:researchReportDate"),
-
-    // Measurement timing (OGC O&M timestamps on the conePenetrationTest observation)
-    conePenetrationTestPhenomenonTime: date(
-      `${SURVEY}/cptcommon:conePenetrationTest/om:phenomenonTime/gml:TimeInstant/gml:timePosition`,
-    ),
-    conePenetrationTestResultTime: date(
-      `${SURVEY}/cptcommon:conePenetrationTest/om:resultTime/gml:TimeInstant/gml:timePosition`,
-    ),
-    cptStandard: text("./dscpt:cptStandard"),
-
-    // === Location ===
-    deliveredLocation: gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
-    standardizedLocation: gmlLocation("./dscpt:standardizedLocation/brocom:location"),
-    coordinateTransformation: text("./dscpt:standardizedLocation/brocom:coordinateTransformation"),
-    horizontalPositioningDate: date("./dscpt:deliveredLocation/cptcommon:horizontalPositioningDate"),
-    horizontalPositioningMethod: text(
-      "./dscpt:deliveredLocation/cptcommon:horizontalPositioningMethod",
-    ),
-    horizontalPositioningOperator: text(
-      "./dscpt:deliveredLocation/cptcommon:horizontalPositioningOperator",
-    ),
-
-    // === Vertical position ===
-    deliveredVerticalPositionOffset: number(`${VPOS}/cptcommon:offset`),
-    deliveredVerticalPositionDatum: text(`${VPOS}/cptcommon:verticalDatum`),
-    deliveredVerticalPositionReferencePoint: text(`${VPOS}/cptcommon:localVerticalReferencePoint`),
-    waterDepth: number(`${VPOS}/cptcommon:waterDepth`),
-    verticalPositioningDate: date(`${VPOS}/cptcommon:verticalPositioningDate`),
-    verticalPositioningMethod: text(`${VPOS}/cptcommon:verticalPositioningMethod`),
-    verticalPositioningOperator: text(`${VPOS}/cptcommon:verticalPositioningOperator`),
-
-    // === Survey context ===
-    deliveryContext: text("./dscpt:deliveryContext"),
-    surveyPurpose: text("./dscpt:surveyPurpose"),
-    additionalInvestigationPerformed: boolean("./dscpt:additionalInvestigationPerformed"),
-
-    // === Test metadata ===
-    cptMethod: text(`${SURVEY}/cptcommon:cptMethod`),
-    stopCriterion: text(`${SURVEY}/cptcommon:stopCriterion`),
-    sensorAzimuth: number(`${SURVEY}/cptcommon:sensorAzimuth`),
-    dissipationtestPerformed: boolean(`${SURVEY}/cptcommon:dissipationTestPerformed`),
-    qualityClass: qualityClass(`${SURVEY}/cptcommon:qualityClass`),
-    groundwaterLevel: number("./dscpt:additionalInvestigation/cptcommon:groundwaterLevel"),
-
-    // === Additional investigation ===
-    investigationDate: date("./dscpt:additionalInvestigation/cptcommon:investigationDate"),
-    conditions: text("./dscpt:additionalInvestigation/cptcommon:conditions"),
-    surfaceDescription: text("./dscpt:additionalInvestigation/cptcommon:surfaceDescription"),
-    removedLayers: array({
-      each: "./dscpt:additionalInvestigation/cptcommon:removedLayer",
-      item: REMOVED_LAYER,
-    }),
-    predrilledDepth: number(`${SURVEY}/cptcommon:trajectory/cptcommon:predrilledDepth`),
-    finalDepth: number(`${SURVEY}/cptcommon:trajectory/cptcommon:finalDepth`),
-
-    // === Processing flags ===
-    finalProcessingDate: date(`${SURVEY}/cptcommon:finalProcessingDate`),
-    signalProcessingPerformed: boolean(
-      `${SURVEY}/cptcommon:procedure/cptcommon:signalProcessingPerformed`,
-    ),
-    interruptionProcessingPerformed: boolean(
-      `${SURVEY}/cptcommon:procedure/cptcommon:interruptionProcessingPerformed`,
-    ),
-    expertCorrectionPerformed: boolean(
-      `${SURVEY}/cptcommon:procedure/cptcommon:expertCorrectionPerformed`,
-    ),
-
-    // === Equipment specifications ===
-    cptDescription: text(`${CONE}/cptcommon:description`),
-    cptType: text(`${CONE}/cptcommon:conePenetrometerType`),
-    coneSurfaceArea: integer(`${CONE}/cptcommon:coneSurfaceArea`),
-    coneDiameter: integer(`${CONE}/cptcommon:coneDiameter`),
-    coneSurfaceQuotient: number(`${CONE}/cptcommon:coneSurfaceQuotient`),
-    coneToFrictionSleeveDistance: integer(`${CONE}/cptcommon:coneToFrictionSleeveDistance`),
-    coneToFrictionSleeveSurfaceArea: integer(`${CONE}/cptcommon:frictionSleeveSurfaceArea`),
-    coneToFrictionSleeveSurfaceQuotient: number(`${CONE}/cptcommon:frictionSleeveSurfaceQuotient`),
-
-    // === Zero-load measurements (equipment calibration) ===
-    zlmConeResistanceBefore: number(`${ZLM}/cptcommon:coneResistanceBefore`),
-    zlmConeResistanceAfter: number(`${ZLM}/cptcommon:coneResistanceAfter`),
-    zlmInclinationEwBefore: integer(`${ZLM}/cptcommon:inclinationEWBefore`),
-    zlmInclinationEwAfter: integer(`${ZLM}/cptcommon:inclinationEWAfter`),
-    zlmInclinationNsBefore: integer(`${ZLM}/cptcommon:inclinationNSBefore`),
-    zlmInclinationNsAfter: integer(`${ZLM}/cptcommon:inclinationNSAfter`),
-    zlmInclinationResultantBefore: integer(`${ZLM}/cptcommon:inclinationResultantBefore`),
-    zlmInclinationResultantAfter: integer(`${ZLM}/cptcommon:inclinationResultantAfter`),
-    zlmLocalFrictionBefore: number(`${ZLM}/cptcommon:localFrictionBefore`),
-    zlmLocalFrictionAfter: number(`${ZLM}/cptcommon:localFrictionAfter`),
-    zlmPorePressureU1Before: number(`${ZLM}/cptcommon:porePressureU1Before`),
-    zlmPorePressureU1After: number(`${ZLM}/cptcommon:porePressureU1After`),
-    zlmPorePressureU2Before: number(`${ZLM}/cptcommon:porePressureU2Before`),
-    zlmPorePressureU2After: number(`${ZLM}/cptcommon:porePressureU2After`),
-    zlmPorePressureU3Before: number(`${ZLM}/cptcommon:porePressureU3Before`),
-    zlmPorePressureU3After: number(`${ZLM}/cptcommon:porePressureU3After`),
-    zlmElectricalConductivityBefore: number(`${ZLM}/cptcommon:electricalConductivityBefore`),
-    zlmElectricalConductivityAfter: number(`${ZLM}/cptcommon:electricalConductivityAfter`),
-
-    // === Measurement data (embedded CSV) ===
-    data: custom({ at: SURVEY, produce: parseMeasurements }),
-
-    // === Dissipation tests ===
-    dissipationTests: array({ at: SURVEY, each: ".//cptcommon:dissipationTest", item: DISSIPATION_TEST }),
-
-    // === Administrative history ===
-    registrationHistory: REGISTRATION_HISTORY,
+    cptStandard: code("./dscpt:cptStandard"),
+    additionalInvestigationPerformed: text("./dscpt:additionalInvestigationPerformed"),
+    standardizedLocation: object({ at: "./dscpt:standardizedLocation", fields: {
+      location: gmlLocation("./brocom:location"),
+      coordinateTransformation: code("./brocom:coordinateTransformation"),
+    } }),
+    researchOperator: text("./dscpt:researchOperator"),
+    deliveredLocation: object({ at: "./dscpt:deliveredLocation", fields: {
+      location: gmlLocation("./cptcommon:location"),
+      horizontalPositioningDate: date("./cptcommon:horizontalPositioningDate"),
+      horizontalPositioningMethod: code("./cptcommon:horizontalPositioningMethod"),
+      horizontalPositioningOperator: text("./cptcommon:horizontalPositioningOperator"),
+    } }),
+    deliveredVerticalPosition: object({ at: "./dscpt:deliveredVerticalPosition", fields: {
+      localVerticalReferencePoint: code("./cptcommon:localVerticalReferencePoint"),
+      offset: number("./cptcommon:offset"),
+      waterDepth: number("./cptcommon:waterDepth"),
+      verticalDatum: code("./cptcommon:verticalDatum"),
+      verticalPositioningDate: date("./cptcommon:verticalPositioningDate"),
+      verticalPositioningMethod: code("./cptcommon:verticalPositioningMethod"),
+      verticalPositioningOperator: text("./cptcommon:verticalPositioningOperator"),
+    } }),
+    additionalInvestigation: object({ at: "./dscpt:additionalInvestigation", fields: {
+      investigationDate: date("./cptcommon:investigationDate"),
+      conditions: text("./cptcommon:conditions"),
+      surfaceDescription: text("./cptcommon:surfaceDescription"),
+      groundwaterLevel: number("./cptcommon:groundwaterLevel"),
+      removedLayer: array({ each: "./cptcommon:removedLayer", item: object({ fields: {
+        sequenceNumber: integer("./cptcommon:sequenceNumber"),
+        upperBoundary: number("./cptcommon:upperBoundary"),
+        lowerBoundary: number("./cptcommon:lowerBoundary"),
+        description: text("./cptcommon:description"),
+      } }) }),
+    } }),
+    conePenetrometerSurvey: object({ at: "./dscpt:conePenetrometerSurvey", fields: {
+      dissipationTestPerformed: boolean("./cptcommon:dissipationTestPerformed"),
+      finalProcessingDate: date("./cptcommon:finalProcessingDate"),
+      cptMethod: code("./cptcommon:cptMethod"),
+      qualityClass: code("./cptcommon:qualityClass"),
+      stopCriterion: code("./cptcommon:stopCriterion"),
+      sensorAzimuth: number("./cptcommon:sensorAzimuth"),
+      trajectory: object({ at: "./cptcommon:trajectory", fields: {
+        predrilledDepth: number("./cptcommon:predrilledDepth"),
+        finalDepth: number("./cptcommon:finalDepth"),
+      } }),
+      conePenetrometer: object({ at: "./cptcommon:conePenetrometer", fields: {
+        description: text("./cptcommon:description"),
+        conePenetrometerType: text("./cptcommon:conePenetrometerType"),
+        coneSurfaceArea: number("./cptcommon:coneSurfaceArea"),
+        coneDiameter: number("./cptcommon:coneDiameter"),
+        coneSurfaceQuotient: number("./cptcommon:coneSurfaceQuotient"),
+        coneToFrictionSleeveDistance: number("./cptcommon:coneToFrictionSleeveDistance"),
+        frictionSleeveSurfaceArea: number("./cptcommon:frictionSleeveSurfaceArea"),
+        frictionSleeveSurfaceQuotient: number("./cptcommon:frictionSleeveSurfaceQuotient"),
+        zeroLoadMeasurement: object({ at: "./cptcommon:zeroLoadMeasurement", fields: {
+          coneResistanceBefore: number("./cptcommon:coneResistanceBefore"),
+          coneResistanceAfter: number("./cptcommon:coneResistanceAfter"),
+          electricalConductivityBefore: number("./cptcommon:electricalConductivityBefore"),
+          electricalConductivityAfter: number("./cptcommon:electricalConductivityAfter"),
+          inclinationEWBefore: number("./cptcommon:inclinationEWBefore"),
+          inclinationEWAfter: number("./cptcommon:inclinationEWAfter"),
+          inclinationNSBefore: number("./cptcommon:inclinationNSBefore"),
+          inclinationNSAfter: number("./cptcommon:inclinationNSAfter"),
+          inclinationResultantBefore: number("./cptcommon:inclinationResultantBefore"),
+          inclinationResultantAfter: number("./cptcommon:inclinationResultantAfter"),
+          localFrictionBefore: number("./cptcommon:localFrictionBefore"),
+          localFrictionAfter: number("./cptcommon:localFrictionAfter"),
+          porePressureU1Before: number("./cptcommon:porePressureU1Before"),
+          porePressureU1After: number("./cptcommon:porePressureU1After"),
+          porePressureU2Before: number("./cptcommon:porePressureU2Before"),
+          porePressureU2After: number("./cptcommon:porePressureU2After"),
+          porePressureU3Before: number("./cptcommon:porePressureU3Before"),
+          porePressureU3After: number("./cptcommon:porePressureU3After"),
+        } }),
+      } }),
+      procedure: object({ at: "./cptcommon:procedure", fields: {
+        interruptionProcessingPerformed: text("./cptcommon:interruptionProcessingPerformed"),
+        expertCorrectionPerformed: text("./cptcommon:expertCorrectionPerformed"),
+        signalProcessingPerformed: text("./cptcommon:signalProcessingPerformed"),
+      } }),
+      conePenetrationTest: CONE_PENETRATION_TEST,
+      dissipationTest: DISSIPATION_TESTS,
+    } }),
+    registrationHistory: object({ at: "./dscpt:registrationHistory", fields: {
+      objectRegistrationTime: date("./brocom:objectRegistrationTime"),
+      registrationStatus: code("./brocom:registrationStatus"),
+      latestAdditionTime: date("./brocom:latestAdditionTime"),
+      registrationCompletionTime: date("./brocom:registrationCompletionTime"),
+      corrected: boolean("./brocom:corrected"),
+      latestCorrectionTime: date("./brocom:latestCorrectionTime"),
+      underReview: boolean("./brocom:underReview"),
+      underReviewTime: date("./brocom:underReviewTime"),
+      deregistered: boolean("./brocom:deregistered"),
+      deregistrationTime: date("./brocom:deregistrationTime"),
+      reregistered: boolean("./brocom:reregistered"),
+      reregistrationTime: date("./brocom:reregistrationTime"),
+    } }),
   },
 });

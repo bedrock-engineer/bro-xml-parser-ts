@@ -1,90 +1,104 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { BROParser } from '@/parser';
-import { NodeXMLAdapter } from '@/adapters/node-adapter';
-import { fixtures } from '@test/helpers/fixture-loader';
+import { describe, it, expect, beforeEach } from "vitest";
+import { BROParser } from "@/parser";
+import { NodeXMLAdapter } from "@/adapters/node-adapter";
+import { fixtures } from "@test/helpers/fixture-loader";
+import { asSoilLayer, isSoilLayer, firstLogLayers } from "@test/helpers/assertions";
 
-describe('BHR-GT newly added fields', () => {
+describe("BHR-GT newly added fields", () => {
   let parser: BROParser;
 
   beforeEach(() => {
     parser = new BROParser(new NodeXMLAdapter());
   });
 
-  describe('NEN 5104 soil fields on IMBRO/A archive data', () => {
-    it('extracts NEN 5104 soil description when geotechnicalSoilName is nil (Zeeland)', () => {
+  describe("NEN 5104 soil fields on IMBRO/A archive data", () => {
+    it("extracts NEN 5104 soil description when geotechnicalSoilName is nil (Zeeland)", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGt.zeelandImbroA());
 
-      expect(bore.broId).toBe('BHR000000351618');
-      expect(bore.qualityRegime).toBe('IMBRO/A');
-      expect(bore.data.length).toBe(6);
+      expect(bore.broId).toBe("BHR000000351618");
+      expect(bore.qualityRegime).toBe("IMBRO/A");
+      const layers = firstLogLayers(bore);
+      expect(layers.length).toBe(6);
 
-      const firstLayer = bore.data[0];
-      // geotechnicalSoilName is nil in this archive record...
-      expect(firstLayer.geotechnicalSoilName).toBe('');
+      const firstLayer = asSoilLayer(layers[0]);
+      // geotechnicalSoilName is nil in this archive record → null (coded absence)...
+      expect(firstLayer.soil.geotechnicalSoilName).toBeNull();
       // ...but the soil is described via the NEN 5104 fields.
-      expect(firstLayer.soilNameNEN5104).toBe('zwakZandigeKlei');
-      expect(firstLayer.gravelContentClassNEN5104).toBe('nietGrindig');
-      expect(firstLayer.organicMatterContentClassNEN5104).toBe('matigHumeus');
+      expect(firstLayer.soil.soilNameNEN5104?.code).toBe("zwakZandigeKlei");
+      expect(firstLayer.soil.gravelContentClassNEN5104?.code).toBe("nietGrindig");
+      expect(firstLayer.soil.organicMatterContentClassNEN5104?.code).toBe("matigHumeus");
     });
   });
 
-  describe('layer detail fields', () => {
-    it('extracts gravelMedianClass (trimmed)', () => {
+  describe("layer detail fields", () => {
+    it("extracts gravelMedianClass (trimmed)", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGt.BHR000000377186());
-      const withGravelMedian = bore.data.find((l) => l.gravelMedianClass != null);
-      expect(withGravelMedian?.gravelMedianClass).toBe('middelgrof');
+      const layers = firstLogLayers(bore);
+      const withGravelMedian = layers
+        .filter(isSoilLayer)
+        .find((l) => l.soil.gravelMedianClass != null);
+      expect(withGravelMedian?.soil.gravelMedianClass?.code).toBe("middelgrof");
     });
 
-    it('extracts activityType and geotechnicalDepositionalCharacteristic', () => {
+    it("extracts activityType and geotechnicalDepositionalCharacteristic", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGt.BHR000000380390());
-      const withActivity = bore.data.find((l) => l.activityType != null);
-      expect(withActivity?.activityType).toBe('nietBepaald');
-      const withDepositional = bore.data.find(
-        (l) => l.geotechnicalDepositionalCharacteristic != null,
+      const layers = firstLogLayers(bore);
+      const withActivity = layers.find((l) => l.activityType != null);
+      expect(withActivity?.activityType?.code).toBe("nietBepaald");
+      const withDepositional = layers
+        .filter(isSoilLayer)
+        .find((l) => l.soil.geotechnicalDepositionalCharacteristic != null);
+      expect(withDepositional?.soil.geotechnicalDepositionalCharacteristic?.code).toBe(
+        "nietBepaald",
       );
-      expect(withDepositional?.geotechnicalDepositionalCharacteristic).toBe('nietBepaald');
     });
 
-    it('omits NEN 5104 / detail fields on layers that do not have them', () => {
+    it("omits NEN 5104 / detail fields on layers that do not have them", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGt.BHR000000380390());
-      // These optional fields use omitIfEmpty, so absent values must not appear as keys.
-      const layerWithoutNen = bore.data.find((l) => !('soilNameNEN5104' in l));
+      const layers = firstLogLayers(bore);
+      // Layers without an NEN 5104 description carry a null value for it.
+      const layerWithoutNen = layers
+        .filter(isSoilLayer)
+        .find((l) => l.soil.soilNameNEN5104 == null);
       expect(layerWithoutNen).toBeDefined();
     });
   });
 
-  describe('document-level fields', () => {
-    it('extracts deliveryAccountableParty', () => {
+  describe("document-level fields", () => {
+    it("extracts deliveryAccountableParty", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGt.zeelandImbroA());
-      expect(bore.deliveryAccountableParty).toBe('27364178');
+      expect(bore.deliveryAccountableParty).toBe("27364178");
     });
 
-    it('extracts boring flags (temporaryCasingUsed, preparation)', () => {
+    it("extracts boring flags (temporaryCasingUsed, preparation)", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGt.zeelandImbroA());
-      expect(bore.temporaryCasingUsed).toBe(false);
-      expect(bore.preparation).toBe('geen');
+      expect(bore.boring?.temporaryCasingUsed).toBe(false);
+      expect(bore.boring?.preparation?.code).toBe("geen");
     });
 
-    it('extracts flushingMediumUsed as boolean', () => {
+    it("extracts flushingMediumUsed (tri-state string)", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGt.BHR000000378222());
-      expect(bore.flushingMediumUsed).toBe(false);
+      expect(bore.boring?.flushingMediumUsed).toBe('nee');
     });
 
-    it('extracts soilUse from site characteristic', () => {
+    it("extracts soilUse from site characteristic", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGt.BHR000000377186());
-      expect(bore.soilUse).toBe('akker');
+      expect(bore.siteCharacteristic?.soilUse?.code).toBe("akker");
     });
 
-    it('extracts mean groundwater levels from the descriptive borehole log', () => {
+    it("extracts mean groundwater levels from the descriptive borehole log", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGtBma.bmbOnly1());
-      expect(bore.meanHighestGroundwaterLevel).toBe(0.6);
-      expect(bore.meanLowestGroundwaterLevel).toBe(1.0);
+      const log = bore.boreholeSampleDescription?.descriptiveBoreholeLog?.[0];
+      expect(log?.meanHighestGroundwaterLevel).toBe(0.6);
+      expect(log?.meanLowestGroundwaterLevel).toBe(1.0);
     });
 
-    it('defaults document-level fields to null when absent', () => {
+    it("defaults document-level fields to null when absent", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGt.zeelandImbroA());
-      expect(bore.soilUse).toBeNull();
-      expect(bore.meanHighestGroundwaterLevel).toBeNull();
+      // siteCharacteristic is absent here, so soilUse resolves nullish.
+      expect(bore.siteCharacteristic?.soilUse ?? null).toBeNull();
+      const log = bore.boreholeSampleDescription?.descriptiveBoreholeLog?.[0];
+      expect(log?.meanHighestGroundwaterLevel).toBeNull();
     });
   });
 });

@@ -50,7 +50,9 @@
     "build": "tsc",
     "prepublishOnly": "npm run build",
     "release": "GITHUB_TOKEN=$(gh auth token) release-it",
+    "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run",
+    "pretest": "npm run typecheck",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
@@ -65,17 +67,19 @@
     "docs:sync": "node scripts/sync-docs.mjs",
     "docs": "npm run docs:api && npm run docs:sync",
     "codegen:reference-codes": "npx tsx scripts/codegen-reference-codes.ts",
+    "codegen:schema": "npx tsx scripts/codegen-schema.ts",
     "check:xsd-coverage": "npx tsx scripts/check-xsd-coverage.ts"
   },
   "keywords": [
     "bro",
     "imbro",
     "bro/xml",
+    "broxml",
+    "imbroxml",
+    "imbro/xml",
     "geotechnical",
     "cpt",
-    "bore",
-    "soil",
-    "gef"
+    "bore"
   ],
   "author": "Jules Blom @ Bedrock.engineer",
   "license": "Apache-2.0",

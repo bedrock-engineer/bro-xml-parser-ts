@@ -47,11 +47,11 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const test = triaxialTests[0];
 
     // Check main properties
-    expect(test.determinationProcedure).toBe('ISO17892d9v2018');
-    expect(test.determinationMethod).toBe('belastenGeconsolideerdOngedraineerd');
+    expect(test.determinationProcedure?.code).toBe('ISO17892d9v2018');
+    expect(test.determinationMethod?.code).toBe('belastenGeconsolideerdOngedraineerd');
     expect(test.specimenDisturbed).toBe(false);
     expect(test.specimenTrimmed).toBe(true);
-    expect(test.sampleMoistness).toBe('veldvochtig');
+    expect(test.sampleMoistness?.code).toBe('veldvochtig');
     expect(test.beginDiameter).toBe(50.0);
     expect(test.beginHeight).toBe(100.0);
     expect(test.topCapTiltable).toBe(true);
@@ -60,7 +60,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     expect(test.membraneSaturatedBefore).toBe(false);
     expect(test.apparatusDeformationApplied).toBe(true);
     expect(test.cellDeformationApplied).toBe(true);
-    expect(test.stopCriterion).toBe('einddoel');
+    expect(test.stopCriterion?.code).toBe('einddoel');
   });
 
   it('should parse membrane correction data', () => {
@@ -75,9 +75,9 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
 
     const test = intervalWithTriaxial?.shearStressChangeDuringLoadingDetermination?.[0];
     expect(test?.membraneCorrection).toBeDefined();
-    expect(test?.membraneCorrection?.correctionMethod).toBe('Greeuw2001');
+    expect(test?.membraneCorrection?.correctionMethod?.code).toBe('Greeuw2001');
     expect(test?.membraneCorrection?.thickness).toBe(0.6);
-    expect(test?.membraneCorrection?.stiffnessClass).toBe('1700kPa');
+    expect(test?.membraneCorrection?.stiffnessClass?.code).toBe('1700kPa');
   });
 
   it('should parse drainage strip correction data', () => {
@@ -92,9 +92,9 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
 
     const test = intervalWithTriaxial?.shearStressChangeDuringLoadingDetermination?.[0];
     expect(test?.drainageStripCorrection).toBeDefined();
-    expect(test?.drainageStripCorrection?.correctionMethod).toBe('Greeuw2001');
-    expect(test?.drainageStripCorrection?.orientation).toBe('verticaal');
-    expect(test?.drainageStripCorrection?.coverage).toBe('40tot45');
+    expect(test?.drainageStripCorrection?.correctionMethod?.code).toBe('Greeuw2001');
+    expect(test?.drainageStripCorrection?.orientation?.code).toBe('verticaal');
+    expect(test?.drainageStripCorrection?.coverage?.code).toBe('40tot45');
   });
 
   it('should parse saturation stage data', () => {
@@ -113,7 +113,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const saturation = test?.saturationStageAtLoading;
     expect(saturation?.porousDiscWet).toBe(true);
     expect(saturation?.porousDiscRough).toBe(true);
-    expect(saturation?.usedMedium).toBe('gezuiverdWater');
+    expect(saturation?.usedMedium?.code).toBe('gezuiverdWater');
     expect(saturation?.constantHeight).toBe(false);
     expect(saturation?.cellPressureAutomaticallyControlled).toBe(true);
     expect(saturation?.backPressure).toBe(300.0);
@@ -137,7 +137,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
 
     const consolidation = test?.consolidationStageAtLoading;
     expect(consolidation?.drainageTwoSided).toBe(false);
-    expect(consolidation?.consolidationMethod).toBe('isotroop');
+    expect(consolidation?.consolidationMethod?.code).toBe('isotroop');
     expect(consolidation?.verticalConsolidationStress).toBe(200.0);
     expect(consolidation?.horizontalConsolidationStress).toBe(200.0);
     expect(consolidation?.verticalStrain).toBe(10.81);
@@ -167,7 +167,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
 
     const loadStage = test?.loadStage;
     expect(loadStage?.deformationRate).toBe(0.9);
-    expect(loadStage?.specimenShape).toBe('schuifvlakEnkel');
+    expect(loadStage?.specimenShape?.code).toBe('schuifvlakEnkel');
 
     // Check shear stress time series data
     expect(loadStage?.shearStressChangeDuringLoading).toBeDefined();

@@ -7,13 +7,14 @@
  * are decoded with the {@link columns} producer.
  */
 
-import type { Producer, CustomProducer, Presence, Produced } from "../core/producer.js";
+import type { Producer, CustomProducer, Presence, Produced, Coded } from "../core/producer.js";
 import {
   object,
   array,
   custom,
   scalar,
   text,
+  code,
   date,
   number,
   boolean,
@@ -29,9 +30,9 @@ function optional<T>(producer: Producer<T, Presence>, at: string): Producer<T, "
   return { ...producer, at, presence: "omit" };
 }
 
-/** A repeatable code list: text of each match, always present (may be empty). */
-function codeList(each: string): Producer<Array<string | null>> {
-  return array({ each, item: text() });
+/** A repeatable coded list: a {@link Coded} per match, always present (may be empty). */
+function codeList(each: string): Producer<Array<Coded | null>> {
+  return array({ each, item: code() });
 }
 
 /** Depth boundary: decimal, defaulting to 0 when absent (XSD-required in practice). */
@@ -101,31 +102,31 @@ export type HorizontalDeformationDataPoint = RowOf<typeof SHEAR_HORIZONTAL>;
 
 const WATER_CONTENT = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
-    sampleMoistness: text("./bhrgtcom:sampleMoistness"),
-    removedMaterial: text("./bhrgtcom:removedMaterial"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
+    sampleMoistness: code("./bhrgtcom:sampleMoistness"),
+    removedMaterial: code("./bhrgtcom:removedMaterial"),
     waterContent: number("./bhrgtcom:determinationResult/bhrgtcom:waterContent"),
-    dryingTemperature: text("./bhrgtcom:determinationResult/bhrgtcom:dryingTemperature"),
-    dryingPeriod: text("./bhrgtcom:determinationResult/bhrgtcom:dryingPeriod"),
-    saltCorrectionMethod: text("./bhrgtcom:determinationResult/bhrgtcom:saltCorrectionMethod"),
+    dryingTemperature: code("./bhrgtcom:determinationResult/bhrgtcom:dryingTemperature"),
+    dryingPeriod: code("./bhrgtcom:determinationResult/bhrgtcom:dryingPeriod"),
+    saltCorrectionMethod: code("./bhrgtcom:determinationResult/bhrgtcom:saltCorrectionMethod"),
   },
 });
 
 const VOLUMETRIC_MASS_DENSITY = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
-    sampleMoistness: text("./bhrgtcom:sampleMoistness"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
+    sampleMoistness: code("./bhrgtcom:sampleMoistness"),
     volumetricMassDensity: number("./bhrgtcom:volumetricMassDensity"),
   },
 });
 
 const ORGANIC_MATTER = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
-    removedMaterial: text("./bhrgtcom:removedMaterial"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
+    removedMaterial: code("./bhrgtcom:removedMaterial"),
     lutumCorrectionApplied: boolean("./bhrgtcom:lutumCorrectionApplied"),
     organicMatterContent: number("./bhrgtcom:organicMatterContent"),
   },
@@ -133,30 +134,30 @@ const ORGANIC_MATTER = object({
 
 const CARBONATE = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
-    removedMaterial: text("./bhrgtcom:removedMaterial"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
+    removedMaterial: code("./bhrgtcom:removedMaterial"),
     carbonateContent: number("./bhrgtcom:carbonateContent"),
   },
 });
 
 const DENSITY_OF_SOLIDS = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
-    liquidUsed: text("./bhrgtcom:usedMedium"),
-    sampleContainerVolume: text("./bhrgtcom:sampleContainerVolume"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
+    liquidUsed: code("./bhrgtcom:usedMedium"),
+    sampleContainerVolume: code("./bhrgtcom:sampleContainerVolume"),
     volumetricMassDensityOfSolids: number("./bhrgtcom:volumetricMassDensitySolids"),
   },
 });
 
 const MAX_UNDRAINED_SHEAR = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
-    determinationDiameter: text("./bhrgtcom:determinationDiameter"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
+    determinationDiameter: code("./bhrgtcom:determinationDiameter"),
     verticallyDetermined: boolean("./bhrgtcom:verticallyDetermined"),
-    sampleMoistness: text("./bhrgtcom:sampleMoistness"),
+    sampleMoistness: code("./bhrgtcom:sampleMoistness"),
     maximumUndrainedShearStrength: number("./bhrgtcom:maximumUndrainedShearStrength"),
     lowestMaximumUndrainedShearStrength: number("./bhrgtcom:lowestMaximumUndrainedShearStrength"),
     highestMaximumUndrainedShearStrength: number(
@@ -187,14 +188,14 @@ function fracEither(name: string): CustomProducer<number | null> {
 
 const PARTICLE_SIZE = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
-    fractionDistribution: text("./bhrgtcom:fractionDistribution"),
-    dispersionMethod: text("./bhrgtcom:dispersionMethod"),
-    removedMaterial: text("./bhrgtcom:removedMaterial"),
-    equivalentMassDeterminationMethod: text("./bhrgtcom:equivalentMassDeterminationMethod"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
+    fractionDistribution: code("./bhrgtcom:fractionDistribution"),
+    dispersionMethod: code("./bhrgtcom:dispersionMethod"),
+    removedMaterial: code("./bhrgtcom:removedMaterial"),
+    equivalentMassDeterminationMethod: code("./bhrgtcom:equivalentMassDeterminationMethod"),
     equivalentMass: number("./bhrgtcom:equivalentMass"),
-    usedOpticalModel: text("./bhrgtcom:usedOpticalModel"),
+    usedOpticalModel: code("./bhrgtcom:usedOpticalModel"),
 
     fractionSmaller63um: frac(PSD, "fractionSmaller63um"),
     fractionLarger63um: frac(PSD, "fractionLarger63um"),
@@ -256,12 +257,12 @@ const PARTICLE_SIZE = object({
 
 const CONSISTENCY_LIMITS = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
     fractionLarger500um: number("./bhrgtcom:fractionLarger500um"),
-    usedMedium: text("./bhrgtcom:usedMedium"),
-    performanceIrregularity: text("./bhrgtcom:performanceIrregularity"),
-    conusType: text("./bhrgtcom:conusType"),
+    usedMedium: code("./bhrgtcom:usedMedium"),
+    performanceIrregularity: code("./bhrgtcom:performanceIrregularity"),
+    conusType: code("./bhrgtcom:conusType"),
     liquidLimit: number("./bhrgtcom:liquidLimit"),
     plasticLimit: number("./bhrgtcom:plasticLimit"),
     plasticityIndex: number("./bhrgtcom:plasticityIndex"),
@@ -281,7 +282,7 @@ const CONSISTENCY_LIMITS = object({
 const SATURATION_AT_COMPRESSION = object({
   fields: {
     porousDiscWet: boolean("./bhrgtcom:porousDiscWet"),
-    usedMedium: text("./bhrgtcom:usedMedium"),
+    usedMedium: code("./bhrgtcom:usedMedium"),
     backPressure: number("./bhrgtcom:backPressure"),
     constantHeight: boolean("./bhrgtcom:constantHeight"),
     specimenHeightAfterwards: number("./bhrgtcom:specimenHeightAfterwards"),
@@ -297,7 +298,7 @@ const SETTLEMENT_STEP = object({
     wetPerformed: boolean("./bhrgtcom:wetPerformed"),
     swellObserved: boolean("./bhrgtcom:swellObserved"),
     strainPoint24hours: number("./bhrgtcom:strainPoint24hours"),
-    stepType: text("./bhrgtcom:stepType"),
+    stepType: code("./bhrgtcom:stepType"),
     verticalStress: number("./bhrgtcom:verticalStress"),
     heightChangeDuringSettlement: columns(
       "./bhrgtcom:heightChangeDuringSettlement/bhrgtcom:values",
@@ -312,13 +313,13 @@ const SETTLEMENT_STEP = object({
 
 const SETTLEMENT = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
     ringDiameter: number("./bhrgtcom:ringDiameter"),
-    sampleMoistness: text("./bhrgtcom:sampleMoistness"),
+    sampleMoistness: code("./bhrgtcom:sampleMoistness"),
     filterPaperUsed: boolean("./bhrgtcom:filterPaperUsed"),
     temperature: number("./bhrgtcom:temperature"),
-    wallFrictionCorrectionMethod: text("./bhrgtcom:wallFrictionCorrectionMethod"),
+    wallFrictionCorrectionMethod: code("./bhrgtcom:wallFrictionCorrectionMethod"),
     apparatusDeformationApplied: boolean("./bhrgtcom:apparatusDeformationApplied"),
     bearingFrictionCorrectionApplied: boolean("./bhrgtcom:bearingFrictionCorrectionApplied"),
     irregularResult: boolean("./bhrgtcom:irregularResult"),
@@ -332,13 +333,13 @@ const SETTLEMENT = object({
 
 const PERMEABILITY = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
     specimenMade: boolean("./bhrgtcom:specimenMade"),
     saturatedWithCO2: boolean("./bhrgtcom:saturatedWithCO2"),
     verticallyDetermined: boolean("./bhrgtcom:verticallyDetermined"),
     currentDownwards: boolean("./bhrgtcom:currentDownwards"),
-    usedMedium: text("./bhrgtcom:usedMedium"),
+    usedMedium: code("./bhrgtcom:usedMedium"),
     waterDegassed: boolean("./bhrgtcom:waterDegassed"),
     temperature: number("./bhrgtcom:temperature"),
     maximumGradient: number("./bhrgtcom:maximumGradient"),
@@ -370,11 +371,11 @@ const PERMEABILITY = object({
 
 const SHEAR_LOADING_DET = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
     specimenDisturbed: boolean("./bhrgtcom:specimenDisturbed"),
     specimenTrimmed: boolean("./bhrgtcom:specimenTrimmed"),
-    sampleMoistness: text("./bhrgtcom:sampleMoistness"),
+    sampleMoistness: code("./bhrgtcom:sampleMoistness"),
     beginDiameter: number("./bhrgtcom:beginDiameter"),
     beginHeight: number("./bhrgtcom:beginHeight"),
     topCapTiltable: boolean("./bhrgtcom:topCapTiltable"),
@@ -383,13 +384,13 @@ const SHEAR_LOADING_DET = object({
     membraneSaturatedBefore: boolean("./bhrgtcom:membraneSaturatedBefore"),
     apparatusDeformationApplied: boolean("./bhrgtcom:apparatusDeformationApplied"),
     cellDeformationApplied: boolean("./bhrgtcom:cellDeformationApplied"),
-    stopCriterion: text("./bhrgtcom:stopCriterion"),
+    stopCriterion: code("./bhrgtcom:stopCriterion"),
     membraneCorrection: optional(
       object({
         fields: {
-          correctionMethod: text("./bhrgtcom:correctionMethod"),
+          correctionMethod: code("./bhrgtcom:correctionMethod"),
           thickness: number("./bhrgtcom:thickness"),
-          stiffnessClass: text("./bhrgtcom:stiffnessClass"),
+          stiffnessClass: code("./bhrgtcom:stiffnessClass"),
         },
       }),
       "./bhrgtcom:membraneCorrection",
@@ -397,9 +398,9 @@ const SHEAR_LOADING_DET = object({
     drainageStripCorrection: optional(
       object({
         fields: {
-          correctionMethod: text("./bhrgtcom:correctionMethod"),
-          orientation: text("./bhrgtcom:orientation"),
-          coverage: text("./bhrgtcom:coverage"),
+          correctionMethod: code("./bhrgtcom:correctionMethod"),
+          orientation: code("./bhrgtcom:orientation"),
+          coverage: code("./bhrgtcom:coverage"),
         },
       }),
       "./bhrgtcom:drainageStripCorrection",
@@ -407,7 +408,7 @@ const SHEAR_LOADING_DET = object({
     madeSpecimenForLoading: optional(
       object({
         fields: {
-          makingMethod: text("./bhrgtcom:makingMethod"),
+          makingMethod: code("./bhrgtcom:makingMethod"),
           dryVolumetricMassDensity: number("./bhrgtcom:dryVolumetricMassDensity"),
         },
       }),
@@ -418,7 +419,7 @@ const SHEAR_LOADING_DET = object({
         fields: {
           porousDiscWet: boolean("./bhrgtcom:porousDiscWet"),
           porousDiscRough: boolean("./bhrgtcom:porousDiscRough"),
-          usedMedium: text("./bhrgtcom:usedMedium"),
+          usedMedium: code("./bhrgtcom:usedMedium"),
           constantHeight: boolean("./bhrgtcom:constantHeight"),
           cellPressureAutomaticallyControlled: boolean(
             "./bhrgtcom:cellPressureAutomaticallyControlled",
@@ -436,7 +437,7 @@ const SHEAR_LOADING_DET = object({
       object({
         fields: {
           drainageTwoSided: boolean("./bhrgtcom:drainageTwoSided"),
-          consolidationMethod: text("./bhrgtcom:consolidationMethod"),
+          consolidationMethod: code("./bhrgtcom:consolidationMethod"),
           verticalConsolidationStress: number("./bhrgtcom:verticalConsolidationStress"),
           horizontalConsolidationStress: number("./bhrgtcom:horizontalConsolidationStress"),
           verticalStrain: number("./bhrgtcom:verticalStrain"),
@@ -453,7 +454,7 @@ const SHEAR_LOADING_DET = object({
       object({
         fields: {
           deformationRate: number("./bhrgtcom:deformationRate"),
-          specimenShape: text("./bhrgtcom:specimenShape"),
+          specimenShape: code("./bhrgtcom:specimenShape"),
           shearStressChangeDuringLoading: columns(
             "./bhrgtcom:shearStressChangeDuringLoading/bhrgtcom:values",
             SHEAR_LOADING,
@@ -478,17 +479,17 @@ const HORIZONTAL_CONSOLIDATION_STEP = object({
 
 const SHEAR_HORIZONTAL_DET = object({
   fields: {
-    determinationProcedure: text("./bhrgtcom:determinationProcedure"),
-    determinationMethod: text("./bhrgtcom:determinationMethod"),
+    determinationProcedure: code("./bhrgtcom:determinationProcedure"),
+    determinationMethod: code("./bhrgtcom:determinationMethod"),
     specimenDisturbed: boolean("./bhrgtcom:specimenDisturbed"),
-    sampleMoistness: text("./bhrgtcom:sampleMoistness"),
+    sampleMoistness: code("./bhrgtcom:sampleMoistness"),
     specimenWaterSaturated: boolean("./bhrgtcom:specimenWaterSaturated"),
     porousDiscWet: boolean("./bhrgtcom:porousDiscWet"),
     drained: boolean("./bhrgtcom:drained"),
-    lateralSupport: text("./bhrgtcom:lateralSupport"),
+    lateralSupport: code("./bhrgtcom:lateralSupport"),
     beginDiameter: number("./bhrgtcom:beginDiameter"),
     beginHeight: number("./bhrgtcom:beginHeight"),
-    stopCriterion: text("./bhrgtcom:stopCriterion"),
+    stopCriterion: code("./bhrgtcom:stopCriterion"),
     membraneCorrectionApplied: boolean("./bhrgtcom:membraneCorrectionApplied"),
     apparatusDeformationApplied: boolean("./bhrgtcom:apparatusDeformationApplied"),
     bearingFrictionCorrectionApplied: boolean("./bhrgtcom:bearingFrictionCorrectionApplied"),
@@ -526,8 +527,8 @@ const INVESTIGATED_INTERVAL = object({
   fields: {
     beginDepth: depth("./bhrgtcom:beginDepth"),
     endDepth: depth("./bhrgtcom:endDepth"),
-    sampleQuality: text("./bhrgtcom:sampleQuality"),
-    analysisType: text("./bhrgtcom:analysisType"),
+    sampleQuality: code("./bhrgtcom:sampleQuality"),
+    analysisType: code("./bhrgtcom:analysisType"),
     waterContentDetermined: boolean("./bhrgtcom:waterContentDetermined"),
     organicMatterContentDetermined: boolean("./bhrgtcom:organicMatterContentDetermined"),
     carbonateContentDetermined: boolean("./bhrgtcom:carbonateContentDetermined"),
@@ -590,7 +591,7 @@ export const ANALYSIS_PRODUCER = object({
   presence: "omit",
   fields: {
     analysisReportDate: date("./bhrgtcom:analysisReportDate"),
-    analysisProcedure: text("./bhrgtcom:analysisProcedure"),
+    analysisProcedure: code("./bhrgtcom:analysisProcedure"),
     investigatedIntervals: array({
       each: "./bhrgtcom:investigatedInterval",
       item: INVESTIGATED_INTERVAL,

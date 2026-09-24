@@ -14,7 +14,7 @@
  */
 
 import type { Location } from "../types/index.js";
-import { text, date, boolean, object, custom } from "../core/producer.js";
+import { text, code, date, boolean, object, custom } from "../core/producer.js";
 import type { Produced } from "../core/producer.js";
 import type { CustomProducer } from "../core/producer.js";
 
@@ -41,7 +41,7 @@ export const REGISTRATION_HISTORY = object({
   at: "./*[local-name()='registrationHistory']",
   fields: {
     objectRegistrationTime: date("./brocom:objectRegistrationTime"),
-    registrationStatus: text("./brocom:registrationStatus"),
+    registrationStatus: code("./brocom:registrationStatus"),
     registrationCompletionTime: date("./brocom:registrationCompletionTime"),
     latestCorrectionTime: date("./brocom:latestCorrectionTime"),
     latestAdditionTime: date("./brocom:latestAdditionTime"),

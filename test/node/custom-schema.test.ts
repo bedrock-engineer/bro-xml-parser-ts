@@ -4,18 +4,28 @@ import { NodeXMLAdapter } from '@/adapters/node-adapter';
 import { fixtures } from '@test/helpers/fixture-loader';
 import * as producers from '@/producers';
 import * as presets from '@/schema-presets';
-import type { Producer } from '@/core/producer';
+import { project } from '@/core/select';
+import { CPT_PRODUCER } from '@/schemas/cpt-schema';
+import type { Producer, ObjectProducer } from '@/core/producer';
 import type { ParseMeta, Location } from '@/types/index';
 
 /**
- * `parseCustom` returns `{ meta, ...data }` where `data` has exactly the keys
- * declared in the schema (unmatched fields resolve to null, they are never
- * omitted). So the strongest proof that a preset actually restricts output is
- * that the result's own keys are exactly the schema's keys plus `meta` — no
- * `data`, no `finalDepth`, no other full-parse fields leak through.
+ * `parseCustom`/`parseSelection` return `{ meta, ...data }` where `data` has
+ * exactly the keys declared in the schema (unmatched fields resolve to null, they
+ * are never omitted). So the strongest proof that a preset actually restricts
+ * output is that the result's own keys are exactly the schema's keys plus `meta`.
+ * Accepts either a raw fields map (parseCustom) or a `project()` selection
+ * producer (parseSelection).
  */
-function expectExactKeys(result: object, fields: Record<string, Producer<unknown>>) {
-  expect(Object.keys(result).sort()).toEqual(['meta', ...Object.keys(fields)].sort());
+function expectExactKeys(
+  result: object,
+  schema: ObjectProducer<unknown> | Record<string, Producer<unknown>>,
+) {
+  const keys =
+    'kind' in schema && schema.kind === 'object'
+      ? Object.keys(schema.fields)
+      : Object.keys(schema as Record<string, unknown>);
+  expect(Object.keys(result).sort()).toEqual(['meta', ...keys].sort());
 }
 
 describe('Custom Schema Parsing', () => {
@@ -27,7 +37,7 @@ describe('Custom Schema Parsing', () => {
 
   describe('CPT custom schemas', () => {
     it('ID_ONLY preset extracts only id + regime, nothing else', () => {
-      const result = parser.parseCustom(fixtures.cpt.example(), presets.CPT_ID_ONLY, 'CPT');
+      const result = parser.parseSelection(fixtures.cpt.example(), presets.CPT_ID_ONLY, 'CPT');
 
       expectExactKeys(result, presets.CPT_ID_ONLY);
       expect(result.broId).toBe('CPT000000099543');
@@ -36,7 +46,7 @@ describe('Custom Schema Parsing', () => {
     });
 
     it('LOCATION_ONLY preset extracts only location fields with exact coordinates', () => {
-      const result = parser.parseCustom(fixtures.cpt.example(), presets.CPT_LOCATION_ONLY, 'CPT');
+      const result = parser.parseSelection(fixtures.cpt.example(), presets.CPT_LOCATION_ONLY, 'CPT');
 
       // Preset field types are inferred from each producer's output type.
       expectTypeOf(result.broId).toEqualTypeOf<string | null>();
@@ -60,7 +70,7 @@ describe('Custom Schema Parsing', () => {
     });
 
     it('METADATA_ONLY preset extracts metadata but not measurement data', () => {
-      const result = parser.parseCustom(fixtures.cpt.example(), presets.CPT_METADATA_ONLY, 'CPT');
+      const result = parser.parseSelection(fixtures.cpt.example(), presets.CPT_METADATA_ONLY, 'CPT');
 
       expectExactKeys(result, presets.CPT_METADATA_ONLY);
       // No measurement array leaked in
@@ -69,8 +79,8 @@ describe('Custom Schema Parsing', () => {
       expect(result.broId).toBe('CPT000000099543');
       expect(result.qualityRegime).toBe('IMBRO');
       expect(result.researchReportDate).toBe('2019-04-23');
-      expect(result.cptStandard).toBe('ISO22476D1');
-      expect(result.qualityClass).toBe(2);
+      expect(result.cptStandard?.code).toBe('ISO22476D1');
+      expect(result.qualityClass?.code).toBe('klasse2');
       expect(result.finalDepth).toBe(7.439);
       expect((result.deliveredLocation as { epsg: string }).epsg).toBe('EPSG:28992');
     });
@@ -103,7 +113,7 @@ describe('Custom Schema Parsing', () => {
 
   describe('BHR-GT custom schemas', () => {
     it('ID_ONLY preset extracts only id + regime, nothing else', () => {
-      const result = parser.parseCustom(fixtures.bhrGt.dispatch(), presets.BORE_ID_ONLY, 'BHR-GT');
+      const result = parser.parseSelection(fixtures.bhrGt.dispatch(), presets.BORE_ID_ONLY, 'BHR-GT');
 
       expectExactKeys(result, presets.BORE_ID_ONLY);
       expect(result.broId).toBe('BHR000000347577');
@@ -112,7 +122,7 @@ describe('Custom Schema Parsing', () => {
     });
 
     it('LOCATION_ONLY preset extracts only location fields with exact coordinates', () => {
-      const result = parser.parseCustom(
+      const result = parser.parseSelection(
         fixtures.bhrGt.dispatch(),
         presets.BORE_LOCATION_ONLY,
         'BHR-GT'
@@ -135,7 +145,7 @@ describe('Custom Schema Parsing', () => {
     });
 
     it('METADATA_ONLY preset extracts metadata but not layer data', () => {
-      const result = parser.parseCustom(
+      const result = parser.parseSelection(
         fixtures.bhrGt.dispatch(),
         presets.BORE_METADATA_ONLY,
         'BHR-GT'
@@ -148,7 +158,7 @@ describe('Custom Schema Parsing', () => {
       expect(result.broId).toBe('BHR000000347577');
       expect(result.qualityRegime).toBe('IMBRO');
       expect(result.researchReportDate).toBe('2021-09-20');
-      expect(result.descriptionProcedure).toBe('ISO14688d1v2019c2020');
+      expect(result.descriptionProcedure?.[0]?.code).toBe('ISO14688d1v2019c2020');
       expect(result.finalBoreDepth).toBe(3);
       expect(result.boreRockReached).toBe(false);
       expect((result.deliveredLocation as { epsg: string }).epsg).toBe('EPSG:28992');
@@ -157,7 +167,7 @@ describe('Custom Schema Parsing', () => {
 
   describe('BHR-G custom schemas', () => {
     it('ID_ONLY preset extracts only id + regime, nothing else', () => {
-      const result = parser.parseCustom(fixtures.bhrG.dispatch(), presets.BHRG_ID_ONLY, 'BHR-G');
+      const result = parser.parseSelection(fixtures.bhrG.dispatch(), presets.BHRG_ID_ONLY, 'BHR-G');
 
       expectExactKeys(result, presets.BHRG_ID_ONLY);
       expect(result.broId).toBe('BHR000000123456');
@@ -166,7 +176,7 @@ describe('Custom Schema Parsing', () => {
     });
 
     it('LOCATION_ONLY preset extracts only location fields with exact coordinates', () => {
-      const result = parser.parseCustom(
+      const result = parser.parseSelection(
         fixtures.bhrG.dispatch(),
         presets.BHRG_LOCATION_ONLY,
         'BHR-G'
@@ -189,7 +199,7 @@ describe('Custom Schema Parsing', () => {
     });
 
     it('METADATA_ONLY preset extracts metadata but not layer data', () => {
-      const result = parser.parseCustom(
+      const result = parser.parseSelection(
         fixtures.bhrG.dispatch(),
         presets.BHRG_METADATA_ONLY,
         'BHR-G'
@@ -201,7 +211,7 @@ describe('Custom Schema Parsing', () => {
       expect(result.broId).toBe('BHR000000123456');
       expect(result.qualityRegime).toBe('IMBRO');
       expect(result.researchReportDate).toBe('2024-01-10');
-      expect(result.descriptionProcedure).toBe('NEN5104');
+      expect(result.descriptionProcedure?.code).toBe('NEN5104');
       expect(result.finalBoreDepth).toBe(8.5);
       expect(result.boreRockReached).toBe(false);
     });
@@ -209,7 +219,7 @@ describe('Custom Schema Parsing', () => {
 
   describe('Auto-detect data type', () => {
     it('should auto-detect CPT data type when not specified', () => {
-      const result = parser.parseCustom(fixtures.cpt.example(), presets.CPT_ID_ONLY);
+      const result = parser.parseSelection(fixtures.cpt.example(), presets.CPT_ID_ONLY);
 
       expect(result.meta.dataType).toBe('CPT');
       expect(result.broId).toBe('CPT000000099543');
@@ -217,25 +227,25 @@ describe('Custom Schema Parsing', () => {
     });
 
     it('should auto-detect BHR-GT data type when not specified', () => {
-      const result = parser.parseCustom(fixtures.bhrGt.dispatch(), presets.BORE_ID_ONLY);
+      const result = parser.parseSelection(fixtures.bhrGt.dispatch(), presets.BORE_ID_ONLY);
 
       expect(result.meta.dataType).toBe('BHR-GT');
       expect(result.broId).toBe('BHR000000347577');
     });
   });
 
-  describe('Extending presets', () => {
-    it('should allow extending a preset with additional fields', () => {
-      const extendedSchema = {
-        ...presets.CPT_ID_ONLY,
-        finalDepth: producers.number(
-          './dscpt:conePenetrometerSurvey/cptcommon:trajectory/cptcommon:finalDepth'
-        ),
-      };
+  describe('Extending a selection', () => {
+    it('should allow a project() selection with the preset fields plus more', () => {
+      // Extending is a fresh selection over the same producer — no XPaths.
+      const extendedSchema = project(CPT_PRODUCER, (t) => ({
+        broId: t.broId,
+        qualityRegime: t.qualityRegime,
+        finalDepth: t.conePenetrometerSurvey.trajectory.finalDepth,
+      }));
 
-      const result = parser.parseCustom(fixtures.cpt.example(), extendedSchema, 'CPT');
+      const result = parser.parseSelection(fixtures.cpt.example(), extendedSchema, 'CPT');
 
-      // Exactly the preset's keys plus the one we added
+      // Exactly the selected keys plus meta.
       expectExactKeys(result, extendedSchema);
       expect(result.broId).toBe('CPT000000099543');
       expect(result.qualityRegime).toBe('IMBRO');

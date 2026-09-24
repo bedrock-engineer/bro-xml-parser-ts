@@ -51,12 +51,12 @@ describe('GLD Parsing (Node)', () => {
 
     it('parses groundwater monitoring net membership', () => {
       const gld = parser.parseGLD(fixtures.gld.withObservations());
-      expect(gld.groundwaterMonitoringNets).toEqual(['GMN000000000553']);
+      expect(gld.groundwaterMonitoringNet).toEqual([{ broId: 'GMN000000000553' }]);
     });
 
     it('parses registration history', () => {
       const gld = parser.parseGLD(fixtures.gld.withObservations());
-      expect(gld.registrationHistory?.registrationStatus).toBe('aangevuld');
+      expect(gld.registrationHistory?.registrationStatus?.code).toBe('aangevuld');
       expect(gld.registrationHistory?.corrected).toBe(true);
       expect(gld.registrationHistory?.latestAdditionTime).toBe('2026-06-17T15:51:46+02:00');
     });
@@ -66,8 +66,8 @@ describe('GLD Parsing (Node)', () => {
     it('parses observation metadata and points', () => {
       const gld = parser.parseGLD(fixtures.gld.withObservations());
 
-      expect(gld.observations).toHaveLength(1);
-      const obs = gld.observations[0];
+      expect(gld.observation).toHaveLength(1);
+      const obs = gld.observation[0];
       expect(obs.observationType).toBe('reguliereMeting');
       expect(obs.status).toBe('voorlopig');
       expect(obs.beginPosition).toBe('2021-10-11');
@@ -101,8 +101,8 @@ describe('GLD Parsing (Node)', () => {
         broId: 'GMW000000063611',
         tubeNumber: 2,
       });
-      expect(gld.observations).toEqual([]);
-      expect(gld.groundwaterMonitoringNets).toEqual([]);
+      expect(gld.observation).toEqual([]);
+      expect(gld.groundwaterMonitoringNet).toEqual([]);
       expect(gld.researchFirstDate).toBeNull();
     });
   });

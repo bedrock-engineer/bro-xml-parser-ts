@@ -146,6 +146,13 @@ export interface DissipationMeasurement {
  */
 export type CPTData = { meta: ParseMeta; alias?: string } & Produced<typeof CPT_PRODUCER>;
 
+/** One dissipation test (pore-pressure decay). @internal */
+export type { DissipationTest } from "../schemas/cpt-curation.js";
+/** A layer removed before the CPT. Derived from the generated CPT schema. @internal */
+export type RemovedLayer = NonNullable<
+  Produced<typeof CPT_PRODUCER>["additionalInvestigation"]
+>["removedLayer"][number];
+
 /**
  * Complete Bore data (metadata + layers).
  *

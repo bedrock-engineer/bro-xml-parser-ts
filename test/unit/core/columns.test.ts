@@ -111,7 +111,7 @@ describe('columns() producer bridge', () => {
   it('reads and decodes a values leaf into typed rows', () => {
     const schema = object({
       fields: {
-        series: columns<{ time: number | null; value: number | null }>('./values', [
+        series: columns('./values', [
           { name: 'time', parse: col.num },
           { name: 'value', parse: col.num },
         ]),
@@ -130,7 +130,7 @@ describe('columns() producer bridge', () => {
   it('yields [] when the values leaf is absent', () => {
     const schema = object({
       fields: {
-        series: columns<{ time: number | null }>('./values', [{ name: 'time', parse: col.num }]),
+        series: columns('./values', [{ name: 'time', parse: col.num }]),
       },
     });
     const doc = adapter.parseXML('<doc><root><other/></root></doc>');

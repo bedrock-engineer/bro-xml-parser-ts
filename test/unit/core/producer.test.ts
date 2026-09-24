@@ -5,6 +5,7 @@ import {
   array,
   text,
   number,
+  code,
   custom,
   oneOf,
 } from '@/core/producer';
@@ -129,6 +130,52 @@ describe('SchemaParser.produce', () => {
       const { value } = produce<Record<string, unknown>>('<id>x</id>', schema);
       expect(value).toEqual({ id: 'x' });
       expect('note' in value).toBe(false);
+    });
+  });
+
+  describe('code leaf', () => {
+    it('captures { code, codeSpace } from text + the codeSpace attribute', () => {
+      const schema = object({
+        fields: { quality: code('./qualityClass') },
+      });
+      const { value } = produce<{ quality: { code: string; codeSpace: string } | null }>(
+        '<qualityClass codeSpace="urn:bro:cpt:QualityClass">klasse2</qualityClass>',
+        schema,
+      );
+      expect(value.quality).toEqual({ code: 'klasse2', codeSpace: 'urn:bro:cpt:QualityClass' });
+    });
+
+    it('nulls an absent coded element (optional), keeping the key', () => {
+      const schema = object({ fields: { quality: code('./qualityClass') } });
+      const { value } = produce<{ quality: unknown }>('<other/>', schema);
+      expect(value).toEqual({ quality: null });
+    });
+
+    it('drops empty coded items from an array without a warning', () => {
+      const schema = object({
+        fields: { codes: array({ each: './c', item: code() }) },
+      });
+      const { value, warnings } = produce<{ codes: Array<{ code: string; codeSpace: string }> }>(
+        '<c codeSpace="urn:bro:X">a</c><c/><c codeSpace="urn:bro:X">b</c>',
+        schema,
+      );
+      expect(value.codes).toEqual([
+        { code: 'a', codeSpace: 'urn:bro:X' },
+        { code: 'b', codeSpace: 'urn:bro:X' },
+      ]);
+      expect(warnings).toEqual([]);
+    });
+
+    it('omits a coded key entirely when presence is "omit" and it is absent', () => {
+      const schema = object({
+        fields: {
+          id: text('./id'),
+          quality: code('./qualityClass', { presence: 'omit' }),
+        },
+      });
+      const { value } = produce<Record<string, unknown>>('<id>x</id>', schema);
+      expect(value).toEqual({ id: 'x' });
+      expect('quality' in value).toBe(false);
     });
   });
 

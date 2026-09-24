@@ -9,7 +9,7 @@
 
 import type { XMLAdapter, Namespaces } from "../types/index.js";
 import { BROParseError } from "../types/index.js";
-import type { NodeLens, Producer, ObjectProducer, Presence } from "./producer.js";
+import type { NodeLens, Producer, ObjectProducer, Presence, LeafKind } from "./producer.js";
 
 /** Resolves an XPath namespace prefix to its URI. */
 type NamespaceResolver = (prefix: string | null) => string | null;
@@ -21,6 +21,13 @@ function readText(node: Node): string | null {
     return null;
   }
   return trimmed;
+}
+
+const LEAF_KINDS: ReadonlySet<LeafKind> = new Set(["scalar", "code"]);
+
+/** Leaf producers are value-bearing and text-presence driven (`scalar`, `code`). */
+function isLeafKind(kind: Producer<unknown, Presence>["kind"]): boolean {
+  return LEAF_KINDS.has(kind as LeafKind);
 }
 
 /** Outcome of running one producer: its value, and whether it found data. */
@@ -112,7 +119,16 @@ export class SchemaParser {
     switch (producer.kind) {
       case "scalar": {
         const raw = readText(self);
-        return { value: producer.decode(raw), satisfied: raw !== null };
+        return {
+          value: producer.decode(raw, (msg) => warnings.push(msg)),
+          satisfied: raw !== null,
+        };
+      }
+      case "code": {
+        const raw = readText(self);
+        const csNode = this.xpath(self, "@codeSpace");
+        const codeSpace = csNode ? readText(csNode) : null;
+        return { value: producer.decode(raw, codeSpace), satisfied: raw !== null };
       }
       case "custom": {
         return { value: producer.produce(this.makeLens(self)), satisfied: true };
@@ -127,8 +143,8 @@ export class SchemaParser {
           const outcome = this.run(itemNode, producer.item, warnings);
           if (!outcome.satisfied) {
             // Structured items (object/oneOf) that fail a required field are a
-            // meaningful data loss; an empty scalar in a code list is not.
-            if (producer.item.kind !== "scalar") {
+            // meaningful data loss; an empty leaf (scalar/code) in a value list is not.
+            if (!isLeafKind(producer.item.kind)) {
               warnings.push(
                 `Dropped an item from array "${producer.each}": required data was missing`,
               );
@@ -227,6 +243,8 @@ export class SchemaParser {
     switch (producer.kind) {
       case "scalar":
         return producer.decode(null);
+      case "code":
+        return producer.decode(null, null);
       case "array":
         return [];
       default:

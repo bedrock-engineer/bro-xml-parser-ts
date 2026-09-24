@@ -2,9 +2,25 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "types": ["vitest/globals", "node"],
-    "lib": ["ES2020", "DOM"],
-    "noEmit": true
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@test/*": ["./test/*"]
+    },
+    "rootDir": ".",
+    "noEmit": true,
+
+    // Relax authoring-ergonomics flags for tests; keep the correctness flags
+    // (strict, strictNullChecks, exactOptionalPropertyTypes). The point of
+    // checking tests is to enforce expectTypeOf assertions and catch real type
+    // mistakes, not to lint array indexing.
+    "noUncheckedIndexedAccess": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "include": ["test/**/*", "src/**/*"],
-  "exclude": []
+  "exclude": ["node_modules", "dist"]
 }

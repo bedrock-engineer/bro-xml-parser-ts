@@ -26,7 +26,7 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
 
     expect(bore.analysis).toBeDefined();
     expect(bore.analysis?.analysisReportDate).toBe('2020-03-03');
-    expect(bore.analysis?.analysisProcedure).toBe('geen');
+    expect(bore.analysis?.analysisProcedure?.code).toBe('geen');
   });
 
   it('should extract investigated intervals', () => {
@@ -39,8 +39,8 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const interval = bore.analysis!.investigatedIntervals[0];
     expect(interval.beginDepth).toBe(1.12);
     expect(interval.endDepth).toBe(1.18);
-    expect(interval.sampleQuality).toBe('QM2');
-    expect(interval.analysisType).toBe('korrelgrootteverdeling');
+    expect(interval.sampleQuality?.code).toBe('QM2');
+    expect(interval.analysisType?.code).toBe('korrelgrootteverdeling');
   });
 
   it('should extract determination flags', () => {
@@ -64,14 +64,14 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     expect(interval.waterContentDetermination).toBeDefined();
 
     const wc = interval.waterContentDetermination!;
-    expect(wc.determinationProcedure).toBe('ISO17892d1v2014');
-    expect(wc.determinationMethod).toBe('drogen');
-    expect(wc.sampleMoistness).toBe('veldvochtig');
-    expect(wc.removedMaterial).toBe('geen');
+    expect(wc.determinationProcedure?.code).toBe('ISO17892d1v2014');
+    expect(wc.determinationMethod?.code).toBe('drogen');
+    expect(wc.sampleMoistness?.code).toBe('veldvochtig');
+    expect(wc.removedMaterial?.code).toBe('geen');
     expect(wc.waterContent).toBe(31.6);
-    expect(wc.dryingTemperature).toBe('105graden');
-    expect(wc.dryingPeriod).toBe('16tot24uur');
-    expect(wc.saltCorrectionMethod).toBe('nietToegepast');
+    expect(wc.dryingTemperature?.code).toBe('105graden');
+    expect(wc.dryingPeriod?.code).toBe('16tot24uur');
+    expect(wc.saltCorrectionMethod?.code).toBe('nietToegepast');
   });
 
   it('should extract volumetric mass density determination', () => {
@@ -82,9 +82,9 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     expect(interval.volumetricMassDensityDetermination).toBeDefined();
 
     const vmd = interval.volumetricMassDensityDetermination!;
-    expect(vmd.determinationProcedure).toBe('ISO17892d2v2014');
-    expect(vmd.determinationMethod).toBe('volumeVoorbepaald');
-    expect(vmd.sampleMoistness).toBe('veldvochtig');
+    expect(vmd.determinationProcedure?.code).toBe('ISO17892d2v2014');
+    expect(vmd.determinationMethod?.code).toBe('volumeVoorbepaald');
+    expect(vmd.sampleMoistness?.code).toBe('veldvochtig');
     expect(vmd.volumetricMassDensity).toBe(1.779);
   });
 
@@ -96,12 +96,12 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     expect(interval.particleSizeDistributionDetermination).toBeDefined();
 
     const psd = interval.particleSizeDistributionDetermination!;
-    expect(psd.determinationProcedure).toBe('ISO17892d4v2016enISO13317d3v2001');
-    expect(psd.determinationMethod).toBe('natDroogZevenRoentgen');
-    expect(psd.fractionDistribution).toBe('uitgebreidStandaard');
-    expect(psd.dispersionMethod).toBe('roerenDispersiemiddel');
-    expect(psd.removedMaterial).toBe('geen');
-    expect(psd.equivalentMassDeterminationMethod).toBe('massaAangenomen');
+    expect(psd.determinationProcedure?.code).toBe('ISO17892d4v2016enISO13317d3v2001');
+    expect(psd.determinationMethod?.code).toBe('natDroogZevenRoentgen');
+    expect(psd.fractionDistribution?.code).toBe('uitgebreidStandaard');
+    expect(psd.dispersionMethod?.code).toBe('roerenDispersiemiddel');
+    expect(psd.removedMaterial?.code).toBe('geen');
+    expect(psd.equivalentMassDeterminationMethod?.code).toBe('massaAangenomen');
     expect(psd.equivalentMass).toBe(2.65);
   });
 

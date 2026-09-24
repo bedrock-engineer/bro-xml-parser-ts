@@ -46,21 +46,21 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
 
     expect(interval).toBeDefined();
     expect(interval!.endDepth).toBe(1.34);
-    expect(interval!.analysisType).toBe('schuifspanningsverloopHorVervorming');
+    expect(interval!.analysisType?.code).toBe('schuifspanningsverloopHorVervorming');
 
     const det = interval!.shearStressChangeDuringHorizontalDeformationDetermination![0];
 
-    expect(det.determinationProcedure).toBe('ASTM_D6528v2017');
-    expect(det.determinationMethod).toBe('horizontaalVervormenHoogtegestuurd');
+    expect(det.determinationProcedure?.code).toBe('ASTM_D6528v2017');
+    expect(det.determinationMethod?.code).toBe('horizontaalVervormenHoogtegestuurd');
     expect(det.specimenDisturbed).toBe(false);
-    expect(det.sampleMoistness).toBe('veldvochtig');
+    expect(det.sampleMoistness?.code).toBe('veldvochtig');
     expect(det.specimenWaterSaturated).toBe(true);
     expect(det.porousDiscWet).toBe(true);
     expect(det.drained).toBe(true);
-    expect(det.lateralSupport).toBe('ringenstapel');
+    expect(det.lateralSupport?.code).toBe('ringenstapel');
     expect(det.beginDiameter).toBe(65.9);
     expect(det.beginHeight).toBe(27.7);
-    expect(det.stopCriterion).toBe('einddoel');
+    expect(det.stopCriterion?.code).toBe('einddoel');
     expect(det.membraneCorrectionApplied).toBe(true);
     expect(det.apparatusDeformationApplied).toBe(false);
     expect(det.bearingFrictionCorrectionApplied).toBe(false);

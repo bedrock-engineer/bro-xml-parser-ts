@@ -18,8 +18,8 @@ describe('GMW Parsing (Node)', () => {
       expect(gmw.broId).toBe('GMW000000048066');
       expect(gmw.qualityRegime).toBe('IMBRO');
       expect(gmw.numberOfMonitoringTubes).toBe(1);
-      expect(gmw.monitoringTubes).toBeInstanceOf(Array);
-      expect(gmw.monitoringTubes).toHaveLength(1);
+      expect(gmw.monitoringTube).toBeInstanceOf(Array);
+      expect(gmw.monitoringTube).toHaveLength(1);
     });
 
     it('includes meta with schema version info', () => {
@@ -42,85 +42,89 @@ describe('GMW Parsing (Node)', () => {
     it('extracts construction/context/ownership fields', () => {
       const gmw = parser.parseGMW(fixtures.gmw.singleTube());
 
-      expect(gmw.deliveryContext).toBe('publiekeTaak');
-      expect(gmw.constructionStandard).toBe('RWSgwmon');
-      expect(gmw.initialFunction).toBe('stand');
+      expect(gmw.deliveryContext?.code).toBe('publiekeTaak');
+      expect(gmw.constructionStandard?.code).toBe('RWSgwmon');
+      expect(gmw.initialFunction?.code).toBe('stand');
       expect(gmw.withPrehistory).toBe(false);
       expect(gmw.removed).toBe(false);
+      // groundLevelStable is tri-state (ja/nee/onbekend), kept as its raw string.
       expect(gmw.groundLevelStable).toBe('ja');
       expect(gmw.wellCode).toBe('GMW44D129400');
       expect(gmw.owner).toBe('27364178');
-      expect(gmw.wellHeadProtector).toBe('geen');
+      expect(gmw.wellHeadProtector?.code).toBe('geen');
     });
 
     it('extracts locations and vertical position', () => {
       const gmw = parser.parseGMW(fixtures.gmw.singleTube());
 
-      assertValidLocation(gmw.deliveredLocation);
-      expect(gmw.deliveredLocation?.epsg).toBe('EPSG:28992');
-      assertValidLocation(gmw.standardizedLocation);
-      expect(gmw.standardizedLocation?.epsg).toBe('EPSG:4258');
-      expect(gmw.coordinateTransformation).toBe('RDNAPTRANS2008');
+      assertValidLocation(gmw.deliveredLocation?.location ?? null);
+      expect(gmw.deliveredLocation?.location?.epsg).toBe('EPSG:28992');
+      assertValidLocation(gmw.standardizedLocation?.location ?? null);
+      expect(gmw.standardizedLocation?.location?.epsg).toBe('EPSG:4258');
+      expect(gmw.standardizedLocation?.coordinateTransformation?.code).toBe('RDNAPTRANS2008');
 
-      expect(gmw.deliveredVerticalPositionDatum).toBe('NAP');
-      expect(gmw.deliveredVerticalPositionReferencePoint).toBe('NAP');
-      expect(gmw.deliveredVerticalPositionOffset).toBe(0);
-      expect(gmw.groundLevelPosition).toBeCloseTo(6.84, 3);
-      expect(gmw.groundLevelPositioningMethod).toBe('RTKGPS10tot20cm');
+      expect(gmw.deliveredVerticalPosition?.verticalDatum?.code).toBe('NAP');
+      expect(gmw.deliveredVerticalPosition?.localVerticalReferencePoint?.code).toBe('NAP');
+      expect(gmw.deliveredVerticalPosition?.offset).toBe(0);
+      expect(gmw.deliveredVerticalPosition?.groundLevelPosition).toBeCloseTo(6.84, 3);
+      expect(gmw.deliveredVerticalPosition?.groundLevelPositioningMethod?.code).toBe(
+        'RTKGPS10tot20cm'
+      );
     });
 
     it('parses registration history and construction date', () => {
       const gmw = parser.parseGMW(fixtures.gmw.singleTube());
 
-      expect(gmw.registrationHistory?.registrationStatus).toBe('geregistreerd');
+      expect(gmw.registrationHistory?.registrationStatus?.code).toBe('geregistreerd');
       expect(gmw.registrationHistory?.objectRegistrationTime).toBe(
         '2021-05-31T16:56:39+02:00'
       );
       expect(gmw.registrationHistory?.deregistered).toBe(false);
       // Partial-date wrapper preserved as an ISO string.
-      expect(gmw.wellConstructionDate).toBe('1900-01-01');
+      expect(gmw.wellHistory?.wellConstructionDate).toBe('1900-01-01');
     });
   });
 
   describe('Monitoring tubes', () => {
-    it('flattens materialUsed / screen / plainTubePart / sedimentSump', () => {
+    it('nests materialUsed / screen / plainTubePart / sedimentSump', () => {
       const gmw = parser.parseGMW(fixtures.gmw.singleTube());
-      const tube = gmw.monitoringTubes[0];
+      const tube = gmw.monitoringTube[0];
 
       expect(tube.tubeNumber).toBe(1);
-      expect(tube.tubeType).toBe('standaardbuis');
-      expect(tube.artesianWellCapPresent).toBe(false);
-      expect(tube.sedimentSumpPresent).toBe(true);
+      expect(tube.tubeType?.code).toBe('standaardbuis');
+      // Tri-state indicators keep their raw ja/nee/onbekend string.
+      expect(tube.artesianWellCapPresent).toBe('nee');
+      expect(tube.sedimentSumpPresent).toBe('ja');
       expect(tube.numberOfGeoOhmCables).toBe(0);
       expect(tube.tubeTopDiameter).toBe(32);
-      expect(tube.variableDiameter).toBe(false);
+      expect(tube.variableDiameter).toBe('nee');
       expect(tube.tubeInUse).toBe('onbekend');
 
       // materialUsed
-      expect(tube.tubeMaterial).toBe('peHighDensity');
-      expect(tube.tubePackingMaterial).toBe('bentonietFiltergrind');
-      expect(tube.glue).toBe('ongespecificeerd');
+      expect(tube.materialUsed?.tubeMaterial?.code).toBe('peHighDensity');
+      expect(tube.materialUsed?.tubePackingMaterial?.code).toBe('bentonietFiltergrind');
+      expect(tube.materialUsed?.glue?.code).toBe('ongespecificeerd');
 
       // screen
-      expect(tube.screenLength).toBeCloseTo(1.0, 3);
-      expect(tube.sockMaterial).toBe('nylon');
-      expect(tube.screenTopPosition).toBeCloseTo(3.44, 3);
-      expect(tube.screenBottomPosition).toBeCloseTo(2.44, 3);
+      expect(tube.screen?.screenLength).toBeCloseTo(1.0, 3);
+      expect(tube.screen?.sockMaterial?.code).toBe('nylon');
+      expect(tube.screen?.screenTopPosition).toBeCloseTo(3.44, 3);
+      expect(tube.screen?.screenBottomPosition).toBeCloseTo(2.44, 3);
 
       // plainTubePart / sedimentSump
-      expect(tube.plainTubePartLength).toBeCloseTo(3.4, 3);
-      expect(tube.sedimentSumpLength).toBeCloseTo(0.5, 3);
+      expect(tube.plainTubePart?.plainTubePartLength).toBeCloseTo(3.4, 3);
+      expect(tube.sedimentSump?.sedimentSumpLength).toBeCloseTo(0.5, 3);
 
       // no cables on this tube
-      expect(tube.geoOhmCables).toEqual([]);
+      expect(tube.geoOhmCable).toEqual([]);
     });
 
     it('parses a multi-tube well (GMW000000040000)', () => {
       const gmw = parser.parseGMW(fixtures.gmw.multiTube());
 
       expect(gmw.numberOfMonitoringTubes).toBe(2);
-      expect(gmw.monitoringTubes).toHaveLength(2);
-      expect(gmw.monitoringTubes.map((t) => t.tubeNumber)).toEqual([1, 2]);
+      expect(gmw.monitoringTube).toHaveLength(2);
+      expect(gmw.monitoringTube.map((t) => t.tubeNumber)).toEqual([1, 2]);
     });
   });
 
@@ -128,43 +132,42 @@ describe('GMW Parsing (Node)', () => {
     it('extracts the intermediate-event log (GMW000000012500)', () => {
       const gmw = parser.parseGMW(fixtures.gmw.withEvent());
 
-      expect(gmw.wellConstructionDate).toBe('2014-10-07');
-      expect(gmw.intermediateEvents).toHaveLength(1);
-      expect(gmw.intermediateEvents[0]).toEqual({
-        eventName: 'nieuweInmetingPosities',
-        eventDate: '2016-08-22',
-      });
+      expect(gmw.wellHistory?.wellConstructionDate).toBe('2014-10-07');
+      const events = gmw.wellHistory?.intermediateEvent ?? [];
+      expect(events).toHaveLength(1);
+      expect(events[0].eventName?.code).toBe('nieuweInmetingPosities');
+      expect(events[0].eventDate).toBe('2016-08-22');
+      // The per-event change record is now surfaced faithfully.
+      expect(events[0].eventData?.tubeData[0]?.tubeNumber).toBe(1);
     });
 
     it('has an empty event log when there are no events', () => {
       const gmw = parser.parseGMW(fixtures.gmw.singleTube());
-      expect(gmw.intermediateEvents).toEqual([]);
+      expect(gmw.wellHistory?.intermediateEvent).toEqual([]);
     });
   });
 
   describe('Inserted parts and geo-ohm cables (synthetic fixture)', () => {
     it('parses insertedPart and geoOhmCable/electrode branches', () => {
       const gmw = parser.parseGMW(fixtures.gmw.synthetic());
-      const tube = gmw.monitoringTubes[0];
+      const tube = gmw.monitoringTube[0];
 
       expect(tube.tubePartInserted).toBe(true);
-      expect(tube.insertedPartLength).toBeCloseTo(1.2, 3);
-      expect(tube.insertedPartDiameter).toBe(32);
-      expect(tube.insertedPartMaterial).toBe('rvs');
+      expect(tube.insertedPart?.insertedPartLength).toBeCloseTo(1.2, 3);
+      expect(tube.insertedPart?.insertedPartDiameter).toBe(32);
+      expect(tube.insertedPart?.insertedPartMaterial?.code).toBe('rvs');
 
       expect(tube.numberOfGeoOhmCables).toBe(1);
-      expect(tube.geoOhmCables).toHaveLength(1);
-      const cable = tube.geoOhmCables[0];
+      expect(tube.geoOhmCable).toHaveLength(1);
+      const cable = tube.geoOhmCable[0];
       expect(cable.cableNumber).toBe(1);
       expect(cable.cableInUse).toBe('ja');
-      expect(cable.electrodes).toHaveLength(2);
-      expect(cable.electrodes[0]).toEqual({
-        electrodeNumber: 1,
-        electrodePackingMaterial: 'filtergrind',
-        electrodeStatus: 'gebruiksklaar',
-        electrodePosition: -9.0,
-      });
-      expect(cable.electrodes[1].electrodePosition).toBeCloseTo(-9.5, 3);
+      expect(cable.electrode).toHaveLength(2);
+      expect(cable.electrode[0].electrodeNumber).toBe(1);
+      expect(cable.electrode[0].electrodePackingMaterial?.code).toBe('filtergrind');
+      expect(cable.electrode[0].electrodeStatus?.code).toBe('gebruiksklaar');
+      expect(cable.electrode[0].electrodePosition).toBe(-9.0);
+      expect(cable.electrode[1].electrodePosition).toBeCloseTo(-9.5, 3);
     });
   });
 

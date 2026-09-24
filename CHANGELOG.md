@@ -8,6 +8,62 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+Ground-up redesign ("Gen 3"): every registration schema is now generated from the
+official BRO XSDs, coded values are first-class, and the parsed shapes mirror the
+XSD structure. This is a large breaking change across the whole API.
+
+### Added
+
+- **First-class coded values.** BRO coded elements now parse to `Coded`
+  (`{ code, codeSpace }`) objects — the `codeSpace` domain is captured from the
+  instance, never guessed from a field name. New `code()` combinator. Read
+  `field?.code` for the code.
+- **`describe()` for reference codes.** A single `describe(coded)` in the
+  `/reference-codes` subpath resolves the official Dutch description by `codeSpace`,
+  replacing the ~200 per-field `getXxxDescription` helpers. `prettifyBroCode(code)`
+  gives a short label when there is no official text.
+- **`project()` typed selector.** Build a narrowed schema by naming fields on the
+  full producer — `project(CPT_PRODUCER, (t) => ({ ... }))` — and parse it with
+  `parser.parseSelection(xml, selection, dataType)`; the result type is inferred
+  from the selection. The built-in presets are now `project()` selections.
+- **Schema codegen.** All five registration schemas (CPT, BHR-GT, BHR-G, GMW, GLD)
+  are generated from their official XSDs by `npm run codegen:schema`. Hand-written
+  code is limited to the OGC/WaterML2/`swe` subtrees the XSD can't express, injected
+  as curation.
+
+### Changed
+
+- **BREAKING: coded fields are objects, not strings/numbers.** Every coded field is
+  now `Coded | null`; use `field?.code` for the code and `describe(field)` for the
+  description. This includes `qualityClass`, now `code()` →
+  `{ code: "klasse2", codeSpace: "urn:bro:cpt:QualityClass" }` (previously a parsed
+  number that silently mapped the valid codes `nvt`/`onbekend` to `null`).
+- **BREAKING: parsed shapes follow the XSD structure.** Previously-flattened
+  surfaces are now nested to match the BRO/XML hierarchy — e.g.
+  `cpt.conePenetrometerSurvey.trajectory.finalDepth`,
+  `gmw.monitoringTube[].screen.screenLength`, `gld.observation` (was
+  `observations`), and BHR-GT/BHR-G layers under
+  `boreholeSampleDescription.descriptiveBoreholeLog[].layer`. Repeated elements keep
+  their XSD-singular names (`monitoringTube`, `dissipationTest`, `observation`).
+- **BREAKING: tri-state indicators are strings, not booleans.** Fields the XSD types
+  as `IndicationYesNoUnknown` — `anthropogenic`, `rooted`, `boreholeCompleted`,
+  `continuouslySampled`, `tubeInUse`, `groundLevelStable`, the CPT
+  `*ProcessingPerformed` flags, and others — now parse to
+  `'ja' | 'nee' | 'onbekend' | null` instead of `boolean | null`. The old boolean
+  mapping silently discarded the `onbekend` (unknown) state. Genuine bi-state
+  `IndicationYesNo` fields (e.g. registration-history flags) remain `boolean`.
+- **BREAKING: GMW/GLD detail changes.** GMW monitoring tubes now nest `materialUsed`
+  / `screen` / `plainTubePart` / `sedimentSump` / `insertedPart` instead of
+  flattening them onto the tube; the well-history event log exposes its per-event
+  `eventData` change record. GLD `groundwaterMonitoringNet` is now an array of
+  `{ broId }` objects (was an array of ID strings).
+
+### Removed
+
+- **BREAKING: the ~200 `getXxxDescription` functions** — use `describe()` instead.
+- **BREAKING: `parseQualityClass`** and the bespoke `qualityClass` producer — coded
+  values are handled uniformly by `code()`.
+
 ## [0.5.0] - 2026-09-22
 
 ### Changed

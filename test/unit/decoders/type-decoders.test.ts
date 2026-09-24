@@ -4,7 +4,6 @@ import {
   parseInt,
   parseBoolean,
   parseDate,
-  parseQualityClass,
 } from '@/decoders/type-decoders';
 
 describe('parseFloat', () => {
@@ -113,23 +112,5 @@ describe('parseDate', () => {
     expect(parseDate('not a date')).toBeNull();
     expect(parseDate(null)).toBeNull();
     expect(parseDate('')).toBeNull();
-  });
-});
-
-describe('parseQualityClass', () => {
-  it('should parse "klasseN" format', () => {
-    expect(parseQualityClass('klasse1')).toBe(1);
-    expect(parseQualityClass('klasse2')).toBe(2);
-    expect(parseQualityClass('Klasse3')).toBe(3);
-  });
-
-  it('should parse plain numbers', () => {
-    expect(parseQualityClass('2')).toBe(2);
-    expect(parseQualityClass('4')).toBe(4);
-  });
-
-  it('should return null for invalid values', () => {
-    expect(parseQualityClass(null)).toBeNull();
-    expect(parseQualityClass('')).toBeNull();
   });
 });

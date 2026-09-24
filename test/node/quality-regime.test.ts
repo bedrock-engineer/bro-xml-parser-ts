@@ -33,7 +33,7 @@ describe('Quality Regime Parsing (Node)', () => {
 
     expect(imbro.broId).toBeTruthy();
     expect(imbroa.broId).toBeTruthy();
-    expect(imbro.data.length).toBeGreaterThan(0);
-    expect(imbroa.data.length).toBeGreaterThan(0);
+    expect(imbro.conePenetrometerSurvey?.conePenetrationTest?.measurements?.length).toBeGreaterThan(0);
+    expect(imbroa.conePenetrometerSurvey?.conePenetrationTest?.measurements?.length).toBeGreaterThan(0);
   });
 });

@@ -31,14 +31,14 @@ describe('Maximum Undrained Shear Strength Determination Parsing', () => {
     expect(interval).toBeDefined();
     expect(interval?.beginDepth).toBe(3.0);
     expect(interval?.endDepth).toBe(3.1);
-    expect(interval?.analysisType).toBe('maximaleSchuifsterkte');
+    expect(interval?.analysisType?.code).toBe('maximaleSchuifsterkte');
 
     const det = interval!.maximumUndrainedShearStrengthDetermination!;
-    expect(det.determinationProcedure).toBe('ISO14688d2v2019');
-    expect(det.determinationMethod).toBe('handvinDraaien');
-    expect(det.determinationDiameter).toBe('TVstandaard');
+    expect(det.determinationProcedure?.code).toBe('ISO14688d2v2019');
+    expect(det.determinationMethod?.code).toBe('handvinDraaien');
+    expect(det.determinationDiameter?.code).toBe('TVstandaard');
     expect(det.verticallyDetermined).toBe(true);
-    expect(det.sampleMoistness).toBe('veldvochtig');
+    expect(det.sampleMoistness?.code).toBe('veldvochtig');
     expect(det.maximumUndrainedShearStrength).toBe(16.0);
   });
 

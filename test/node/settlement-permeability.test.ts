@@ -56,10 +56,10 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const bore = parser.parseBHRGT(xml);
 
       const sc = bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination!;
-      expect(sc.determinationProcedure).toBe('ISO17892d5v2017');
-      expect(sc.determinationMethod).toBe('samendrukkenBelastinggestuurd');
+      expect(sc.determinationProcedure?.code).toBe('ISO17892d5v2017');
+      expect(sc.determinationMethod?.code).toBe('samendrukkenBelastinggestuurd');
       expect(sc.ringDiameter).toBe(63.5);
-      expect(sc.sampleMoistness).toBe('veldvochtig');
+      expect(sc.sampleMoistness?.code).toBe('veldvochtig');
       expect(sc.filterPaperUsed).toBe(false);
       expect(sc.temperature).toBeDefined();
     });
@@ -90,7 +90,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
 
       // First step (loading)
       expect(steps[0].stepNumber).toBe(1);
-      expect(steps[0].stepType).toBe('belastingstap');
+      expect(steps[0].stepType?.code).toBe('belastingstap');
       expect(steps[0].verticalStress).toBe(5.0);
       expect(steps[0].wetPerformed).toBe(true);
       expect(steps[0].swellObserved).toBe(false);
@@ -101,7 +101,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
 
       // Fifth step (last loading step)
       expect(steps[4].stepNumber).toBe(5);
-      expect(steps[4].stepType).toBe('belastingstap');
+      expect(steps[4].stepType?.code).toBe('belastingstap');
       expect(steps[4].verticalStress).toBe(80.0);
     });
 
@@ -159,9 +159,9 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const bore = parser.parseBHRGT(xml);
 
       const sp = bore.analysis!.investigatedIntervals[7].saturatedPermeabilityDetermination!;
-      expect(sp.determinationProcedure).toBe('ISO17892d11v2019');
-      expect(sp.determinationMethod).toBe('constantHead');
-      expect(sp.usedMedium).toBe('leidingwater');
+      expect(sp.determinationProcedure?.code).toBe('ISO17892d11v2019');
+      expect(sp.determinationMethod?.code).toBe('constantHead');
+      expect(sp.usedMedium?.code).toBe('leidingwater');
     });
 
     it('should extract boolean flags correctly', () => {

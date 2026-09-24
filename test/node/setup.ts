@@ -1,5 +1,6 @@
 // Node-specific test setup
 // Ensure peer dependencies are available
+export {}; // ensure this file is a module (top-level await requires it)
 
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
