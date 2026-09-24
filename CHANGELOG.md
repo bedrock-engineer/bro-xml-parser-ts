@@ -8,6 +8,8 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-24
+
 Ground-up redesign ("Gen 3"): every registration schema is now generated from the
 official BRO XSDs, coded values are first-class, and the parsed shapes mirror the
 XSD structure. This is a large breaking change across the whole API.
@@ -257,8 +259,9 @@ XSD structure. This is a large breaking change across the whole API.
   structures previously parsed dates inline with `new Date()`, duplicating logic
   and carrying the same bugs; these now route through `parseDate`.
 
-[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.6.0...HEAD
 
+[0.6.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.3.0...v0.4.0
 
