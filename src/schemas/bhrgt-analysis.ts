@@ -35,9 +35,9 @@ function codeList(each: string): Producer<Array<Coded | null>> {
   return array({ each, item: code() });
 }
 
-/** Depth boundary: decimal, defaulting to 0 when absent (XSD-required in practice). */
-function depth(at: string): Producer<number> {
-  return scalar<number>({ at, decode: (raw) => parseFloat(raw) ?? 0 });
+/** Depth boundary: decimal (`number | null`), matching every other interval bound. */
+function depth(at: string): Producer<number | null> {
+  return scalar<number | null>({ at, decode: (raw) => parseFloat(raw) });
 }
 
 /** Integer step/count, defaulting to 0 when absent. */
@@ -592,7 +592,7 @@ export const ANALYSIS_PRODUCER = object({
   fields: {
     analysisReportDate: date("./bhrgtcom:analysisReportDate"),
     analysisProcedure: code("./bhrgtcom:analysisProcedure"),
-    investigatedIntervals: array({
+    investigatedInterval: array({
       each: "./bhrgtcom:investigatedInterval",
       item: INVESTIGATED_INTERVAL,
     }),

@@ -4,15 +4,24 @@
 
 TypeScript parser library for Dutch [Basisregistratie Ondergrond](https://basisregistratieondergrond.nl/) (BRO) XML data, focussing on geotechnical and geological data.
 
-The [BRO contains many registration object types](https://basisregistratieondergrond.nl/inhoud-bro/registratieobjecten/). This library currently only covers three:
+The [BRO contains many registration object types](https://basisregistratieondergrond.nl/inhoud-bro/registratieobjecten/). This library currently only covers five:
 
 1. **CPT** (Cone Penetration Test)
 2. **BHR-GT** (Geotechnical Borehole)
 3. **BHR-G** (Geological Borehole)
+4. **GMW** (Groundwater Monitoring Well) 
+5. **GLD** (Groundwater Level)
 
 Support for more registration object types is desired but not our curent focus. PRs are welcome.
 
 **Live demo:** [bro.bedrock.engineer](https://bro.bedrock.engineer/) ([source](https://github.com/bedrock-engineer/bro-xml-app))
+
+## Why the web?
+
+Geoscience and hydrology tooling leans heavily on Python. While Python and its scientific and geospatial ecosystem is unmatched for analysis and calculation, it is not the most suitable platform for displaying the contents of BRO/XML and being able to distribute that. Here, the web is unbeatable and the web's language is JavaScript. 
+
+Why TypeScript, then? Mostly a quality-of-life choice for developers. The BRO/XML schema is encoded as types so the shape of every parsed object is known while you write it.
+This gives useful autocompletion and lets the compiler catch mistakes before. It makes the parser pleasant to build on.
 
 ## Installation
 
@@ -98,9 +107,8 @@ const result = parser.parseCustom(
 
 The `producers` namespace carries every building block the library uses internally:
 leaf combinators (`text`, `number`, `integer`, `date`, `boolean`, `code`),
-structural combinators (`object`, `array`, `oneOf`, `custom`), the domain helpers
-(`gmlLocation`, `columns`), and the shared field-maps (`COMMON_REGISTRATION_PRODUCERS`,
-`REGISTRATION_HISTORY`) you can spread into a schema.
+structural combinators (`object`, `array`, `oneOf`, `custom`), and the domain
+helpers (`gmlLocation`, `columns` / `col`).
 
 ## API
 

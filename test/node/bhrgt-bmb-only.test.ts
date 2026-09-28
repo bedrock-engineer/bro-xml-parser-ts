@@ -24,7 +24,7 @@ describe("BHR-GT with BMB Only (No Laboratory Analysis)", () => {
     const xml = fixtures.bhrGtBma.bmbOnly1();
     const bore = parser.parseBHRGT(xml);
 
-    expect(bore.analysis).toBeUndefined();
+    expect(bore.boreholeSampleAnalysis).toBeUndefined();
   });
 
   it("should extract bore description layers from BMB data", () => {
@@ -46,7 +46,7 @@ describe("BHR-GT with BMB Only (No Laboratory Analysis)", () => {
 
     assertValidBore(bore);
     expect(bore.broId).toBe("BHR000000336085");
-    expect(bore.analysis).toBeUndefined();
+    expect(bore.boreholeSampleAnalysis).toBeUndefined();
     const layers = firstLogLayers(bore);
     expect(layers.length).toBeGreaterThan(0);
   });
@@ -57,7 +57,7 @@ describe("BHR-GT with BMB Only (No Laboratory Analysis)", () => {
 
     assertValidBore(bore);
     expect(bore.broId).toBe("BHR000000336086");
-    expect(bore.analysis).toBeUndefined();
+    expect(bore.boreholeSampleAnalysis).toBeUndefined();
   });
 
   it("should parse BHR000000431542 BMB-only file", () => {
@@ -66,7 +66,7 @@ describe("BHR-GT with BMB Only (No Laboratory Analysis)", () => {
 
     assertValidBore(bore);
     expect(bore.broId).toBe("BHR000000431542");
-    expect(bore.analysis).toBeUndefined();
+    expect(bore.boreholeSampleAnalysis).toBeUndefined();
   });
 
   it("should extract bore metadata from BMB-only files", () => {
@@ -88,10 +88,10 @@ describe("BHR-GT with BMB Only (No Laboratory Analysis)", () => {
     const withBma = parser.parseBHRGT(bmaXml);
 
     // BMB-only file should NOT have analysis
-    expect(bmbOnly.analysis).toBeUndefined();
+    expect(bmbOnly.boreholeSampleAnalysis).toBeUndefined();
 
     // BMA file should HAVE analysis
-    expect(withBma.analysis).toBeDefined();
-    expect(withBma.analysis?.investigatedIntervals).toBeDefined();
+    expect(withBma.boreholeSampleAnalysis).toBeDefined();
+    expect(withBma.boreholeSampleAnalysis?.investigatedInterval).toBeDefined();
   });
 });

@@ -14,40 +14,40 @@ type Bore = Produced<typeof BORE_PRODUCER>;
 type Logs = NonNullable<Bore["boreholeSampleDescription"]>["descriptiveBoreholeLog"];
 type Boring = NonNullable<Bore["boring"]>;
 
-/** One described layer: shared fields plus optional `soil`/`rock`. @internal */
+/** One described layer: shared fields plus optional `soil`/`rock`. */
 export type BHRGTLayer = Logs[number]["layer"][number];
-/** The `soil` description of a soil layer. @internal */
+/** The `soil` description of a soil layer. */
 export type SoilDescription = NonNullable<BHRGTLayer["soil"]>;
-/** The `rock` description of a rock layer. @internal */
+/** The `rock` description of a rock layer. */
 export type RockDescription = NonNullable<BHRGTLayer["rock"]>;
-/** A layer that describes soil (its `soil` is present). @internal */
+/** A layer that describes soil (its `soil` is present). */
 export type BHRGTSoilLayer = BHRGTLayer & { soil: SoilDescription };
-/** A layer that describes rock (its `rock` is present). @internal */
+/** A layer that describes rock (its `rock` is present). */
 export type BHRGTRockLayer = BHRGTLayer & { rock: RockDescription };
-/** Fields common to every layer, regardless of soil/rock. @internal */
+/** Fields common to every layer, regardless of soil/rock. */
 export type BHRGTLayerBase = Omit<BHRGTLayer, "soil" | "rock">;
-/** Grain-shape properties of a sand/gravel fraction. @internal */
+/** Grain-shape properties of a sand/gravel fraction. */
 export type Grainshape = NonNullable<SoilDescription["grainshape"]>;
-/** Three-axis rock weathering degree. @internal */
+/** Three-axis rock weathering degree. */
 export type RockWeatheringDegree = NonNullable<RockDescription["weatheringDegree"]>;
 
-/** One bored interval. @internal */
+/** One bored interval. */
 export type BoredInterval = Boring["boredInterval"][number];
-/** One sampled interval. @internal */
+/** One sampled interval. */
 export type SampledInterval = Boring["sampledInterval"][number];
-/** Sampler details of a sampled interval. @internal */
+/** Sampler details of a sampled interval. */
 export type SamplerDetails = NonNullable<SampledInterval["sampler"]>;
-/** Core-recovery details of a sampled interval. @internal */
+/** Core-recovery details of a sampled interval. */
 export type CoreRecovery = NonNullable<SampledInterval["coreRecovery"]>;
-/** One completed interval. @internal */
+/** One completed interval. */
 export type CompletedInterval = Boring["completedInterval"][number];
-/** One excavated layer. @internal */
+/** One excavated layer. */
 export type ExcavatedLayer = Boring["excavatedLayer"][number];
-/** One borehole boring-velocity measurement. @internal */
+/** One borehole boring-velocity measurement. */
 export type BoringVelocityMeasurement = Boring["boringVelocity"][number];
-/** A post-sedimentary discontinuity. @internal */
+/** A post-sedimentary discontinuity. */
 export type PostSedimentaryDiscontinuity = Logs[number]["postSedimentaryDiscontinuity"][number];
-/** One not-described interval. @internal */
+/** One not-described interval. */
 export type NotDescribedInterval = Logs[number]["notDescribedInterval"][number];
-/** A fluid-mud layer. @internal */
+/** A fluid-mud layer. */
 export type FluidMudLayer = NonNullable<Bore["fluidMudLayer"]>;

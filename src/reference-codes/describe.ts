@@ -30,12 +30,16 @@ export function describe(coded: Coded | null | undefined): string | null {
  * official description is a full sentence but the UI wants a compact label.
  * Splits the camelCase code into spaced words with a leading capital
  * (`"kleiigZand"` → `"Kleiig zand"`); a runtime concern the app may prefer to own.
+ *
+ * Codes carrying an acronym (two or more adjacent capitals) or a digit are
+ * returned unchanged: lower-casing them would mangle identifiers like
+ * `ISO22476D1` or `RTKGPS5tot10cm`.
  */
 export function prettifyBroCode(code: string): string {
-  const spaced = code
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-    .trim();
+  if (/[A-Z]{2}|\d/.test(code)) {
+    return code;
+  }
+  const spaced = code.replace(/([a-z])([A-Z])/g, "$1 $2").trim();
   if (!spaced) {
     return code;
   }

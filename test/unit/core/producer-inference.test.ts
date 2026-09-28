@@ -26,4 +26,21 @@ describe('presence-aware ProducedFields', () => {
       list?: Array<string | null>;
     }>();
   });
+
+  it('widens an optional nested object to `T | null` (matches the runtime)', () => {
+    const P = object({
+      fields: {
+        opt: object({ at: 'x', fields: { v: text('v') } }),
+        req: object({ at: 'y', presence: 'required', fields: { v: text('v') } }),
+        drop: object({ at: 'z', presence: 'omit', fields: { v: text('v') } }),
+      },
+    });
+    type Out = Produced<typeof P>;
+
+    expectTypeOf<Out>().toEqualTypeOf<{
+      opt: { v: string | null } | null;
+      req: { v: string | null };
+      drop?: { v: string | null };
+    }>();
+  });
 });

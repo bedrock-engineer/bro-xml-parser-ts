@@ -41,7 +41,7 @@ export const BHRG_PRODUCER = object({
       reregistered: boolean("./brocom:reregistered"),
       reregistrationTime: date("./brocom:reregistrationTime"),
     } }),
-    nITGCode: text("./dsbhrg:NITGCode"),
+    nitgCode: text("./dsbhrg:NITGCode"),
     reportHistory: object({ at: "./dsbhrg:reportHistory", fields: {
       event: array({ each: "./bhrgcom:event", item: object({ fields: {
         date: date("./bhrgcom:date"),

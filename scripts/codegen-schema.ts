@@ -33,6 +33,12 @@ interface Container {
   hide?: Set<string>;
   /** Curated fields appended to this container: fieldName → producer expression. */
   add?: Record<string, string>;
+  /**
+   * Rename a generated field key in place (position preserved): generated
+   * fieldName → curated key. For acronym casing the walker gets wrong, e.g.
+   * `nITGCode` → `nitgCode`. The XPath is untouched.
+   */
+  renames?: Record<string, string>;
 }
 
 interface Curation {
@@ -86,9 +92,11 @@ const BHRGT: SchemaTarget = {
     containers: {
       // Root: the BHR-GT-BMA lab-analysis subtree stays hand-curated (columns,
       // determination dispatch) — inject the existing producer, hide the raw node.
+      // Keep the XSD name `boreholeSampleAnalysis` (matches BHR-G); the raw node is
+      // hidden and replaced in place by the hand-curated producer.
       "": {
         hide: new Set(["boreholeSampleAnalysis"]),
-        add: { analysis: "ANALYSIS_PRODUCER" },
+        add: { boreholeSampleAnalysis: "ANALYSIS_PRODUCER" },
       },
     },
     imports: ['import { ANALYSIS_PRODUCER } from "./bhrgt-analysis.js";'],
@@ -100,9 +108,13 @@ const BHRG: SchemaTarget = {
   messagesUrl: `https://${SCHEMA_HOST}/xsd/dsbhrg/3.1/dsbhr-g-messages.xsd`,
   out: path.join(__dirname, "../src/schemas/bhrg-schema.ts"),
   producerConst: "BHRG_PRODUCER",
-  // BHR-G has no warts — no opaque swe/om blobs, no oneOf, no columns. Pure generation,
-  // including the boreholeSampleAnalysis lab subtree (214 leaves, fully typed from the XSD).
-  curation: { containers: {}, imports: [] },
+  // BHR-G has no structural warts (no opaque swe/om blobs, no oneOf, no columns) —
+  // pure generation, including the boreholeSampleAnalysis lab subtree (214 leaves,
+  // fully typed from the XSD). Only casing curation: the `NITG` acronym.
+  curation: {
+    containers: { "": { renames: { nITGCode: "nitgCode" } } },
+    imports: [],
+  },
 };
 
 const GMW: SchemaTarget = {
@@ -175,7 +187,8 @@ function emitFields(nodes: TreeNode[], containerPath: string, cur: Curation, ind
   for (const node of nodes) {
     if (seen.has(node.name) || hide.has(node.name)) continue;
     seen.add(node.name);
-    lines.push(`${indent}${fieldKey(node.name)}: ${fieldExpr(node, cur, indent)},`);
+    const key = container?.renames?.[node.name] ?? node.name;
+    lines.push(`${indent}${fieldKey(key)}: ${fieldExpr(node, cur, indent)},`);
   }
   for (const [name, expr] of Object.entries(container?.add ?? {})) {
     lines.push(`${indent}${name}: ${expr},`);

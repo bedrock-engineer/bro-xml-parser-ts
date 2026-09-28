@@ -75,6 +75,33 @@ describe('detectAndValidateVersion', () => {
     expect(result.warnings[0]).toContain('Unknown schema version');
   });
 
+  it('should accept a bare-major namespace with no warning', () => {
+    // BHR-G 3 is the whole-major form several BRO REST services return for the
+    // dsbhrg/3.1 schema family; it resolves cleanly, so no warning.
+    const doc = createMockDocument('http://www.broservices.nl/xsd/dsbhrg/3');
+    const result = detectAndValidateVersion(doc, 'BHR-G');
+    expect(result.version).toBe('3');
+    expect(result.dataType).toBe('BHR-G');
+    expect(result.namespace).toBe('http://www.broservices.nl/xsd/dsbhrg/3');
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('should still warn for a specific unknown minor version', () => {
+    // A concrete but unrecognized minor is genuinely unverified — keep warning.
+    const doc = createMockDocument('http://www.broservices.nl/xsd/dsbhrg/3.9');
+    const result = detectAndValidateVersion(doc, 'BHR-G');
+    expect(result.version).toBe('3.9');
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('Unknown schema version');
+  });
+
+  it('should throw for a bare-major of a different major version', () => {
+    const doc = createMockDocument('http://www.broservices.nl/xsd/dscpt/2');
+    expect(() => detectAndValidateVersion(doc, 'CPT')).toThrow(
+      /Incompatible schema major version/
+    );
+  });
+
   it('should throw for different major version', () => {
     const doc = createMockDocument('http://www.broservices.nl/xsd/dscpt/2.0');
     expect(() => detectAndValidateVersion(doc, 'CPT')).toThrow(BROParseError);

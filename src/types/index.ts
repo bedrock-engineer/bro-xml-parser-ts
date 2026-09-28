@@ -23,7 +23,7 @@ export type Namespaces = Record<string, string>;
  * Contains schema version information and any warnings
  * encountered during parsing.
  */
-export interface ParseMeta {
+export interface ParseMeta<T extends BROFileType = BROFileType> {
   /**
    * Schema version detected in the document (e.g., "1.1", "2.0")
    */
@@ -35,9 +35,11 @@ export interface ParseMeta {
   schemaNamespace: string;
 
   /**
-   * Data type detected (CPT, BHR-GT, BHR-G, GMW, GLD)
+   * Data type detected. Fixed to its own literal per `*Data` type (e.g.
+   * `CPTData` → `"CPT"`). To narrow a {@link BROData}, switch on the top-level
+   * `data.dataType` (TypeScript does not narrow on a nested discriminant).
    */
-  dataType: "CPT" | "BHR-GT" | "BHR-G" | "GMW" | "GLD";
+  dataType: T;
 
   /**
    * Warnings encountered during parsing
@@ -144,7 +146,9 @@ export interface DissipationMeasurement {
  * Inferred from `CPT_PRODUCER`; `meta` (parse metadata) and the optional
  * user-set `alias` are the only fields not produced from the XML.
  */
-export type CPTData = { meta: ParseMeta; alias?: string } & Produced<typeof CPT_PRODUCER>;
+export type CPTData = { dataType: "CPT"; meta: ParseMeta<"CPT">; alias?: string } & Produced<
+  typeof CPT_PRODUCER
+>;
 
 /** One dissipation test (pore-pressure decay). @internal */
 export type { DissipationTest } from "../schemas/cpt-curation.js";
@@ -162,7 +166,18 @@ export type RemovedLayer = NonNullable<
  * Inferred from `BORE_PRODUCER`; `meta` (parse metadata) and the optional
  * user-set `alias` are the only fields not produced from the XML.
  */
-export type BHRGTData = { meta: ParseMeta; alias?: string } & Produced<typeof BORE_PRODUCER>;
+export type BHRGTData = { dataType: "BHR-GT"; meta: ParseMeta<"BHR-GT">; alias?: string } & Produced<
+  typeof BORE_PRODUCER
+>;
+
+/**
+ * The BRO registration history, shared by every registration type. The
+ * `brocom:*` history block is identical across schemas, so it is derived from one
+ * of them ({@link BORE_PRODUCER}).
+ */
+export type RegistrationHistory = NonNullable<
+  Produced<typeof BORE_PRODUCER>["registrationHistory"]
+>;
 
 /**
  * Complete BHR-G (Geological Borehole) data (metadata + layers).
@@ -170,25 +185,42 @@ export type BHRGTData = { meta: ParseMeta; alias?: string } & Produced<typeof BO
  * Inferred from `BHRG_PRODUCER`; `meta` (parse metadata) and the optional
  * user-set `alias` are the only fields not produced from the XML.
  */
-export type BHRGData = { meta: ParseMeta; alias?: string } & Produced<typeof BHRG_PRODUCER>;
+export type BHRGData = { dataType: "BHR-G"; meta: ParseMeta<"BHR-G">; alias?: string } & Produced<
+  typeof BHRG_PRODUCER
+>;
 
 /**
- * Union type for all BRO data types
+ * BRO file type identifier — the single canonical union of registration types.
+ * `DataType` (in {@link ../core/version-detector}) is an alias of this.
+ */
+export type BROFileType = "CPT" | "BHR-GT" | "BHR-G" | "GMW" | "GLD";
+
+/**
+ * Maps each {@link BROFileType} to its parsed `*Data` type. The single source of
+ * truth for the type↔data correspondence: {@link BROData} derives from it, and
+ * `BROParser`'s producer map is type-checked against it so a producer can never be
+ * filed under the wrong key.
+ */
+export interface DataByType {
+  CPT: CPTData;
+  "BHR-GT": BHRGTData;
+  "BHR-G": BHRGData;
+  GMW: GMWData;
+  GLD: GLDData;
+}
+
+/**
+ * Union type for all BRO data types, derived from {@link DataByType}.
  *
- * Use the `meta.dataType` field to discriminate between types:
+ * Discriminated on the top-level `dataType` field:
  * ```typescript
  * const data = parser.parse(xmlText);
- * if (data.meta.dataType === 'CPT') {
- *   // data is CPTData
+ * if (data.dataType === 'CPT') {
+ *   // data is narrowed to CPTData
  * }
  * ```
  */
-export type BROData = CPTData | BHRGTData | BHRGData | GMWData | GLDData;
-
-/**
- * BRO file type identifier
- */
-export type BROFileType = "CPT" | "BHR-GT" | "BHR-G" | "GMW" | "GLD";
+export type BROData = DataByType[BROFileType];
 
 // ===========================================================================
 // GLD (Grondwaterstandonderzoek / groundwater level research, dsgld/1.0)
@@ -200,7 +232,9 @@ export type BROFileType = "CPT" | "BHR-GT" | "BHR-G" | "GMW" | "GLD";
  * Inferred from `GLD_PRODUCER`; `meta` (parse metadata) and the optional
  * user-set `alias` are the only fields not produced from the XML.
  */
-export type GLDData = { meta: ParseMeta; alias?: string } & Produced<typeof GLD_PRODUCER>;
+export type GLDData = { dataType: "GLD"; meta: ParseMeta<"GLD">; alias?: string } & Produced<
+  typeof GLD_PRODUCER
+>;
 
 // ===========================================================================
 // GMW (Grondwatermonitoringput / Groundwater Monitoring Well, dsgmw/1.1)
@@ -214,7 +248,9 @@ export type GLDData = { meta: ParseMeta; alias?: string } & Produced<typeof GLD_
  * metadata) and the optional user-set `alias` are the only fields not produced
  * from the XML.
  */
-export type GMWData = { meta: ParseMeta; alias?: string } & Produced<typeof GMW_PRODUCER>;
+export type GMWData = { dataType: "GMW"; meta: ParseMeta<"GMW">; alias?: string } & Produced<
+  typeof GMW_PRODUCER
+>;
 
 /**
  * Parse error with context

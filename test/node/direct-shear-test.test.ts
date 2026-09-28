@@ -17,14 +17,14 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.broId).toBe('BHR000000339288');
-    expect(bore.analysis).toBeDefined();
+    expect(bore.boreholeSampleAnalysis).toBeDefined();
 
-    if (!bore.analysis) {
+    if (!bore.boreholeSampleAnalysis) {
       throw new Error('Analysis data should be present');
     }
 
     // Find all intervals with direct shear tests
-    const intervalsWithDirectShear = bore.analysis.investigatedIntervals.filter(
+    const intervalsWithDirectShear = bore.boreholeSampleAnalysis.investigatedInterval.filter(
       (i) =>
         i.shearStressChangeDuringHorizontalDeformationDetermination &&
         i.shearStressChangeDuringHorizontalDeformationDetermination.length > 0
@@ -37,7 +37,7 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000339288.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals.find(
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
       (i) =>
         i.shearStressChangeDuringHorizontalDeformationDetermination &&
         i.shearStressChangeDuringHorizontalDeformationDetermination.length > 0 &&
@@ -70,7 +70,7 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000339288.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals.find(
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
       (i) =>
         i.shearStressChangeDuringHorizontalDeformationDetermination &&
         i.shearStressChangeDuringHorizontalDeformationDetermination.length > 0 &&
@@ -106,7 +106,7 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000339288.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals.find(
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
       (i) =>
         i.shearStressChangeDuringHorizontalDeformationDetermination &&
         i.shearStressChangeDuringHorizontalDeformationDetermination.length > 0 &&
@@ -136,7 +136,7 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000339288.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals.find(
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
       (i) =>
         i.shearStressChangeDuringHorizontalDeformationDetermination &&
         i.shearStressChangeDuringHorizontalDeformationDetermination.length > 0 &&

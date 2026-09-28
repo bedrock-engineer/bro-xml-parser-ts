@@ -31,7 +31,7 @@ export type {
   Namespaces,
   QualityRegime,
 } from "./types/index.js";
-export type { RegistrationHistory } from "./schemas/common-fields.js";
+export type { RegistrationHistory } from "./types/index.js";
 
 export { BROParseError } from "./types/index.js";
 
@@ -46,6 +46,7 @@ export type {
   BHRGTLayerBase,
   BHRGTSoilLayer,
   BHRGTRockLayer,
+  SoilDescription,
   RockDescription,
   RockWeatheringDegree,
   Grainshape,

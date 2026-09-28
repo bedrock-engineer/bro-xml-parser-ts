@@ -270,6 +270,6 @@ export const BORE_PRODUCER = object({
         } }) }),
       } }) }),
     } }),
-    analysis: ANALYSIS_PRODUCER,
+    boreholeSampleAnalysis: ANALYSIS_PRODUCER,
   },
 });

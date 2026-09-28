@@ -186,14 +186,28 @@ type PresenceOf<X> = X extends { presence?: infer P } ? (P extends Presence ? P 
 type OmitPresenceKeys<F> = { [K in keyof F]: PresenceOf<F[K]> extends "omit" ? K : never }[keyof F];
 
 /**
+ * A field's produced value. When an element is absent the runtime nulls only
+ * `object`/`oneOf` producers (leaves already carry `null` in their own type, and
+ * arrays default to `[]`), so an **optional** object/oneOf field is widened with
+ * `| null` to match. `required` fields (never nulled) and `omit` fields (keyed
+ * only when present, hence non-null) keep their bare produced type.
+ */
+type FieldValue<X> = PresenceOf<X> extends "required" | "omit"
+  ? Produced<X>
+  : X extends ObjectProducer<unknown, Presence> | OneOfProducer<unknown, Presence>
+    ? Produced<X> | null
+    : Produced<X>;
+
+/**
  * The output type of an object built from a fields map. A field whose producer
  * has `presence: "omit"` becomes an **optional** key (`key?:`); every other
- * field is a required key. Under `exactOptionalPropertyTypes` this exactly
- * mirrors the runtime absence model.
+ * field is a required key. Optional object/oneOf fields are `T | null` (see
+ * {@link FieldValue}). Under `exactOptionalPropertyTypes` this exactly mirrors
+ * the runtime absence model.
  */
 export type ProducedFields<F> = Simplify<
-  { [K in Exclude<keyof F, OmitPresenceKeys<F>>]: Produced<F[K]> } & {
-    [K in OmitPresenceKeys<F>]?: Produced<F[K]>;
+  { [K in Exclude<keyof F, OmitPresenceKeys<F>>]: FieldValue<F[K]> } & {
+    [K in OmitPresenceKeys<F>]?: FieldValue<F[K]>;
   }
 >;
 

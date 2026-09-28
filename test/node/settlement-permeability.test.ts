@@ -17,7 +17,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
     expect(bore.broId).toBe('BHR000000377186');
 
     const counts = { waterContent: 0, particleSize: 0, settlement: 0, permeability: 0 };
-    for (const interval of bore.analysis!.investigatedIntervals) {
+    for (const interval of bore.boreholeSampleAnalysis!.investigatedInterval) {
       if (interval.waterContentDetermination) counts.waterContent++;
       if (interval.particleSizeDistributionDetermination) counts.particleSize++;
       if (interval.settlementCharacteristicsDetermination) counts.settlement++;
@@ -30,8 +30,8 @@ describe('Settlement & Permeability Determination Parsing', () => {
     const xml = fixtures.bhrGtBma.settlementPermeability();
     const bore = parser.parseBHRGT(xml);
 
-    expect(bore.analysis?.investigatedIntervals).toBeDefined();
-    expect(bore.analysis?.investigatedIntervals.length).toBe(9);
+    expect(bore.boreholeSampleAnalysis?.investigatedInterval).toBeDefined();
+    expect(bore.boreholeSampleAnalysis?.investigatedInterval.length).toBe(9);
   });
 
   describe('Settlement Characteristics (Oedometer Test)', () => {
@@ -39,15 +39,15 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const withSettlement = bore.analysis!.investigatedIntervals
+      const withSettlement = bore.boreholeSampleAnalysis!.investigatedInterval
         .map((iv, i) => (iv.settlementCharacteristicsDetermination ? i : -1))
         .filter(i => i >= 0);
       // Exact set implies all other intervals (incl. the 4th) lack it
       expect(withSettlement).toEqual([5, 6]);
 
-      expect(bore.analysis!.investigatedIntervals[5].beginDepth).toBe(2.59);
+      expect(bore.boreholeSampleAnalysis!.investigatedInterval[5].beginDepth).toBe(2.59);
       expect(
-        bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination
+        bore.boreholeSampleAnalysis!.investigatedInterval[5].settlementCharacteristicsDetermination
       ).toBeDefined();
     });
 
@@ -55,7 +55,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const sc = bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination!;
+      const sc = bore.boreholeSampleAnalysis!.investigatedInterval[5].settlementCharacteristicsDetermination!;
       expect(sc.determinationProcedure?.code).toBe('ISO17892d5v2017');
       expect(sc.determinationMethod?.code).toBe('samendrukkenBelastinggestuurd');
       expect(sc.ringDiameter).toBe(63.5);
@@ -68,7 +68,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const sc = bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination!;
+      const sc = bore.boreholeSampleAnalysis!.investigatedInterval[5].settlementCharacteristicsDetermination!;
       expect(sc.apparatusDeformationApplied).toBe(true);
       expect(sc.bearingFrictionCorrectionApplied).toBe(false);
       expect(sc.irregularResult).toBe(false);
@@ -78,7 +78,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const sc = bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination!;
+      const sc = bore.boreholeSampleAnalysis!.investigatedInterval[5].settlementCharacteristicsDetermination!;
       expect(sc.determinationSteps.length).toBe(5);
     });
 
@@ -86,7 +86,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const steps = bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination!.determinationSteps;
+      const steps = bore.boreholeSampleAnalysis!.investigatedInterval[5].settlementCharacteristicsDetermination!.determinationSteps;
 
       // First step (loading)
       expect(steps[0].stepNumber).toBe(1);
@@ -109,7 +109,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const steps = bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination!.determinationSteps;
+      const steps = bore.boreholeSampleAnalysis!.investigatedInterval[5].settlementCharacteristicsDetermination!.determinationSteps;
       const firstStep = steps[0];
 
       // Should have 130+ data points
@@ -128,7 +128,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const steps = bore.analysis!.investigatedIntervals[5].settlementCharacteristicsDetermination!.determinationSteps;
+      const steps = bore.boreholeSampleAnalysis!.investigatedInterval[5].settlementCharacteristicsDetermination!.determinationSteps;
 
       // Each step carries its own settlement time-series
       expect(steps.map(step => step.heightChangeDuringSettlement.length)).toEqual([
@@ -142,15 +142,15 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const withPermeability = bore.analysis!.investigatedIntervals
+      const withPermeability = bore.boreholeSampleAnalysis!.investigatedInterval
         .map((iv, i) => (iv.saturatedPermeabilityDetermination ? i : -1))
         .filter(i => i >= 0);
       // Exact set implies all other intervals (incl. the 1st) lack it
       expect(withPermeability).toEqual([7, 8]);
 
-      expect(bore.analysis!.investigatedIntervals[7].beginDepth).toBe(7.44);
+      expect(bore.boreholeSampleAnalysis!.investigatedInterval[7].beginDepth).toBe(7.44);
       expect(
-        bore.analysis!.investigatedIntervals[7].saturatedPermeabilityDetermination
+        bore.boreholeSampleAnalysis!.investigatedInterval[7].saturatedPermeabilityDetermination
       ).toBeDefined();
     });
 
@@ -158,7 +158,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const sp = bore.analysis!.investigatedIntervals[7].saturatedPermeabilityDetermination!;
+      const sp = bore.boreholeSampleAnalysis!.investigatedInterval[7].saturatedPermeabilityDetermination!;
       expect(sp.determinationProcedure?.code).toBe('ISO17892d11v2019');
       expect(sp.determinationMethod?.code).toBe('constantHead');
       expect(sp.usedMedium?.code).toBe('leidingwater');
@@ -168,7 +168,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const sp = bore.analysis!.investigatedIntervals[7].saturatedPermeabilityDetermination!;
+      const sp = bore.boreholeSampleAnalysis!.investigatedInterval[7].saturatedPermeabilityDetermination!;
       expect(sp.specimenMade).toBe(false);
       expect(sp.saturatedWithCO2).toBe(false);
       expect(sp.verticallyDetermined).toBe(true);
@@ -180,7 +180,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const sp = bore.analysis!.investigatedIntervals[7].saturatedPermeabilityDetermination!;
+      const sp = bore.boreholeSampleAnalysis!.investigatedInterval[7].saturatedPermeabilityDetermination!;
       expect(sp.temperature).toBe(17.0);
       expect(sp.maximumGradient).toBeCloseTo(6.1);
     });
@@ -189,7 +189,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const xml = fixtures.bhrGtBma.settlementPermeability();
       const bore = parser.parseBHRGT(xml);
 
-      const sp = bore.analysis!.investigatedIntervals[7].saturatedPermeabilityDetermination!;
+      const sp = bore.boreholeSampleAnalysis!.investigatedInterval[7].saturatedPermeabilityDetermination!;
       expect(sp.saturatedPermeabilityAtSpecificDensity).toHaveLength(1);
 
       const measurement = sp.saturatedPermeabilityAtSpecificDensity[0];

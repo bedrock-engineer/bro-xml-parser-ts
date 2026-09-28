@@ -15,22 +15,22 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.broId).toBe('BHR000000374632');
-    expect(bore.analysis).toBeDefined();
+    expect(bore.boreholeSampleAnalysis).toBeDefined();
   });
 
   it('should extract 4 investigated intervals', () => {
     const xml = fixtures.bhrGtBma.atterberg();
     const bore = parser.parseBHRGT(xml);
 
-    expect(bore.analysis?.investigatedIntervals).toBeDefined();
-    expect(bore.analysis?.investigatedIntervals.length).toBe(4);
+    expect(bore.boreholeSampleAnalysis?.investigatedInterval).toBeDefined();
+    expect(bore.boreholeSampleAnalysis?.investigatedInterval.length).toBe(4);
   });
 
   it('should find consistency limits in first interval', () => {
     const xml = fixtures.bhrGtBma.atterberg();
     const bore = parser.parseBHRGT(xml);
 
-    const firstInterval = bore.analysis!.investigatedIntervals[0];
+    const firstInterval = bore.boreholeSampleAnalysis!.investigatedInterval[0];
     expect(firstInterval.consistencyLimitsDetermination).toBeDefined();
   });
 
@@ -38,7 +38,7 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const xml = fixtures.bhrGtBma.atterberg();
     const bore = parser.parseBHRGT(xml);
 
-    const cl = bore.analysis!.investigatedIntervals[0].consistencyLimitsDetermination!;
+    const cl = bore.boreholeSampleAnalysis!.investigatedInterval[0].consistencyLimitsDetermination!;
     expect(cl.determinationProcedure?.code).toBe('ISO17892d12v2018');
     expect(cl.determinationMethod?.code).toBe('casagrandeKleistaaf');
     expect(cl.fractionLarger500um).toBe(7.60);
@@ -50,7 +50,7 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const xml = fixtures.bhrGtBma.atterberg();
     const bore = parser.parseBHRGT(xml);
 
-    const cl = bore.analysis!.investigatedIntervals[0].consistencyLimitsDetermination!;
+    const cl = bore.boreholeSampleAnalysis!.investigatedInterval[0].consistencyLimitsDetermination!;
     expect(cl.liquidLimit).toBe(32.2);
     expect(cl.plasticLimit).toBe(17.14);
     expect(cl.plasticityIndex).toBe(15.05);
@@ -60,7 +60,7 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const xml = fixtures.bhrGtBma.atterberg();
     const bore = parser.parseBHRGT(xml);
 
-    const cl = bore.analysis!.investigatedIntervals[0].consistencyLimitsDetermination!;
+    const cl = bore.boreholeSampleAnalysis!.investigatedInterval[0].consistencyLimitsDetermination!;
     expect(cl.plasticityAtSpecificWaterContent.length).toBe(4);
   });
 
@@ -68,7 +68,7 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const xml = fixtures.bhrGtBma.atterberg();
     const bore = parser.parseBHRGT(xml);
 
-    const cl = bore.analysis!.investigatedIntervals[0].consistencyLimitsDetermination!;
+    const cl = bore.boreholeSampleAnalysis!.investigatedInterval[0].consistencyLimitsDetermination!;
     const points = cl.plasticityAtSpecificWaterContent;
 
     // First point
@@ -93,10 +93,10 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.broId).toBe('BHR000000374647');
-    expect(bore.analysis).toBeDefined();
-    expect(bore.analysis?.investigatedIntervals.length).toBe(4);
+    expect(bore.boreholeSampleAnalysis).toBeDefined();
+    expect(bore.boreholeSampleAnalysis?.investigatedInterval.length).toBe(4);
 
-    const firstInterval = bore.analysis!.investigatedIntervals[0];
+    const firstInterval = bore.boreholeSampleAnalysis!.investigatedInterval[0];
     expect(firstInterval.consistencyLimitsDetermination).toBeDefined();
   });
 
@@ -105,13 +105,13 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     // Other intervals don't have consistency limits
-    const secondInterval = bore.analysis!.investigatedIntervals[1];
+    const secondInterval = bore.boreholeSampleAnalysis!.investigatedInterval[1];
     expect(secondInterval.consistencyLimitsDetermination).toBeUndefined();
 
-    const thirdInterval = bore.analysis!.investigatedIntervals[2];
+    const thirdInterval = bore.boreholeSampleAnalysis!.investigatedInterval[2];
     expect(thirdInterval.consistencyLimitsDetermination).toBeUndefined();
 
-    const fourthInterval = bore.analysis!.investigatedIntervals[3];
+    const fourthInterval = bore.boreholeSampleAnalysis!.investigatedInterval[3];
     expect(fourthInterval.consistencyLimitsDetermination).toBeUndefined();
   });
 
@@ -119,7 +119,7 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const xml = fixtures.bhrGtBma.atterberg();
     const bore = parser.parseBHRGT(xml);
 
-    const firstInterval = bore.analysis!.investigatedIntervals[0];
+    const firstInterval = bore.boreholeSampleAnalysis!.investigatedInterval[0];
 
     // Should have these determinations
     expect(firstInterval.waterContentDetermination).toBeDefined();

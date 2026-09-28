@@ -9,6 +9,7 @@
 
 import type { XMLAdapter, Namespaces } from "../types/index.js";
 import { BROParseError } from "../types/index.js";
+import { adaptNamespacesToDocument } from "../namespaces.js";
 import type { NodeLens, Producer, ObjectProducer, Presence, LeafKind } from "./producer.js";
 
 /** Resolves an XPath namespace prefix to its URI. */
@@ -38,10 +39,19 @@ interface Outcome {
 }
 
 export class SchemaParser {
+  /**
+   * The namespace URIs the XPath resolver binds to. Defaults to the configured
+   * {@link namespaces}, but each {@link produce} call re-points it at the exact
+   * versions the document declares (see {@link adaptNamespacesToDocument}).
+   */
+  private activeNamespaces: Namespaces;
+
   constructor(
     private adapter: XMLAdapter,
     private namespaces: Namespaces,
-  ) {}
+  ) {
+    this.activeNamespaces = namespaces;
+  }
 
   /**
    * Interpret a {@link Producer} schema against a document, recursing through
@@ -60,18 +70,43 @@ export class SchemaParser {
     root: ObjectProducer<T>,
     rootPath?: string,
   ): { value: T; warnings: Array<string> } {
-    const rootElement = this.resolveRoot(doc, rootPath);
-    const self = root.at ? this.xpath(rootElement, root.at) : rootElement;
-    if (!self) {
-      throw new BROParseError(`Root element not found: ${root.at ?? rootPath ?? "."}`, {
-        code: "MISSING_ROOT",
-        path: root.at ?? rootPath,
-      });
-    }
+    const previousNamespaces = this.activeNamespaces;
+    this.activeNamespaces = this.namespacesForDocument(doc);
+    try {
+      const rootElement = this.resolveRoot(doc, rootPath);
+      const self = root.at ? this.xpath(rootElement, root.at) : rootElement;
+      if (!self) {
+        throw new BROParseError(`Root element not found: ${root.at ?? rootPath ?? "."}`, {
+          code: "MISSING_ROOT",
+          path: root.at ?? rootPath,
+        });
+      }
 
-    const warnings: Array<string> = [];
-    const value = this.runObject(self, root, warnings, true).value as T;
-    return { value, warnings };
+      const warnings: Array<string> = [];
+      const value = this.runObject(self, root, warnings, true).value as T;
+      return { value, warnings };
+    } finally {
+      this.activeNamespaces = previousNamespaces;
+    }
+  }
+
+  /**
+   * Adapt the configured namespaces to the versions this document declares.
+   *
+   * BRO declares every namespace on the root element, so its `xmlns`/`xmlns:*`
+   * attributes are the full set of URIs in play. Reading them lets the resolver
+   * bind to the document's actual minor version (e.g. `dsbhrg/3` vs `/3.1`).
+   */
+  private namespacesForDocument(doc: Document): Namespaces {
+    const attributes = doc.documentElement.attributes;
+    const declaredUris: Array<string> = [];
+    for (let i = 0; i < attributes.length; i++) {
+      const attribute = attributes.item(i);
+      if (attribute && (attribute.name === "xmlns" || attribute.name.startsWith("xmlns:"))) {
+        declaredUris.push(attribute.value);
+      }
+    }
+    return adaptNamespacesToDocument(this.namespaces, declaredUris);
   }
 
   /**
@@ -97,7 +132,7 @@ export class SchemaParser {
   }
 
   private get nsResolver(): NamespaceResolver {
-    return (prefix) => (prefix ? (this.namespaces[prefix] ?? null) : null);
+    return (prefix) => (prefix ? (this.activeNamespaces[prefix] ?? null) : null);
   }
 
   private xpath(from: Node, query: string): Node | null {

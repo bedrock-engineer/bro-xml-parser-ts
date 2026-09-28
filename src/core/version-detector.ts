@@ -7,8 +7,10 @@
  */
 
 import { BROParseError } from "../types/index.js";
+import type { BROFileType } from "../types/index.js";
 
-export type DataType = "CPT" | "BHR-GT" | "BHR-G" | "GMW" | "GLD";
+/** Alias of the canonical {@link BROFileType} union (single source in `types/index`). */
+export type DataType = BROFileType;
 
 /**
  * Schema version info
@@ -21,90 +23,116 @@ interface SchemaVersionInfo {
 }
 
 /**
- * Known schema versions per data type
- *
- * The first entry for each type is the "supported" version.
- * Additional entries are known older/newer versions that may
- * be parseable with warnings.
+ * One registration type's version facts: the stable namespace-family fragment
+ * (version-independent, used to detect the type), the primary supported version,
+ * and any older versions parseable with a warning.
  */
-const KNOWN_VERSIONS: Record<DataType, Array<SchemaVersionInfo>> = {
-  CPT: [
-    {
+interface Registration {
+  /** Version-independent namespace fragment, e.g. `/dscpt/`. Detects the type. */
+  urnFragment: string;
+  /** The version this library targets. */
+  primary: SchemaVersionInfo;
+  /** Older known versions, parseable with a warning. */
+  alsoKnown: Array<SchemaVersionInfo>;
+}
+
+/**
+ * The registration-type registry: version facts per {@link DataType}, the single
+ * source of truth the detector reads. (Producers live in `BROParser`, keyed by the
+ * same union — see the split rationale in the parser.)
+ */
+const REGISTRATIONS: Record<DataType, Registration> = {
+  CPT: {
+    urnFragment: "/dscpt/",
+    primary: {
       namespace: "http://www.broservices.nl/xsd/dscpt/1.1",
       version: "1.1",
       majorVersion: 1,
       description: "Dispatch CPT schema version 1.1",
     },
-    // Older known versions
-    {
-      namespace: "http://www.broservices.nl/xsd/dscpt/1.0",
-      version: "1.0",
-      majorVersion: 1,
-      description: "Dispatch CPT schema version 1.0",
-    },
-  ],
-  "BHR-GT": [
-    {
+    alsoKnown: [
+      {
+        namespace: "http://www.broservices.nl/xsd/dscpt/1.0",
+        version: "1.0",
+        majorVersion: 1,
+        description: "Dispatch CPT schema version 1.0",
+      },
+    ],
+  },
+  "BHR-GT": {
+    urnFragment: "/dsbhr-gt/",
+    primary: {
       namespace: "http://www.broservices.nl/xsd/dsbhr-gt/2.1",
       version: "2.1",
       majorVersion: 2,
       description: "Dispatch BHR-GT schema version 2.1",
     },
-    // Older known versions
-    {
-      namespace: "http://www.broservices.nl/xsd/dsbhr-gt/2.0",
-      version: "2.0",
-      majorVersion: 2,
-      description: "Dispatch BHR-GT schema version 2.0",
-    },
-  ],
-  "BHR-G": [
-    {
+    alsoKnown: [
+      {
+        namespace: "http://www.broservices.nl/xsd/dsbhr-gt/2.0",
+        version: "2.0",
+        majorVersion: 2,
+        description: "Dispatch BHR-GT schema version 2.0",
+      },
+    ],
+  },
+  "BHR-G": {
+    urnFragment: "/dsbhrg/",
+    primary: {
       namespace: "http://www.broservices.nl/xsd/dsbhrg/3.1",
       version: "3.1",
       majorVersion: 3,
       description: "Dispatch BHR-G schema version 3.1",
     },
-    // Older known versions
-    {
-      namespace: "http://www.broservices.nl/xsd/dsbhrg/3.0",
-      version: "3.0",
-      majorVersion: 3,
-      description: "Dispatch BHR-G schema version 3.0",
-    },
-  ],
-  GMW: [
-    {
+    alsoKnown: [
+      {
+        namespace: "http://www.broservices.nl/xsd/dsbhrg/3.0",
+        version: "3.0",
+        majorVersion: 3,
+        description: "Dispatch BHR-G schema version 3.0",
+      },
+    ],
+  },
+  GMW: {
+    urnFragment: "/dsgmw/",
+    primary: {
       namespace: "http://www.broservices.nl/xsd/dsgmw/1.1",
       version: "1.1",
       majorVersion: 1,
       description: "Dispatch GMW schema version 1.1",
     },
-    // Older known versions
-    {
-      namespace: "http://www.broservices.nl/xsd/dsgmw/1.0",
-      version: "1.0",
-      majorVersion: 1,
-      description: "Dispatch GMW schema version 1.0",
-    },
-  ],
-  GLD: [
-    {
+    alsoKnown: [
+      {
+        namespace: "http://www.broservices.nl/xsd/dsgmw/1.0",
+        version: "1.0",
+        majorVersion: 1,
+        description: "Dispatch GMW schema version 1.0",
+      },
+    ],
+  },
+  GLD: {
+    urnFragment: "/dsgld/",
+    primary: {
       namespace: "http://www.broservices.nl/xsd/dsgld/1.0",
       version: "1.0",
       majorVersion: 1,
       description: "Dispatch GLD schema version 1.0",
     },
-  ],
+    alsoKnown: [],
+  },
 };
+
+/** Every known version for a type, primary first. */
+function knownVersions(dataType: DataType): Array<SchemaVersionInfo> {
+  const reg = REGISTRATIONS[dataType];
+  return [reg.primary, ...reg.alsoKnown];
+}
 
 /**
  * Get the supported (primary) version for a data type
  */
 function getSupportedVersion(dataType: DataType): SchemaVersionInfo {
-  // First element is always the primary supported version
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return KNOWN_VERSIONS[dataType][0]!;
+  return REGISTRATIONS[dataType].primary;
 }
 
 /**
@@ -129,11 +157,12 @@ export interface VersionDetectionResult {
 }
 
 /**
- * Extract version from namespace URI
- * e.g., "http://www.broservices.nl/xsd/dscpt/1.1" -> "1.1"
+ * Extract version from namespace URI. Accepts both the documented
+ * `major.minor` form and the bare-major form several BRO REST services return.
+ * e.g. `.../dscpt/1.1` -> "1.1", `.../dsbhrg/3` -> "3"
  */
 function extractVersionFromNamespace(namespace: string): string {
-  const match = /\/(\d+\.\d+)$/.exec(namespace);
+  const match = /\/(\d+(?:\.\d+)?)$/.exec(namespace);
   return match?.[1] ?? "unknown";
 }
 
@@ -147,43 +176,17 @@ function extractMajorVersion(version: string): number {
 }
 
 /**
- * Detect schema type from namespace pattern
+ * Detect schema type from a namespace by matching its version-independent family
+ * fragment (e.g. `/dscpt/`) against the registry. `dsbhr-gt` and `dsbhrg` stay
+ * distinct because their fragments carry the hyphen.
  */
 function detectDataTypeFromNamespace(namespace: string): DataType | null {
-  if (namespace.includes("/dscpt/")) {
-    return "CPT";
-  }
-  if (namespace.includes("/dsbhr-gt/")) {
-    return "BHR-GT";
-  }
-  if (namespace.includes("/dsbhrg/")) {
-    return "BHR-G";
-  }
-  if (namespace.includes("/dsgmw/")) {
-    return "GMW";
-  }
-  if (namespace.includes("/dsgld/")) {
-    return "GLD";
+  for (const [type, reg] of Object.entries(REGISTRATIONS)) {
+    if (namespace.includes(reg.urnFragment)) {
+      return type as DataType;
+    }
   }
   return null;
-}
-
-/**
- * Get the parser method name for a data type
- */
-function getParserMethodName(dataType: DataType): string {
-  switch (dataType) {
-    case "CPT":
-      return "parseCPT";
-    case "BHR-GT":
-      return "parseBHRGT";
-    case "BHR-G":
-      return "parseBHRG";
-    case "GMW":
-      return "parseGMW";
-    case "GLD":
-      return "parseGLD";
-  }
 }
 
 /**
@@ -229,8 +232,7 @@ export function detectAndValidateVersion(
   }
 
   // Check if it's a known version for the expected type
-  const knownVersions = KNOWN_VERSIONS[expectedType];
-  const knownVersion = knownVersions.find((v) => v.namespace === namespace);
+  const knownVersion = knownVersions(expectedType).find((v) => v.namespace === namespace);
 
   if (knownVersion) {
     // Known version but not the primary supported one
@@ -258,7 +260,7 @@ export function detectAndValidateVersion(
         expected: expectedType,
         actual: detectedType,
         namespace,
-        hint: `Use ${getParserMethodName(detectedType)}() instead of ${getParserMethodName(expectedType)}()`,
+        hint: `Document is ${detectedType}, not ${expectedType}. Use the ${detectedType} parser.`,
       },
     );
   }
@@ -270,6 +272,21 @@ export function detectAndValidateVersion(
     const supportedMajor = supportedVersion.majorVersion;
 
     if (detectedMajor === supportedMajor) {
+      // A bare-major namespace (e.g. `.../dsbhrg/3`) is the whole-major form
+      // several BRO REST services return for the very schema family we
+      // support. It resolves cleanly, so accept it without warning. A specific
+      // but unrecognized minor (e.g. `3.2`) is genuinely unverified and still
+      // warns below.
+      const isBareMajor = /\/\d+$/.test(namespace);
+      if (isBareMajor) {
+        return {
+          dataType: expectedType,
+          version: detectedVersion,
+          namespace,
+          warnings: [],
+        };
+      }
+
       // Same major version - attempt parsing with warning
       warnings.push(
         `Unknown schema version ${detectedVersion} for ${expectedType}. ` +
@@ -331,11 +348,11 @@ export function getVersionInfo(
   }
 
   // Check all known versions
-  for (const [type, versions] of Object.entries(KNOWN_VERSIONS)) {
-    for (const info of versions) {
+  for (const type of Object.keys(REGISTRATIONS) as Array<DataType>) {
+    for (const info of knownVersions(type)) {
       if (namespace === info.namespace) {
         return {
-          type: type as DataType,
+          type,
           version: info.version,
           namespace: info.namespace,
         };

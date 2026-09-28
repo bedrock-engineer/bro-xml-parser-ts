@@ -70,3 +70,45 @@ export const KNOWN_BRO_PREFIXES: ReadonlyArray<string> = [
   "wml2",
   "xlink",
 ] as const;
+
+/**
+ * Strip a trailing schema version from a namespace URI, yielding its "family".
+ *
+ * BRO publishes the same schema under several version suffixes — e.g.
+ * `.../dsbhrg/3.1` (the documented XSD) and `.../dsbhrg/3` (returned by several
+ * REST services); both share the family `.../dsbhrg`. Only a trailing
+ * `/<major>` or `/<major>.<minor>` is removed, so a URI like
+ * `.../1999/xlink` (version-free) is returned unchanged.
+ */
+export function namespaceFamily(uri: string): string {
+  return uri.replace(/\/\d+(?:\.\d+)?$/, "");
+}
+
+/**
+ * Re-point the configured namespace URIs at the versions a document declares.
+ *
+ * The XPath resolver binds each prefix to one exact URI, so a document that
+ * declares `.../dsbhrg/3` never matches queries bound to `.../dsbhrg/3.1`. For
+ * every configured prefix whose family also appears among `declaredUris`, adopt
+ * the document's URI; leave the rest untouched. Matching by family means a
+ * major-3 BHR-G parses whether it arrives as `/3`, `/3.0`, or `/3.1`, without
+ * the schema (which is prefix-keyed) needing to know which minor it got.
+ */
+export function adaptNamespacesToDocument(
+  defaults: Namespaces,
+  declaredUris: Iterable<string>,
+): Namespaces {
+  const byFamily = new Map<string, string>();
+  for (const uri of declaredUris) {
+    byFamily.set(namespaceFamily(uri), uri);
+  }
+
+  const adapted: Namespaces = { ...defaults };
+  for (const [prefix, uri] of Object.entries(defaults)) {
+    const declared = byFamily.get(namespaceFamily(uri));
+    if (declared) {
+      adapted[prefix] = declared;
+    }
+  }
+  return adapted;
+}

@@ -18,15 +18,15 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.broId).toBe('BHR000000336088');
-    expect(bore.analysis).toBeDefined();
-    expect(bore.analysis!.investigatedIntervals.length).toBe(2);
+    expect(bore.boreholeSampleAnalysis).toBeDefined();
+    expect(bore.boreholeSampleAnalysis!.investigatedInterval.length).toBe(2);
   });
 
   it('should parse the basisparameter interval (1.79-1.82m) with density of solids', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000336088.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals.find(
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
       (i) => i.beginDepth === 1.79
     );
 
@@ -42,7 +42,7 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000336088.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals.find(
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
       (i) => i.beginDepth === 1.79
     );
 
@@ -57,7 +57,7 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000336088.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals.find(
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
       (i) => i.beginDepth === 1.79
     );
 
@@ -73,7 +73,7 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000336088.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals.find(
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
       (i) => i.beginDepth === 1.65
     );
 

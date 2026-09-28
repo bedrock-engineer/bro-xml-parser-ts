@@ -52,6 +52,9 @@ export const fixtures = {
   bhrG: {
     dispatch: () => loadFixture('bhr-g', 'test_geological_borehole.xml'),
     dispatch2: () => loadFixture('bhr-g', 'BHR000000398575.xml'),
+    // IMBRO/A archive borehole delivered with the bare-major namespace
+    // (dsbhrg/3 rather than /3.1) that several BRO REST services return.
+    bareMajorNamespace: () => loadFixture('bhr-g', 'BHR000000403809.xml'),
   },
   gmw: {
     // Single-tube well with full screen/plainTube/sedimentSump (GMW_PPO).

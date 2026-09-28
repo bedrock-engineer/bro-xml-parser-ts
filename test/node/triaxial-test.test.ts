@@ -17,17 +17,17 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.broId).toBe('BHR000000380415');
-    expect(bore.analysis).toBeDefined();
+    expect(bore.boreholeSampleAnalysis).toBeDefined();
 
-    if (!bore.analysis) {
+    if (!bore.boreholeSampleAnalysis) {
       throw new Error('Analysis data should be present');
     }
 
     // Should have investigated intervals
-    expect(bore.analysis.investigatedIntervals.length).toBeGreaterThan(0);
+    expect(bore.boreholeSampleAnalysis.investigatedInterval.length).toBeGreaterThan(0);
 
     // Find interval with triaxial test
-    const intervalWithTriaxial = bore.analysis.investigatedIntervals.find(
+    const intervalWithTriaxial = bore.boreholeSampleAnalysis.investigatedInterval.find(
       (interval) =>
         interval.shearStressChangeDuringLoadingDetermination &&
         interval.shearStressChangeDuringLoadingDetermination.length > 0
@@ -67,7 +67,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000380415.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const intervalWithTriaxial = bore.analysis?.investigatedIntervals.find(
+    const intervalWithTriaxial = bore.boreholeSampleAnalysis?.investigatedInterval.find(
       (interval) =>
         interval.shearStressChangeDuringLoadingDetermination &&
         interval.shearStressChangeDuringLoadingDetermination.length > 0
@@ -84,7 +84,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000380415.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const intervalWithTriaxial = bore.analysis?.investigatedIntervals.find(
+    const intervalWithTriaxial = bore.boreholeSampleAnalysis?.investigatedInterval.find(
       (interval) =>
         interval.shearStressChangeDuringLoadingDetermination &&
         interval.shearStressChangeDuringLoadingDetermination.length > 0
@@ -101,7 +101,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000380415.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const intervalWithTriaxial = bore.analysis?.investigatedIntervals.find(
+    const intervalWithTriaxial = bore.boreholeSampleAnalysis?.investigatedInterval.find(
       (interval) =>
         interval.shearStressChangeDuringLoadingDetermination &&
         interval.shearStressChangeDuringLoadingDetermination.length > 0
@@ -126,7 +126,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000380415.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const intervalWithTriaxial = bore.analysis?.investigatedIntervals.find(
+    const intervalWithTriaxial = bore.boreholeSampleAnalysis?.investigatedInterval.find(
       (interval) =>
         interval.shearStressChangeDuringLoadingDetermination &&
         interval.shearStressChangeDuringLoadingDetermination.length > 0
@@ -156,7 +156,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000380415.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const intervalWithTriaxial = bore.analysis?.investigatedIntervals.find(
+    const intervalWithTriaxial = bore.boreholeSampleAnalysis?.investigatedInterval.find(
       (interval) =>
         interval.shearStressChangeDuringLoadingDetermination &&
         interval.shearStressChangeDuringLoadingDetermination.length > 0
@@ -188,20 +188,20 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.broId).toBe('BHR000000380389');
-    expect(bore.analysis).toBeDefined();
+    expect(bore.boreholeSampleAnalysis).toBeDefined();
 
-    if (!bore.analysis) {
+    if (!bore.boreholeSampleAnalysis) {
       throw new Error('Analysis data should be present');
     }
 
     // Should have intervals with particle size tests
-    const intervalWithParticleSize = bore.analysis.investigatedIntervals.find(
+    const intervalWithParticleSize = bore.boreholeSampleAnalysis.investigatedInterval.find(
       (interval) => interval.particleSizeDistributionDetermination
     );
     expect(intervalWithParticleSize).toBeDefined();
 
     // Should have intervals with triaxial tests
-    const intervalWithTriaxial = bore.analysis.investigatedIntervals.find(
+    const intervalWithTriaxial = bore.boreholeSampleAnalysis.investigatedInterval.find(
       (interval) =>
         interval.shearStressChangeDuringLoadingDetermination &&
         interval.shearStressChangeDuringLoadingDetermination.length > 0
@@ -213,7 +213,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const xml = loadFixture('BHR-GT-BMA', 'BHR000000380389.xml');
     const bore = parser.parseBHRGT(xml);
 
-    const intervalWithMultipleTriaxial = bore.analysis?.investigatedIntervals.find(
+    const intervalWithMultipleTriaxial = bore.boreholeSampleAnalysis?.investigatedInterval.find(
       (interval) =>
         interval.shearStressChangeDuringLoadingDetermination &&
         interval.shearStressChangeDuringLoadingDetermination.length > 1

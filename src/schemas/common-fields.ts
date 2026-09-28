@@ -1,62 +1,14 @@
 /**
- * Shared brocom (BRO common) schema fields.
+ * Shared domain producer for the BRO schemas.
  *
- * These map the `brocom:RegistrationObject` base elements that every BRO
- * registration type (CPT, BHR-GT, BHR-G, ...) carries with identical paths and
- * meaning. Spread this into each domain schema so the common surface is defined
- * once and stays consistent - mirrors how the XSDs model these via
- * complexContent extension of `brocom:RegistrationObject`.
- *
- * `registrationHistory` is intentionally NOT in the shared spread map: it is a
- * brocom structure too, but its container element sits under the domain namespace
- * (dscpt/dsbhrgt/dsbhrg). It is provided separately as the {@link REGISTRATION_HISTORY}
- * producer below, which each schema binds at its own path.
+ * `gmlLocation` maps a GML `Point` element to a {@link Location}. The codegen
+ * emits it wherever the XSD types a node as `PointType`, and it is re-exported on
+ * the `producers` authoring surface for custom schemas.
  */
 
 import type { Location } from "../types/index.js";
-import { text, code, date, boolean, object, custom } from "../core/producer.js";
-import type { Produced } from "../core/producer.js";
+import { custom } from "../core/producer.js";
 import type { CustomProducer } from "../core/producer.js";
-
-/**
- * The shared `brocom:RegistrationObject` base fields, as producers. Spread this
- * into a domain's object producer so the common surface is defined once.
- */
-export const COMMON_REGISTRATION_PRODUCERS = {
-  broId: text("brocom:broId"),
-  qualityRegime: text("brocom:qualityRegime"),
-  deliveryAccountableParty: text("brocom:deliveryAccountableParty"),
-  objectIdAccountableParty: text("brocom:objectIdAccountableParty"),
-  deliveryResponsibleParty: text("brocom:deliveryResponsibleParty"),
-};
-
-/**
- * The BRO registration history, as an object producer.
- *
- * The container sits under the domain namespace but its children are all
- * `brocom:*` and identical across domains, so it is matched with a
- * namespace-agnostic `local-name()`. Absent container → `null` (optional).
- */
-export const REGISTRATION_HISTORY = object({
-  at: "./*[local-name()='registrationHistory']",
-  fields: {
-    objectRegistrationTime: date("./brocom:objectRegistrationTime"),
-    registrationStatus: code("./brocom:registrationStatus"),
-    registrationCompletionTime: date("./brocom:registrationCompletionTime"),
-    latestCorrectionTime: date("./brocom:latestCorrectionTime"),
-    latestAdditionTime: date("./brocom:latestAdditionTime"),
-    underReviewTime: date("./brocom:underReviewTime"),
-    deregistrationTime: date("./brocom:deregistrationTime"),
-    reregistrationTime: date("./brocom:reregistrationTime"),
-    corrected: boolean("./brocom:corrected"),
-    underReview: boolean("./brocom:underReview"),
-    deregistered: boolean("./brocom:deregistered"),
-    reregistered: boolean("./brocom:reregistered"),
-  },
-});
-
-/** The BRO registration history, shared by every registration type. Inferred from {@link REGISTRATION_HISTORY}. @internal */
-export type RegistrationHistory = Produced<typeof REGISTRATION_HISTORY>;
 
 /**
  * A GML `Point` location → {@link Location}, as a custom producer.

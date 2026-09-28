@@ -42,6 +42,38 @@ describe('BHRG Parsing (Node)', () => {
     expect(bhrg.meta.warnings).toEqual([]);
   });
 
+  it('should parse a bare-major namespace file (dsbhrg/3) with full data and no warnings', () => {
+    const xml = fixtures.bhrG.bareMajorNamespace();
+    const bhrg = parser.parseBHRG(xml);
+
+    assertValidBHRG(bhrg);
+    expect(bhrg.broId).toBe('BHR000000403809');
+    // The schema/resolver is optimized for /3.1, but the whole-major namespace
+    // resolves cleanly: metadata, location and every layer come through.
+    expect(bhrg.meta.schemaVersion).toBe('3');
+    expect(bhrg.meta.schemaNamespace).toBe(
+      'http://www.broservices.nl/xsd/dsbhrg/3'
+    );
+    expect(bhrg.meta.warnings).toEqual([]);
+    expect(bhrg.deliveredLocation?.location).toMatchObject({
+      x: 198115,
+      y: 317197,
+    });
+
+    const layers =
+      bhrg.boreholeSampleDescription?.descriptiveBoreholeLog?.[0]?.layer ?? [];
+    expect(layers.length).toBe(10);
+    expect(layers[0]?.soil?.soilNameNEN5104?.code).toBe('leemNietGespecificeerd');
+  });
+
+  it('should route a bare-major namespace through parse() too', () => {
+    const xml = fixtures.bhrG.bareMajorNamespace();
+    const bhrg = parser.parse(xml);
+
+    expect(bhrg.meta.dataType).toBe('BHR-G');
+    expect(bhrg.broId).toBe('BHR000000403809');
+  });
+
   it('should extract layer data', () => {
     const xml = fixtures.bhrG.dispatch();
     const bhrg = parser.parseBHRG(xml);
@@ -195,6 +227,6 @@ describe('BHRG Parsing (Node)', () => {
     expect(bhrg.deliveryContext).toBeTruthy();
     expect(bhrg.surveyPurpose).toBeTruthy();
     expect(bhrg.discipline).toBeTruthy();
-    expect(bhrg.nITGCode).toBeTruthy(); // BHR-G has legacy NITG code
+    expect(bhrg.nitgCode).toBeTruthy(); // BHR-G has legacy NITG code
   });
 });

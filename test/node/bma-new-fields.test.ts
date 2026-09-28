@@ -13,7 +13,7 @@ describe('BHR-GT-BMA newly added determination fields', () => {
   });
 
   const firstDetermination = <T>(bore: BHRGTData, key: string): T | undefined => {
-    for (const interval of bore.analysis?.investigatedIntervals ?? []) {
+    for (const interval of bore.boreholeSampleAnalysis?.investigatedInterval ?? []) {
       const value = (interval as unknown as Record<string, unknown>)[key];
       if (value) return value as T;
     }

@@ -24,19 +24,19 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const xml = fixtures.bhrGtBma.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    expect(bore.analysis).toBeDefined();
-    expect(bore.analysis?.analysisReportDate).toBe('2020-03-03');
-    expect(bore.analysis?.analysisProcedure?.code).toBe('geen');
+    expect(bore.boreholeSampleAnalysis).toBeDefined();
+    expect(bore.boreholeSampleAnalysis?.analysisReportDate).toBe('2020-03-03');
+    expect(bore.boreholeSampleAnalysis?.analysisProcedure?.code).toBe('geen');
   });
 
   it('should extract investigated intervals', () => {
     const xml = fixtures.bhrGtBma.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    expect(bore.analysis?.investigatedIntervals).toBeDefined();
-    expect(bore.analysis?.investigatedIntervals.length).toBe(1);
+    expect(bore.boreholeSampleAnalysis?.investigatedInterval).toBeDefined();
+    expect(bore.boreholeSampleAnalysis?.investigatedInterval.length).toBe(1);
 
-    const interval = bore.analysis!.investigatedIntervals[0];
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval[0];
     expect(interval.beginDepth).toBe(1.12);
     expect(interval.endDepth).toBe(1.18);
     expect(interval.sampleQuality?.code).toBe('QM2');
@@ -47,7 +47,7 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const xml = fixtures.bhrGtBma.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals[0];
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval[0];
     expect(interval.waterContentDetermined).toBe(true);
     expect(interval.organicMatterContentDetermined).toBe(false);
     expect(interval.carbonateContentDetermined).toBe(false);
@@ -60,7 +60,7 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const xml = fixtures.bhrGtBma.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals[0];
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval[0];
     expect(interval.waterContentDetermination).toBeDefined();
 
     const wc = interval.waterContentDetermination!;
@@ -78,7 +78,7 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const xml = fixtures.bhrGtBma.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals[0];
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval[0];
     expect(interval.volumetricMassDensityDetermination).toBeDefined();
 
     const vmd = interval.volumetricMassDensityDetermination!;
@@ -92,7 +92,7 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const xml = fixtures.bhrGtBma.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    const interval = bore.analysis!.investigatedIntervals[0];
+    const interval = bore.boreholeSampleAnalysis!.investigatedInterval[0];
     expect(interval.particleSizeDistributionDetermination).toBeDefined();
 
     const psd = interval.particleSizeDistributionDetermination!;
@@ -109,7 +109,7 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const xml = fixtures.bhrGtBma.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    const psd = bore.analysis!.investigatedIntervals[0].particleSizeDistributionDetermination!;
+    const psd = bore.boreholeSampleAnalysis!.investigatedInterval[0].particleSizeDistributionDetermination!;
     expect(psd.fractionSmaller63um).toBe(5.0);
     expect(psd.fractionLarger63um).toBe(95.0);
   });
@@ -118,7 +118,7 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const xml = fixtures.bhrGtBma.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    const psd = bore.analysis!.investigatedIntervals[0].particleSizeDistributionDetermination!;
+    const psd = bore.boreholeSampleAnalysis!.investigatedInterval[0].particleSizeDistributionDetermination!;
     expect(psd.fraction0to2um).toBe(2.6);
     expect(psd.fraction2to4um).toBe(0.4);
     expect(psd.fraction4to8um).toBe(0.4);
@@ -132,7 +132,7 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const xml = fixtures.bhrGtBma.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    const psd = bore.analysis!.investigatedIntervals[0].particleSizeDistributionDetermination!;
+    const psd = bore.boreholeSampleAnalysis!.investigatedInterval[0].particleSizeDistributionDetermination!;
     expect(psd.fraction63to90um).toBe(1);
     expect(psd.fraction90to125um).toBe(3.5);
     expect(psd.fraction125to180um).toBe(41.2);
@@ -156,6 +156,6 @@ describe('BHR-GT-BMA Parsing (Node)', () => {
     const bore = parser.parseBHRGT(xml);
 
     assertValidBore(bore);
-    expect(bore.analysis).toBeUndefined();
+    expect(bore.boreholeSampleAnalysis).toBeUndefined();
   });
 });

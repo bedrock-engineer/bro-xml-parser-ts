@@ -183,16 +183,19 @@ describe('CPT Parsing (Node)', () => {
 
     it('should parse removedLayers from IMBRO/A file', () => {
       const cpt = parser.parseCPT(fixtures.cpt.imbroa());
+      const investigation = cpt.additionalInvestigation;
+      expect(investigation).not.toBeNull();
+      if (!investigation) return;
 
-      expect(cpt.additionalInvestigation?.removedLayer).toHaveLength(2);
+      expect(investigation.removedLayer).toHaveLength(2);
 
-      const first = cpt.additionalInvestigation?.removedLayer[0];
+      const first = investigation.removedLayer[0];
       expect(first.sequenceNumber).toBe(1);
       expect(first.upperBoundary).toBe(0);
       expect(first.lowerBoundary).toBe(0.1);
       expect(first.description).toBe('Tegel');
 
-      expect(cpt.additionalInvestigation?.removedLayer[1].description).toBe('Zand');
+      expect(investigation.removedLayer[1].description).toBe('Zand');
     });
 
     it('should return empty array for removedLayers when none present', () => {
@@ -225,10 +228,13 @@ describe('CPT Parsing (Node)', () => {
     it('should parse dissipation test from CPT000000179849', () => {
       const xml = fixtures.cpt.imbro2();
       const cpt = parser.parseCPT(xml);
+      const survey = cpt.conePenetrometerSurvey;
+      expect(survey).not.toBeNull();
+      if (!survey) return;
 
-      expect(cpt.conePenetrometerSurvey?.dissipationTest).toHaveLength(1);
+      expect(survey.dissipationTest).toHaveLength(1);
 
-      const test = cpt.conePenetrometerSurvey?.dissipationTest[0];
+      const test = survey.dissipationTest[0];
       expect(test.penetrationLength).toBe(20.1);
       expect(typeof test.phenomenonTime).toBe('string');
       expect(test.measurements).toHaveLength(317);
@@ -264,6 +270,7 @@ describe('CPT Parsing (Node)', () => {
 
       const firstMeasurement = cpt.conePenetrometerSurvey?.conePenetrationTest?.measurements[0];
       expect(firstMeasurement).toBeTruthy();
+      if (!firstMeasurement) return;
       expect(firstMeasurement.penetrationLength).toBeTypeOf('number');
       // coneResistance can be null for some measurements
       expect('coneResistance' in firstMeasurement).toBe(true);

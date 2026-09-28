@@ -8,6 +8,71 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Optional nested objects are typed `T | null`.** An `object()` field with the
+  default (optional) presence returns `null` when its element is absent, but the
+  type claimed it was always present. The inferred types now carry `| null` for
+  every optional nested object/`oneOf` (e.g. `layer.soil`, `layer.rock`, CPT
+  `additionalInvestigation`, `sampledInterval[].sampler`, `coreRecovery`,
+  `siteCharacteristic`, `fluidMudLayer`), matching the runtime. Leaves and arrays
+  are unchanged. Code that assumed these were non-null will need a null check.
+- **`prettifyBroCode` no longer mangles acronyms or digits.** Codes containing two
+  or more adjacent capitals or any digit (e.g. `ISO22476D1`, `RTKGPS5tot10cm`) are
+  now returned unchanged instead of being lower-cased into `Iso22476 d1`.
+
+### Added
+
+- **Top-level `dataType` discriminant.** Each data type carries its own top-level
+  `dataType` literal, so `switch (data.dataType)` narrows a `BROData` union with no
+  hand-written type guards. (`meta.dataType` still carries the same value, but
+  TypeScript cannot narrow on a nested discriminant, so switch on `data.dataType`.)
+- **Layer/description types are public.** `BHRGTLayer`, `SoilDescription`,
+  `RockDescription`, `Grainshape`, `BHRGLayer`, and the other layer/fraction types
+  used to render a borehole are no longer `@internal`, so they appear in the API
+  docs. `SoilDescription` is now exported from the entry points.
+
+### Changed
+
+- **BREAKING: `getSoilColor` takes a `Coded` value.** It now accepts a coded
+  colour (`layer.colour`) rather than a bare string, matching the rest of the
+  coded-value API.
+- **BREAKING: field renames for cross-type consistency.** See the migration table.
+- **BREAKING: removed `producers.COMMON_REGISTRATION_PRODUCERS` and
+  `producers.REGISTRATION_HISTORY`.** These pre-generation field-map helpers were
+  unused by the bundled schemas and had drifted from them. Spell the `brocom:*`
+  leaves out directly in a custom schema (e.g. `id: p.text("./brocom:broId")`). The
+  `RegistrationHistory` type is unchanged and still exported.
+- **Wrong-document-type errors name the data type, not a parser method.** The
+  `WRONG_DOCUMENT_TYPE` hint now reads e.g. `"Document is BHR-GT, not CPT. Use the
+  BHR-GT parser."` rather than naming a specific `parse*` method.
+
+#### Migration
+
+| 0.6.x | Unreleased |
+| --- | --- |
+| `getSoilColor(layer.colour?.code ?? '')` | `getSoilColor(layer.colour)` |
+| `bhrgt.analysis` | `bhrgt.boreholeSampleAnalysis` |
+| `analysis.investigatedIntervals` | `boreholeSampleAnalysis.investigatedInterval` |
+| `interval.beginDepth` / `endDepth` (`number`) | now `number \| null` |
+| `bhrg.nITGCode` | `bhrg.nitgCode` |
+| `switch (data.meta.dataType)` | `switch (data.dataType)` |
+| `...p.COMMON_REGISTRATION_PRODUCERS` / `p.REGISTRATION_HISTORY` | spell out the `brocom:*` leaves in your map |
+
+## [0.6.1] - 2026-09-28
+
+### Fixed
+
+- **Bare-major namespaces now parse.** Documents delivered with a whole-major
+  schema namespace (e.g. `.../dsbhrg/3` rather than `.../dsbhrg/3.1`), as several
+  BRO REST services return, were rejected with `INCOMPATIBLE_VERSION` — the
+  version was read as `"unknown"` (major `0`). The version detector now accepts a
+  bare `/<major>` suffix, and the schema parser re-points its XPath namespaces at
+  the versions each document actually declares (matching by family), so a
+  major-3 BHR-G resolves fully whether it arrives as `/3`, `/3.0`, or `/3.1`.
+  A bare-major namespace whose major matches the supported one parses without a
+  warning; a specific unrecognized minor (e.g. `3.9`) still warns.
+
 ## [0.6.0] - 2026-09-24
 
 Ground-up redesign ("Gen 3"): every registration schema is now generated from the

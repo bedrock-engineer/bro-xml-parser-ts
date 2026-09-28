@@ -17,14 +17,14 @@ describe('Maximum Undrained Shear Strength Determination Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.broId).toBe('BHR000000347394');
-    expect(bore.analysis).toBeDefined();
+    expect(bore.boreholeSampleAnalysis).toBeDefined();
 
-    if (!bore.analysis) {
+    if (!bore.boreholeSampleAnalysis) {
       throw new Error('Analysis data should be present');
     }
 
     // Find interval with undrained shear strength (3.00-3.10m)
-    const interval = bore.analysis.investigatedIntervals.find(
+    const interval = bore.boreholeSampleAnalysis.investigatedInterval.find(
       (i) => i.maximumUndrainedShearStrengthDetermination
     );
 
@@ -47,14 +47,14 @@ describe('Maximum Undrained Shear Strength Determination Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     expect(bore.broId).toBe('BHR000000339288');
-    expect(bore.analysis).toBeDefined();
+    expect(bore.boreholeSampleAnalysis).toBeDefined();
 
-    if (!bore.analysis) {
+    if (!bore.boreholeSampleAnalysis) {
       throw new Error('Analysis data should be present');
     }
 
     // Find all intervals with undrained shear strength
-    const intervalsWithShearStrength = bore.analysis.investigatedIntervals.filter(
+    const intervalsWithShearStrength = bore.boreholeSampleAnalysis.investigatedInterval.filter(
       (i) => i.maximumUndrainedShearStrengthDetermination
     );
 

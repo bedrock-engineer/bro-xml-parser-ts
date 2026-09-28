@@ -16,11 +16,13 @@
  * // Direct lookup
  * const hex = BRO_SOIL_COLORS['lichtBruin']; // '#b79a77'
  *
- * // Helper function (case-insensitive)
- * const color = getSoilColor('lichtbruin'); // '#b79a77'
- * const unknown = getSoilColor('invalid'); // null
+ * // Helper function (takes a coded colour value)
+ * const color = getSoilColor(layer.colour); // '#b79a77'
+ * const unknown = getSoilColor(null); // null
  * ```
  */
+
+import type { Coded } from "./core/producer.js";
 
 /**
  * BRO soil color name to hex color mapping
@@ -93,35 +95,35 @@ const normalizedColorMap: Record<string, string> = Object.fromEntries(
 );
 
 /**
- * Get the hex color for a BRO soil color name.
+ * Get the hex color for a BRO soil colour code.
  *
- * @param colorName - BRO color name (e.g., "lichtBruin", "donkerGrijs")
- * @returns Hex color string, or `null` if the name is not found
+ * @param colour - A coded colour value (e.g. `layer.colour`), or `null`/`undefined`
+ * @returns Hex color string, or `null` if the code is absent or not recognised
  *
  * @example
  * ```typescript
- * getSoilColor('lichtBruin'); // '#b79a77'
- * getSoilColor('LICHTBRUIN'); // '#b79a77' (case-insensitive)
- * getSoilColor('unknown');    // null
+ * getSoilColor(layer.colour);                       // '#b79a77'
+ * getSoilColor({ code: 'lichtBruin', codeSpace }); // '#b79a77'
+ * getSoilColor(null);                               // null
  * ```
  */
-export function getSoilColor(colorName: string): string | null;
+export function getSoilColor(colour: Coded | null | undefined): string | null;
 /**
- * Get the hex color for a BRO soil color name, falling back to a default.
+ * Get the hex color for a BRO soil colour code, falling back to a default.
  *
- * @param colorName - BRO color name (e.g., "lichtBruin", "donkerGrijs")
- * @param defaultColor - Fallback color returned when the name is not found
- * @returns Hex color string, or `defaultColor` if the name is not found
+ * @param colour - A coded colour value, or `null`/`undefined`
+ * @param defaultColor - Fallback color returned when the code is absent or unknown
+ * @returns Hex color string, or `defaultColor` if the code is absent or unknown
  *
  * @example
  * ```typescript
- * getSoilColor('unknown', '#808080'); // '#808080'
+ * getSoilColor(null, '#808080'); // '#808080'
  * ```
  */
-export function getSoilColor(colorName: string, defaultColor: string): string;
-export function getSoilColor(colorName: string, defaultColor?: string): string | null {
-  const normalized = colorName.toLowerCase();
-  return normalizedColorMap[normalized] ?? defaultColor ?? null;
+export function getSoilColor(colour: Coded | null | undefined, defaultColor: string): string;
+export function getSoilColor(colour: Coded | null | undefined, defaultColor?: string): string | null {
+  const normalized = colour?.code.toLowerCase();
+  return (normalized ? normalizedColorMap[normalized] : undefined) ?? defaultColor ?? null;
 }
 
 /**

@@ -27,12 +27,34 @@ import type {
   GMWData,
   GLDData,
   BROData,
+  DataByType,
   ParseMeta,
   BROFileType,
 } from "./types/index.js";
 import { BROParseError } from "./types/index.js";
 import { object } from "./core/producer.js";
 import type { Producer, ProducedFields, Presence, ObjectProducer } from "./core/producer.js";
+
+/** The value part of a `*Data` type: everything the producer itself yields. */
+type ProducedPart<D> = Omit<D, "dataType" | "meta" | "alias">;
+
+/**
+ * The producer for each registration type. Its value type is checked against
+ * {@link DataByType} — file a producer under the wrong key (or omit a key) and it
+ * fails to compile. This is the guard that makes the one cast in {@link
+ * BROParser.parseAs} a sound bridge (over TS's inability to type a generic spread)
+ * rather than an unchecked assertion.
+ *
+ * Version facts for the same types live in the registry in `version-detector`;
+ * producers stay here so that module keeps zero dependency on the schemas.
+ */
+const PRODUCERS: { [K in BROFileType]: ObjectProducer<ProducedPart<DataByType[K]>> } = {
+  CPT: CPT_PRODUCER,
+  "BHR-GT": BORE_PRODUCER,
+  "BHR-G": BHRG_PRODUCER,
+  GMW: GMW_PRODUCER,
+  GLD: GLD_PRODUCER,
+};
 
 /**
  * Main BRO Parser class
@@ -68,7 +90,9 @@ export class BROParser {
   /**
    * Create ParseMeta from version detection result
    */
-  private createMeta(versionResult: VersionDetectionResult): ParseMeta {
+  private createMeta<T extends BROFileType = BROFileType>(
+    versionResult: VersionDetectionResult,
+  ): ParseMeta<T> {
     // Log warnings to console
     for (const warning of versionResult.warnings) {
       console.warn(`[BROParser] ${warning}`);
@@ -77,9 +101,29 @@ export class BROParser {
     return {
       schemaVersion: versionResult.version,
       schemaNamespace: versionResult.namespace,
-      dataType: versionResult.dataType,
+      dataType: versionResult.dataType as T,
       warnings: versionResult.warnings,
     };
+  }
+
+  /**
+   * The one body behind every `parse*` method: validate the version, run the
+   * type's producer, fold warnings into `meta`. Takes an already-parsed `doc` so
+   * {@link parse} detects and parses without re-parsing the XML.
+   *
+   * The cast bridges one TS limitation only: it cannot relate a spread of the
+   * generic `value` to the indexed access `DataByType[T]` (it collapses the union
+   * to `never` on the conflicting `dataType` literals), so a direct `as` is
+   * refused and `as unknown as` is the idiom. Soundness rests entirely on guards
+   * elsewhere — the {@link PRODUCERS} map is type-checked against
+   * {@link DataByType}, and each `parse*` one-liner re-checks the concrete
+   * `DataByType[K]` against its declared `*Data` return type at the call site.
+   */
+  private parseAs<T extends BROFileType>(doc: Document, type: T): DataByType[T] {
+    const meta = this.createMeta<T>(detectAndValidateVersion(doc, type));
+    const { value, warnings } = this.parser.produce(doc, PRODUCERS[type], "dispatchDocument");
+    meta.warnings.push(...warnings);
+    return { dataType: type, meta, ...value } as unknown as DataByType[T];
   }
 
   /**
@@ -105,15 +149,7 @@ export class BROParser {
    * ```
    */
   parseCPT(xmlText: string): CPTData {
-    const doc = this.adapter.parseXML(xmlText);
-
-    const versionResult = detectAndValidateVersion(doc, "CPT");
-    const meta = this.createMeta(versionResult);
-
-    const { value, warnings } = this.parser.produce(doc, CPT_PRODUCER, "dispatchDocument");
-    meta.warnings.push(...warnings);
-
-    return { meta, ...value };
+    return this.parseAs(this.adapter.parseXML(xmlText), "CPT");
   }
 
   /**
@@ -139,15 +175,7 @@ export class BROParser {
    * ```
    */
   parseBHRGT(xmlText: string): BHRGTData {
-    const doc = this.adapter.parseXML(xmlText);
-
-    const versionResult = detectAndValidateVersion(doc, "BHR-GT");
-    const meta = this.createMeta(versionResult);
-
-    const { value, warnings } = this.parser.produce(doc, BORE_PRODUCER, "dispatchDocument");
-    meta.warnings.push(...warnings);
-
-    return { meta, ...value };
+    return this.parseAs(this.adapter.parseXML(xmlText), "BHR-GT");
   }
 
   /**
@@ -173,15 +201,7 @@ export class BROParser {
    * ```
    */
   parseBHRG(xmlText: string): BHRGData {
-    const doc = this.adapter.parseXML(xmlText);
-
-    const versionResult = detectAndValidateVersion(doc, "BHR-G");
-    const meta = this.createMeta(versionResult);
-
-    const { value, warnings } = this.parser.produce(doc, BHRG_PRODUCER, "dispatchDocument");
-    meta.warnings.push(...warnings);
-
-    return { meta, ...value };
+    return this.parseAs(this.adapter.parseXML(xmlText), "BHR-G");
   }
 
   /**
@@ -207,15 +227,7 @@ export class BROParser {
    * ```
    */
   parseGMW(xmlText: string): GMWData {
-    const doc = this.adapter.parseXML(xmlText);
-
-    const versionResult = detectAndValidateVersion(doc, "GMW");
-    const meta = this.createMeta(versionResult);
-
-    const { value, warnings } = this.parser.produce(doc, GMW_PRODUCER, "dispatchDocument");
-    meta.warnings.push(...warnings);
-
-    return { meta, ...value };
+    return this.parseAs(this.adapter.parseXML(xmlText), "GMW");
   }
 
   /**
@@ -244,15 +256,7 @@ export class BROParser {
    * ```
    */
   parseGLD(xmlText: string): GLDData {
-    const doc = this.adapter.parseXML(xmlText);
-
-    const versionResult = detectAndValidateVersion(doc, "GLD");
-    const meta = this.createMeta(versionResult);
-
-    const { value, warnings } = this.parser.produce(doc, GLD_PRODUCER, "dispatchDocument");
-    meta.warnings.push(...warnings);
-
-    return { meta, ...value };
+    return this.parseAs(this.adapter.parseXML(xmlText), "GLD");
   }
 
   /**
@@ -271,8 +275,8 @@ export class BROParser {
    * const parser = new BROParser(new XMLAdapter());
    * const data = parser.parse(xmlString);
    *
-   * // Use meta.dataType to discriminate
-   * switch (data.meta.dataType) {
+   * // Discriminate on the top-level dataType (narrows the union)
+   * switch (data.dataType) {
    *   case 'CPT':
    *     console.log(data.finalDepth);
    *     break;
@@ -293,18 +297,7 @@ export class BROParser {
       });
     }
 
-    switch (versionInfo.type) {
-      case "CPT":
-        return this.parseCPT(xmlText);
-      case "BHR-GT":
-        return this.parseBHRGT(xmlText);
-      case "BHR-G":
-        return this.parseBHRG(xmlText);
-      case "GMW":
-        return this.parseGMW(xmlText);
-      case "GLD":
-        return this.parseGLD(xmlText);
-    }
+    return this.parseAs(doc, versionInfo.type);
   }
 
   /**
