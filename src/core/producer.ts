@@ -6,9 +6,10 @@
  * themselves producers, an array producer's item is a producer, and so on all
  * the way down. {@link SchemaParser.produce} interprets this tree.
  *
- * Six kinds, each built by a combinator:
+ * Seven kinds, each built by a combinator:
  *   - `scalar`  — a leaf: text (or an attribute) decoded into `T`.
  *   - `code`    — a leaf: a BRO coded value (`{ code, codeSpace }`), text + its domain.
+ *   - `measure` — a leaf: a BRO measured value (`{ value, uom }`), number + its unit.
  *   - `object`  — a fixed set of named fields, each a producer.
  *   - `array`   — a repeated subtree: `each` selects item nodes, `item` produces one.
  *   - `oneOf`   — an honest discriminated union (shared `base` + tagged `branches`).
@@ -39,6 +40,19 @@ import {
 export interface Coded {
   code: string;
   codeSpace: string;
+}
+
+/**
+ * A BRO measured value: the numeric `value` plus the `uom` unit of measure that
+ * the XML carries as a `uom` attribute (e.g. `m`, `kPa`, `g/cm3`).
+ *
+ * First-class data, so the unit travels with the number instead of being
+ * silently dropped. An absent or missing-sentinel measure element parses to
+ * `null`; a present one is always a full `{ value, uom }`.
+ */
+export interface Measure {
+  value: number;
+  uom: string;
 }
 
 /**
@@ -76,9 +90,9 @@ export interface NodeLens {
 }
 
 /**
- * Fields common to every producer kind. `presence` lives on each producer
- * interface instead (typed as the literal `P`), so its value can be recovered at
- * the type level.
+ * Fields common to every producer kind, and the meta every combinator accepts.
+ * `presence` lives on each producer interface instead (typed as the literal `P`),
+ * so its value can be recovered at the type level.
  */
 interface ProducerMeta {
   /** Relative XPath from the enclosing node to this producer's node. */
@@ -114,6 +128,18 @@ export interface ScalarProducer<T, P extends Presence = "optional"> extends Prod
 export interface CodeProducer<T, P extends Presence = "optional"> extends ProducerMeta {
   kind: "code";
   decode: (text: string | null, codeSpace: string | null) => T;
+  presence?: P;
+  readonly _out?: T;
+}
+
+/**
+ * A leaf measured value. Like {@link CodeProducer} it is text-presence driven,
+ * but its decode also receives the node's `uom` attribute so it can build a
+ * {@link Measure}.
+ */
+export interface MeasureProducer<T, P extends Presence = "optional"> extends ProducerMeta {
+  kind: "measure";
+  decode: (text: string | null, uom: string | null, warn?: WarnSink) => T;
   presence?: P;
   readonly _out?: T;
 }
@@ -166,13 +192,14 @@ export interface OneOfProducer<T, P extends Presence = "optional"> extends Produ
 export type Producer<T, P extends Presence = "optional"> =
   | ScalarProducer<T, P>
   | CodeProducer<T, P>
+  | MeasureProducer<T, P>
   | ObjectProducer<T, P>
   | ArrayProducer<T, P>
   | CustomProducer<T, P>
   | OneOfProducer<T, P>;
 
 /** Leaf producer kinds: value-bearing, driven by text presence. */
-export type LeafKind = "scalar" | "code";
+export type LeafKind = "scalar" | "code" | "measure";
 
 /** Flatten an intersection into a single object literal for legible hovers. */
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
@@ -194,7 +221,7 @@ type OmitPresenceKeys<F> = { [K in keyof F]: PresenceOf<F[K]> extends "omit" ? K
  */
 type FieldValue<X> = PresenceOf<X> extends "required" | "omit"
   ? Produced<X>
-  : X extends ObjectProducer<unknown, Presence> | OneOfProducer<unknown, Presence>
+  : X extends { kind: "object" | "oneOf" }
     ? Produced<X> | null
     : Produced<X>;
 
@@ -215,9 +242,7 @@ export type ProducedFields<F> = Simplify<
 // Combinators
 // ===========================================================================
 
-/** Meta accepted by every combinator, minus `presence` (captured generically). */
-interface BaseMeta { at?: string; doc?: string; group?: string }
-type LeafOpts<P extends Presence = "optional"> = BaseMeta & { presence?: P };
+type LeafOpts<P extends Presence = "optional"> = ProducerMeta & { presence?: P };
 type ScalarOpts<T, P extends Presence = "optional"> = LeafOpts<P> & {
   decode: (raw: string | null, warn?: WarnSink) => T;
 };
@@ -230,15 +255,20 @@ export function scalar<T, P extends Presence = "optional">(
 }
 
 /**
- * Build a leaf from a decoder + optional `at`, without ever writing
- * `at: undefined` (which `exactOptionalPropertyTypes` rejects).
+ * Merge a positional `at` into leaf opts without ever writing `at: undefined`
+ * (which `exactOptionalPropertyTypes` rejects). An explicit `opts.at` wins.
  */
+function withAt<P extends Presence>(at: string | undefined, opts: LeafOpts<P>): LeafOpts<P> {
+  return at !== undefined ? { at, ...opts } : opts;
+}
+
+/** Build a scalar leaf from a decoder + optional positional `at`. */
 function leaf<T, P extends Presence>(
   decode: (raw: string | null, warn?: WarnSink) => T,
   at: string | undefined,
   opts: LeafOpts<P>,
 ): ScalarProducer<T, P> {
-  return scalar<T, P>({ decode, ...(at !== undefined ? { at } : {}), ...opts });
+  return scalar<T, P>({ decode, ...withAt(at, opts) });
 }
 
 /** Raw trimmed text (`string | null`). */
@@ -295,8 +325,27 @@ export function code<P extends Presence = "optional">(
     kind: "code",
     decode: (text, codeSpace) =>
       text === null || codeSpace === null ? null : { code: text, codeSpace },
-    ...(at !== undefined ? { at } : {}),
-    ...opts,
+    ...withAt(at, opts),
+  };
+}
+
+/**
+ * A BRO measured value (`{ value, uom } | null`). Reads the element's text and
+ * its `uom` attribute; absent/sentinel text or a missing unit → `null`. A
+ * first-class leaf, so presence (`optional`/`required`/`omit`) and array-item
+ * handling apply as they do to {@link code}.
+ */
+export function measure<P extends Presence = "optional">(
+  at?: string,
+  opts: LeafOpts<P> = {},
+): MeasureProducer<Measure | null, P> {
+  return {
+    kind: "measure",
+    decode: (text, uom, warn) => {
+      const value = parseFloat(text, warn);
+      return value === null || uom === null ? null : { value, uom };
+    },
+    ...withAt(at, opts),
   };
 }
 
@@ -311,7 +360,7 @@ export function object<
   F extends Record<string, Producer<unknown, Presence>>,
   P extends Presence = "optional",
 >(
-  opts: { fields: F; presence?: P } & BaseMeta,
+  opts: { fields: F; presence?: P } & ProducerMeta,
 ): ObjectProducer<ProducedFields<F>, P> & { readonly _fields?: F } {
   const { fields, ...meta } = opts;
   return { kind: "object", fields, ...meta };
@@ -325,7 +374,7 @@ export function array<
   I extends Producer<unknown, Presence>,
   P extends Presence = "optional",
 >(
-  opts: { each: string; item: I; presence?: P } & BaseMeta,
+  opts: { each: string; item: I; presence?: P } & ProducerMeta,
 ): ArrayProducer<Array<Produced<I>>, P> & { readonly _item?: I } {
   const { each, item, ...meta } = opts;
   return { kind: "array", each, item, ...meta };
@@ -333,7 +382,7 @@ export function array<
 
 /** The escape hatch: a decoder handed a relative-only {@link NodeLens}. */
 export function custom<T, P extends Presence = "optional">(
-  opts: { produce: (lens: NodeLens) => T; presence?: P } & BaseMeta,
+  opts: { produce: (lens: NodeLens) => T; presence?: P } & ProducerMeta,
 ): CustomProducer<T, P> {
   const { produce, ...meta } = opts;
   return { kind: "custom", produce, ...meta };
@@ -373,7 +422,7 @@ export function oneOf<
   const Branches extends ReadonlyArray<BranchInput>,
   P extends Presence = "optional",
 >(
-  opts: { tagAs: TagKey; base?: Base; branches: Branches; presence?: P } & BaseMeta,
+  opts: { tagAs: TagKey; base?: Base; branches: Branches; presence?: P } & ProducerMeta,
 ): OneOfProducer<OneOfOut<TagKey, Base, Branches>, P> & {
   readonly _base?: Base;
   readonly _branches?: Branches;

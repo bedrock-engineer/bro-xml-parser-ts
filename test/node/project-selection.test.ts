@@ -5,7 +5,7 @@ import { fixtures } from '@test/helpers/fixture-loader';
 import { project } from '@/core/select';
 import { CPT_PRODUCER } from '@/schemas/cpt-schema';
 import { BORE_PRODUCER } from '@/schemas/bore-schema';
-import type { Coded } from '@/core/producer';
+import type { Coded, Measure } from '@/core/producer';
 
 /**
  * The `project()` selector over the existing producer schemas: renaming, Coded
@@ -28,11 +28,11 @@ describe('project() selection', () => {
     const r = parser.parseSelection(fixtures.cpt.example(), sel, 'CPT');
 
     expectTypeOf(r.id).toEqualTypeOf<string | null>();
-    expectTypeOf(r.depth).toEqualTypeOf<number | null>();
+    expectTypeOf(r.depth).toEqualTypeOf<Measure | null>();
     expectTypeOf(r.quality).toEqualTypeOf<Coded | null>();
 
     expect(r.id).toBe('CPT000000099543');
-    expect(r.depth).toBe(7.439);
+    expect(r.depth).toEqual({ value: 7.439, uom: 'm' });
     expect(r.quality).toEqual({ code: 'klasse2', codeSpace: 'urn:bro:cpt:QualityClass' });
     // Exactly the selected keys, plus meta.
     expect(Object.keys(r).sort()).toEqual(['depth', 'id', 'meta', 'quality', 'transform']);
@@ -63,11 +63,11 @@ describe('project() selection', () => {
     const r = parser.parseSelection(fixtures.bhrGt.dispatch(), sel, 'BHR-GT');
 
     expectTypeOf(r.logs).toEqualTypeOf<
-      Array<{ layers: Array<{ top: number | null; soil: Coded | null }> }>
+      Array<{ layers: Array<{ top: Measure | null; soil: Coded | null }> }>
     >();
     expect(r.id).toBe('BHR000000347577');
     const firstLayer = r.logs[0]?.layers[0];
-    expect(firstLayer?.top).toBeTypeOf('number');
+    expect(firstLayer?.top).toEqual({ value: expect.any(Number) as number, uom: 'm' });
     expect(firstLayer?.soil?.codeSpace).toBe('urn:bro:bhrgt:GeotechnicalSoilName');
   });
 

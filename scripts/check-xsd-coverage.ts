@@ -43,8 +43,7 @@ import {
   findRegistrationObjectType,
   flattenRoot,
   dedupeByQualified,
-  guessDecoder,
-  combinatorFor,
+  baseTypeToCombinator,
   toFieldName,
 } from "./lib/bro-xsd.js";
 
@@ -328,7 +327,7 @@ function buildReport(
     let fieldName = toFieldName(g.local);
     while (usedNames.has(fieldName)) fieldName += "_";
     usedNames.add(fieldName);
-    const combinator = combinatorFor(guessDecoder(g.baseType));
+    const combinator = baseTypeToCombinator(g.baseType);
     const xpath = "." + g.path; // path already starts with "/..."
     if (g.cardinality.endsWith("*")) {
       // Repeatable: an array of items. Emit an array producer whose item is the

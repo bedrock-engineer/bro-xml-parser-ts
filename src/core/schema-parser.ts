@@ -24,9 +24,9 @@ function readText(node: Node): string | null {
   return trimmed;
 }
 
-const LEAF_KINDS: ReadonlySet<LeafKind> = new Set(["scalar", "code"]);
+const LEAF_KINDS: ReadonlySet<LeafKind> = new Set(["scalar", "code", "measure"]);
 
-/** Leaf producers are value-bearing and text-presence driven (`scalar`, `code`). */
+/** Leaf producers are value-bearing and text-presence driven (`scalar`, `code`, `measure`). */
 function isLeafKind(kind: Producer<unknown, Presence>["kind"]): boolean {
   return LEAF_KINDS.has(kind as LeafKind);
 }
@@ -165,6 +165,15 @@ export class SchemaParser {
         const codeSpace = csNode ? readText(csNode) : null;
         return { value: producer.decode(raw, codeSpace), satisfied: raw !== null };
       }
+      case "measure": {
+        const raw = readText(self);
+        const uomNode = this.xpath(self, "@uom");
+        const uom = uomNode ? readText(uomNode) : null;
+        return {
+          value: producer.decode(raw, uom, (msg) => warnings.push(msg)),
+          satisfied: raw !== null,
+        };
+      }
       case "custom": {
         return { value: producer.produce(this.makeLens(self)), satisfied: true };
       }
@@ -178,7 +187,7 @@ export class SchemaParser {
           const outcome = this.run(itemNode, producer.item, warnings);
           if (!outcome.satisfied) {
             // Structured items (object/oneOf) that fail a required field are a
-            // meaningful data loss; an empty leaf (scalar/code) in a value list is not.
+            // meaningful data loss; an empty leaf (scalar/code/measure) in a value list is not.
             if (!isLeafKind(producer.item.kind)) {
               warnings.push(
                 `Dropped an item from array "${producer.each}": required data was missing`,
@@ -279,6 +288,8 @@ export class SchemaParser {
       case "scalar":
         return producer.decode(null);
       case "code":
+        return producer.decode(null, null);
+      case "measure":
         return producer.decode(null, null);
       case "array":
         return [];

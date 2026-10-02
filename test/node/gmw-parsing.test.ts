@@ -65,8 +65,8 @@ describe('GMW Parsing (Node)', () => {
 
       expect(gmw.deliveredVerticalPosition?.verticalDatum?.code).toBe('NAP');
       expect(gmw.deliveredVerticalPosition?.localVerticalReferencePoint?.code).toBe('NAP');
-      expect(gmw.deliveredVerticalPosition?.offset).toBe(0);
-      expect(gmw.deliveredVerticalPosition?.groundLevelPosition).toBeCloseTo(6.84, 3);
+      expect(gmw.deliveredVerticalPosition?.offset).toEqual({ value: 0, uom: 'm' });
+      expect(gmw.deliveredVerticalPosition?.groundLevelPosition?.value).toBeCloseTo(6.84, 3);
       expect(gmw.deliveredVerticalPosition?.groundLevelPositioningMethod?.code).toBe(
         'RTKGPS10tot20cm'
       );
@@ -96,7 +96,7 @@ describe('GMW Parsing (Node)', () => {
       expect(tube.artesianWellCapPresent).toBe('nee');
       expect(tube.sedimentSumpPresent).toBe('ja');
       expect(tube.numberOfGeoOhmCables).toBe(0);
-      expect(tube.tubeTopDiameter).toBe(32);
+      expect(tube.tubeTopDiameter).toEqual({ value: 32, uom: 'mm' });
       expect(tube.variableDiameter).toBe('nee');
       expect(tube.tubeInUse).toBe('onbekend');
 
@@ -106,14 +106,14 @@ describe('GMW Parsing (Node)', () => {
       expect(tube.materialUsed?.glue?.code).toBe('ongespecificeerd');
 
       // screen
-      expect(tube.screen?.screenLength).toBeCloseTo(1.0, 3);
+      expect(tube.screen?.screenLength?.value).toBeCloseTo(1.0, 3);
       expect(tube.screen?.sockMaterial?.code).toBe('nylon');
-      expect(tube.screen?.screenTopPosition).toBeCloseTo(3.44, 3);
-      expect(tube.screen?.screenBottomPosition).toBeCloseTo(2.44, 3);
+      expect(tube.screen?.screenTopPosition?.value).toBeCloseTo(3.44, 3);
+      expect(tube.screen?.screenBottomPosition?.value).toBeCloseTo(2.44, 3);
 
       // plainTubePart / sedimentSump
-      expect(tube.plainTubePart?.plainTubePartLength).toBeCloseTo(3.4, 3);
-      expect(tube.sedimentSump?.sedimentSumpLength).toBeCloseTo(0.5, 3);
+      expect(tube.plainTubePart?.plainTubePartLength?.value).toBeCloseTo(3.4, 3);
+      expect(tube.sedimentSump?.sedimentSumpLength?.value).toBeCloseTo(0.5, 3);
 
       // no cables on this tube
       expect(tube.geoOhmCable).toEqual([]);
@@ -153,8 +153,8 @@ describe('GMW Parsing (Node)', () => {
       const tube = gmw.monitoringTube[0];
 
       expect(tube.tubePartInserted).toBe(true);
-      expect(tube.insertedPart?.insertedPartLength).toBeCloseTo(1.2, 3);
-      expect(tube.insertedPart?.insertedPartDiameter).toBe(32);
+      expect(tube.insertedPart?.insertedPartLength?.value).toBeCloseTo(1.2, 3);
+      expect(tube.insertedPart?.insertedPartDiameter).toEqual({ value: 32, uom: 'mm' });
       expect(tube.insertedPart?.insertedPartMaterial?.code).toBe('rvs');
 
       expect(tube.numberOfGeoOhmCables).toBe(1);
@@ -166,8 +166,8 @@ describe('GMW Parsing (Node)', () => {
       expect(cable.electrode[0].electrodeNumber).toBe(1);
       expect(cable.electrode[0].electrodePackingMaterial?.code).toBe('filtergrind');
       expect(cable.electrode[0].electrodeStatus?.code).toBe('gebruiksklaar');
-      expect(cable.electrode[0].electrodePosition).toBe(-9.0);
-      expect(cable.electrode[1].electrodePosition).toBeCloseTo(-9.5, 3);
+      expect(cable.electrode[0].electrodePosition).toEqual({ value: -9, uom: 'm' });
+      expect(cable.electrode[1].electrodePosition?.value).toBeCloseTo(-9.5, 3);
     });
   });
 

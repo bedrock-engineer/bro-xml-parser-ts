@@ -139,7 +139,7 @@ export { BRO_SOIL_COLORS, getSoilColor, isValidSoilColor, getSoilColorNames } fr
 export * as producers from "./producers.js";
 
 // The producer schema types, for authoring and inferring custom schemas.
-export type { Producer, NodeLens, Produced, ProducedFields, Coded } from "./core/producer.js";
+export type { Producer, NodeLens, Produced, ProducedFields, Coded, Measure } from "./core/producer.js";
 
 // The typed path-tree selector over a producer schema (see BROParser.parseSelection).
 export { project } from "./core/select.js";

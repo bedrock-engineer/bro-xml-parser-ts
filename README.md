@@ -80,12 +80,26 @@ cpt.qualityClass?.code === "klasse2";
 Keeping the `codeSpace` from the instance is what lets [`describe`](#reference-codes)
 resolve the human-readable text without ever guessing the domain.
 
+### Measured values
+
+Fields that carry a physical quantity (depths, layer boundaries, diameters,
+lengths, …) parse to a `Measure` object — the numeric `value` plus its `uom`,
+the **unit of measure** the XML declares as an attribute (`uom="m"`,
+`uom="kPa"`, `uom="g/cm3"`, …) — or `null` when absent:
+
+```typescript
+cpt.conePenetrometerSurvey?.trajectory?.finalDepth;
+// { value: 25.5, uom: "m" } | null
+```
+
+The unit is provided with the number rather than being silently dropped, so users don't have to assume what a bare number is measured in.
+
 ## Custom Schemas
 
 Extract only the fields you need:
 
 Build a schema from the `producers` combinators — a map of field name → producer.
-The return type is inferred from the map, so `result.depth` is `number | null`,
+The return type is inferred from the map, so `result.depth` is `Measure | null`,
 `result.location` is `Location | null`, with no casts:
 
 ```typescript
@@ -97,16 +111,16 @@ const result = parser.parseCustom(
   xmlText,
   {
     id: p.text("brocom:broId"),
-    depth: p.number(".//cptcommon:finalDepth"),
+    depth: p.measure(".//cptcommon:finalDepth"),
     location: p.gmlLocation("./dscpt:deliveredLocation/cptcommon:location"),
   },
   "CPT",
 );
-// { id: "CPT000000099543", depth: 25.5, location: { x: 155000, y: 463000, epsg: "28992" }, meta: {…} }
+// { id: "CPT000000099543", depth: { value: 25.5, uom: "m" }, location: { x: 155000, y: 463000, epsg: "28992" }, meta: {…} }
 ```
 
 The `producers` namespace carries every building block the library uses internally:
-leaf combinators (`text`, `number`, `integer`, `date`, `boolean`, `code`),
+leaf combinators (`text`, `number`, `integer`, `date`, `boolean`, `code`, `measure`),
 structural combinators (`object`, `array`, `oneOf`, `custom`), and the domain
 helpers (`gmlLocation`, `columns` / `col`).
 

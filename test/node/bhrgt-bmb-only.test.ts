@@ -35,8 +35,8 @@ describe("BHR-GT with BMB Only (No Laboratory Analysis)", () => {
     expect(layers.length).toBeGreaterThan(0);
 
     const firstLayer = asSoilLayer(layers[0]);
-    expect(firstLayer.upperBoundary).toBeTypeOf("number");
-    expect(firstLayer.lowerBoundary).toBeTypeOf("number");
+    expect(firstLayer.upperBoundary?.value).toBeTypeOf("number");
+    expect(firstLayer.lowerBoundary?.value).toBeTypeOf("number");
     expect(firstLayer.soil.geotechnicalSoilName?.code).toBeTypeOf("string");
   });
 
@@ -73,7 +73,7 @@ describe("BHR-GT with BMB Only (No Laboratory Analysis)", () => {
     const xml = fixtures.bhrGtBma.bmbOnly1();
     const bore = parser.parseBHRGT(xml);
 
-    expect(bore.boring?.finalDepthBoring).toBeTypeOf("number");
+    expect(bore.boring?.finalDepthBoring?.value).toBeTypeOf("number");
     expect(bore.boring?.rockReached).toBeTypeOf("boolean");
     // boreholeCompleted is tri-state (ja/nee/onbekend) → raw string, not boolean.
     expect(bore.boring?.boreholeCompleted).toBeTypeOf("string");

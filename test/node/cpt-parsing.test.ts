@@ -80,8 +80,8 @@ describe('CPT Parsing (Node)', () => {
       const xml = fixtures.cpt.example();
       const cpt = parser.parseCPT(xml);
 
-      expect(cpt.conePenetrometerSurvey?.trajectory?.finalDepth).toBeTypeOf('number');
-      expect(cpt.conePenetrometerSurvey?.trajectory?.finalDepth).toBeGreaterThan(0);
+      expect(cpt.conePenetrometerSurvey?.trajectory?.finalDepth?.value).toBeTypeOf('number');
+      expect(cpt.conePenetrometerSurvey?.trajectory?.finalDepth?.value).toBeGreaterThan(0);
     });
 
     it('should extract quality class', () => {
@@ -191,8 +191,8 @@ describe('CPT Parsing (Node)', () => {
 
       const first = investigation.removedLayer[0];
       expect(first.sequenceNumber).toBe(1);
-      expect(first.upperBoundary).toBe(0);
-      expect(first.lowerBoundary).toBe(0.1);
+      expect(first.upperBoundary).toEqual({ value: 0, uom: 'm' });
+      expect(first.lowerBoundary).toEqual({ value: 0.1, uom: 'm' });
       expect(first.description).toBe('Tegel');
 
       expect(investigation.removedLayer[1].description).toBe('Zand');

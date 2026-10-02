@@ -82,8 +82,8 @@ describe('BHRG Parsing (Node)', () => {
     expect(layers.length).toBe(4);
 
     const firstLayer = layers[0];
-    expect(firstLayer.upperBoundary).toBe(0.0);
-    expect(firstLayer.lowerBoundary).toBe(0.5);
+    expect(firstLayer.upperBoundary).toEqual({ value: 0, uom: 'm' });
+    expect(firstLayer.lowerBoundary).toEqual({ value: 0.5, uom: 'm' });
     expect(firstLayer.soil?.soilNameNEN5104?.code).toBe('klei');
     expect(firstLayer.soil?.colour?.code).toBe('bruin');
   });
@@ -120,8 +120,8 @@ describe('BHRG Parsing (Node)', () => {
     const bhrg = parser.parseBHRG(xml);
 
     expect(bhrg.boreholeSampleDescription?.descriptionProcedure?.code).toBe('NEN5104');
-    expect(bhrg.boring?.finalDepthBoring).toBe(8.5);
-    expect(bhrg.boring?.finalDepthSampling).toBe(8.5);
+    expect(bhrg.boring?.finalDepthBoring).toEqual({ value: 8.5, uom: 'm' });
+    expect(bhrg.boring?.finalDepthSampling).toEqual({ value: 8.5, uom: 'm' });
     expect(bhrg.boring?.rockReached).toBe(false);
     expect(bhrg.boring?.boreholeCompleted).toBe('ja');
   });
@@ -145,7 +145,7 @@ describe('BHRG Parsing (Node)', () => {
     const xml = fixtures.bhrG.dispatch();
     const bhrg = parser.parseBHRG(xml);
 
-    expect(bhrg.deliveredVerticalPosition?.offset).toBe(5.50);
+    expect(bhrg.deliveredVerticalPosition?.offset).toEqual({ value: 5.5, uom: 'm' });
     expect(bhrg.deliveredVerticalPosition?.verticalDatum?.code).toBe('NAP');
     expect(bhrg.deliveredVerticalPosition?.localVerticalReferencePoint?.code).toBe('maaiveld');
   });
@@ -183,8 +183,8 @@ describe('BHRG Parsing (Node)', () => {
     expect(bhrg.boring!.boredInterval.length).toBeGreaterThan(0);
 
     const firstInterval = bhrg.boring!.boredInterval[0];
-    expect(firstInterval.beginDepth).toBeTypeOf('number');
-    expect(firstInterval.endDepth).toBeTypeOf('number');
+    expect(firstInterval.beginDepth?.value).toBeTypeOf('number');
+    expect(firstInterval.endDepth?.value).toBeTypeOf('number');
     expect(firstInterval.boringTechnique).toBeTruthy();
   });
 
@@ -196,8 +196,8 @@ describe('BHRG Parsing (Node)', () => {
     expect(bhrg.boring!.sampledInterval.length).toBeGreaterThan(0);
 
     const firstInterval = bhrg.boring!.sampledInterval[0];
-    expect(firstInterval.beginDepth).toBeTypeOf('number');
-    expect(firstInterval.endDepth).toBeTypeOf('number');
+    expect(firstInterval.beginDepth?.value).toBeTypeOf('number');
+    expect(firstInterval.endDepth?.value).toBeTypeOf('number');
   });
 
   it('should extract registration history', () => {

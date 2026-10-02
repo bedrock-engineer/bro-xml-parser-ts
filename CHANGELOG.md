@@ -8,6 +8,49 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`https://` schema namespaces now parse.** BRO namespace URIs occur with both
+  `http://` and `https://` schemes in the wild, naming the same schema. A
+  document declaring e.g. `https://www.broservices.nl/xsd/dscpt/1.1` was
+  detected but then parsed to nulls, because the XPath prefixes stayed bound to
+  the `http://` URIs. Namespace matching (version detection and per-document
+  prefix adaptation) is now scheme-canonical.
+
+### Changed
+
+- **BREAKING: measured values are `Measure` objects, not bare numbers.** BRO
+  carries a unit of measure on every measure-typed element (`uom="m"`,
+  `uom="mm"`, `uom="kPa"`, …) which was previously dropped. These fields now
+  parse to `{ value, uom }` — depths, boundaries, diameters, lengths, offsets
+  and positions across CPT, BHR-GT, BHR-G and GMW (e.g. `trajectory.finalDepth`,
+  `boring.finalDepthBoring`, `layer.upperBoundary`,
+  `sampler.sampleContainerDiameter`, `screen.screenLength`). GLD observation
+  points are unchanged: they already carried their unit in a separate `unit`
+  field.
+- **Internal: producer DSL cleanup.** Deduplicated the combinator meta type into
+  `ProducerMeta`, simplified the type-level object/`oneOf` test to a `kind`
+  check, and unified the leaf combinators' optional-`at` handling behind one
+  helper. No API or behavior change.
+
+### Added
+
+- **`measure()` leaf combinator and `Measure` type.** A first-class leaf like
+  `code()`: reads the element text plus its `uom` attribute into
+  `Measure = { value: number; uom: string }`, with the same presence and
+  absence semantics as the other leaves (`Measure | null`, missing-value
+  sentinels → `null`). Available on the `producers` authoring surface; the
+  `Measure` type is exported from both entry points. The schema generator emits
+  it for every XSD `MeasureType`/`MeasureNillableType` leaf.
+
+#### Migration
+
+| 0.7.x | 0.8.0 |
+| --- | --- |
+| `trajectory.finalDepth` (`number \| null`) | `trajectory.finalDepth` (`Measure \| null`) — number in `.value`, unit in `.uom` |
+| `layer.upperBoundary === 0.5` | `layer.upperBoundary?.value === 0.5` |
+| custom schemas: `p.number()` on a measure element | `p.measure()` (or keep `p.number()` for a bare number) |
+
 ## [0.7.0] - 2026-09-28
 
 ### Fixed

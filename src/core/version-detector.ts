@@ -8,6 +8,7 @@
 
 import { BROParseError } from "../types/index.js";
 import type { BROFileType } from "../types/index.js";
+import { canonicalNamespace } from "../namespaces.js";
 
 /** Alias of the canonical {@link BROFileType} union (single source in `types/index`). */
 export type DataType = BROFileType;
@@ -221,8 +222,10 @@ export function detectAndValidateVersion(
   const supportedVersion = getSupportedVersion(expectedType);
   const warnings: Array<string> = [];
 
-  // Check for exact match with supported version
-  if (namespace === supportedVersion.namespace) {
+  // Check for exact match with supported version (scheme-canonical: BRO
+  // namespaces occur as both http:// and https://, naming the same schema).
+  const canonical = canonicalNamespace(namespace);
+  if (canonical === supportedVersion.namespace) {
     return {
       dataType: expectedType,
       version: supportedVersion.version,
@@ -232,7 +235,7 @@ export function detectAndValidateVersion(
   }
 
   // Check if it's a known version for the expected type
-  const knownVersion = knownVersions(expectedType).find((v) => v.namespace === namespace);
+  const knownVersion = knownVersions(expectedType).find((v) => v.namespace === canonical);
 
   if (knownVersion) {
     // Known version but not the primary supported one

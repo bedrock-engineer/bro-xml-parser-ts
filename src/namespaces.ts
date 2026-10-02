@@ -72,16 +72,26 @@ export const KNOWN_BRO_PREFIXES: ReadonlyArray<string> = [
 ] as const;
 
 /**
+ * Collapse the URI scheme difference: BRO namespaces occur with both `http://`
+ * and `https://` schemes in the wild, naming the same schema. Namespace URIs
+ * are identifiers, so the canonical form is the `http://` one the XSDs declare.
+ */
+export function canonicalNamespace(uri: string): string {
+  return uri.replace(/^https:\/\//, "http://");
+}
+
+/**
  * Strip a trailing schema version from a namespace URI, yielding its "family".
  *
  * BRO publishes the same schema under several version suffixes — e.g.
  * `.../dsbhrg/3.1` (the documented XSD) and `.../dsbhrg/3` (returned by several
  * REST services); both share the family `.../dsbhrg`. Only a trailing
  * `/<major>` or `/<major>.<minor>` is removed, so a URI like
- * `.../1999/xlink` (version-free) is returned unchanged.
+ * `.../1999/xlink` (version-free) is returned unchanged. The family is also
+ * scheme-canonical, so `https://` and `http://` variants share one family.
  */
 export function namespaceFamily(uri: string): string {
-  return uri.replace(/\/\d+(?:\.\d+)?$/, "");
+  return canonicalNamespace(uri).replace(/\/\d+(?:\.\d+)?$/, "");
 }
 
 /**

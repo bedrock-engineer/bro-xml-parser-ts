@@ -33,8 +33,8 @@ describe("BORE Parsing (Node)", () => {
     expect(layers.length).toBeGreaterThan(0);
 
     const firstLayer = asSoilLayer(layers[0]);
-    expect(firstLayer.upperBoundary).toBe(0);
-    expect(firstLayer.lowerBoundary).toBe(0.5);
+    expect(firstLayer.upperBoundary).toEqual({ value: 0, uom: 'm' });
+    expect(firstLayer.lowerBoundary).toEqual({ value: 0.5, uom: 'm' });
     expect(firstLayer.soil.geotechnicalSoilName?.code).toBe("siltigZand");
   });
 
@@ -42,7 +42,7 @@ describe("BORE Parsing (Node)", () => {
     const xml = fixtures.bhrGt.dispatch();
     const bore = parser.parseBHRGT(xml);
 
-    expect(bore.boring?.finalDepthBoring).toBe(3);
+    expect(bore.boring?.finalDepthBoring).toEqual({ value: 3, uom: 'm' });
     expect(bore.boring?.rockReached).toBe(false);
     // boreholeCompleted is tri-state (ja/nee/onbekend), kept as its raw string.
     expect(bore.boring?.boreholeCompleted).toBe('ja');
@@ -164,7 +164,7 @@ describe("BORE Parsing (Node)", () => {
     const layerWithStructure = layers.find((layer) => layer.internalStructureIntact != null);
 
     expect(layerWithStructure).toBeDefined();
-    expect(layerWithStructure!.upperBoundary).toBe(1.5);
+    expect(layerWithStructure!.upperBoundary).toEqual({ value: 1.5, uom: 'm' });
     expect(layerWithStructure!.internalStructureIntact).toBe(true);
   });
 
@@ -223,8 +223,8 @@ describe("BORE Parsing (Node)", () => {
 
     // Container dimensions (diameter in mm, length in m)
     const sampler = bore.boring?.sampledInterval?.find((i) => i.sampler != null)?.sampler;
-    expect(sampler?.sampleContainerDiameter).toBe(67);
-    expect(sampler?.sampleContainerLength).toBe(0.4);
+    expect(sampler?.sampleContainerDiameter).toEqual({ value: 67, uom: 'mm' });
+    expect(sampler?.sampleContainerLength).toEqual({ value: 0.4, uom: 'm' });
   });
 
   it("should extract description metadata", () => {
@@ -247,10 +247,10 @@ describe("BORE Parsing (Node)", () => {
     expect(bore.boring!.boredInterval.length).toBeGreaterThan(0);
 
     const firstInterval = bore.boring!.boredInterval[0];
-    expect(firstInterval.beginDepth).toBeTypeOf("number");
-    expect(firstInterval.endDepth).toBeTypeOf("number");
+    expect(firstInterval.beginDepth?.value).toBeTypeOf("number");
+    expect(firstInterval.endDepth?.value).toBeTypeOf("number");
     expect(firstInterval.boringTechnique?.code).toBeTypeOf("string");
-    expect(firstInterval.boredDiameter).toBeTypeOf("number");
+    expect(firstInterval.boredDiameter?.value).toBeTypeOf("number");
   });
 
   it("should extract sampled intervals with sampler details", () => {
@@ -267,7 +267,7 @@ describe("BORE Parsing (Node)", () => {
 
     expect(intervalWithSampler).toBeDefined();
     expect(intervalWithSampler!.sampler!.samplerType).toBeTruthy();
-    expect(intervalWithSampler!.sampler!.sampleContainerDiameter).toBeTypeOf("number");
+    expect(intervalWithSampler!.sampler!.sampleContainerDiameter?.value).toBeTypeOf("number");
   });
 
   it("should extract completed intervals", () => {
@@ -278,8 +278,8 @@ describe("BORE Parsing (Node)", () => {
     expect(bore.boring!.completedInterval.length).toBeGreaterThan(0);
 
     const firstInterval = bore.boring!.completedInterval[0];
-    expect(firstInterval.beginDepth).toBeTypeOf("number");
-    expect(firstInterval.endDepth).toBeTypeOf("number");
+    expect(firstInterval.beginDepth?.value).toBeTypeOf("number");
+    expect(firstInterval.endDepth?.value).toBeTypeOf("number");
     expect(firstInterval.backfillMaterial?.code).toBeTypeOf("string");
     expect(firstInterval.permanentCasingPresent).toBeTypeOf("boolean");
     expect(firstInterval.backfillMaterialCertified).toBeTypeOf("boolean");

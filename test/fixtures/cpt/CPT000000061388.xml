@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<dispatchDataResponse xmlns="http://www.broservices.nl/xsd/dscpt/1.1"
+<dispatchDataResponse xmlns="https://www.broservices.nl/xsd/dscpt/1.1"
     xmlns:swe="http://www.opengis.net/swe/2.0" xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns:brocom="http://www.broservices.nl/xsd/brocommon/3.0"
     xmlns:cptcommon="http://www.broservices.nl/xsd/cptcommon/1.1"

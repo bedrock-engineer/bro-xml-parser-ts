@@ -89,8 +89,8 @@ describe("BHR-GT newly added fields", () => {
     it("extracts mean groundwater levels from the descriptive borehole log", () => {
       const bore = parser.parseBHRGT(fixtures.bhrGtBma.bmbOnly1());
       const log = bore.boreholeSampleDescription?.descriptiveBoreholeLog?.[0];
-      expect(log?.meanHighestGroundwaterLevel).toBe(0.6);
-      expect(log?.meanLowestGroundwaterLevel).toBe(1.0);
+      expect(log?.meanHighestGroundwaterLevel).toEqual({ value: 0.6, uom: 'm' });
+      expect(log?.meanLowestGroundwaterLevel).toEqual({ value: 1, uom: 'm' });
     });
 
     it("defaults document-level fields to null when absent", () => {

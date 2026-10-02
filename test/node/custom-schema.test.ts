@@ -6,7 +6,7 @@ import * as producers from '@/producers';
 import * as presets from '@/schema-presets';
 import { project } from '@/core/select';
 import { CPT_PRODUCER } from '@/schemas/cpt-schema';
-import type { Producer, ObjectProducer } from '@/core/producer';
+import type { Producer, ObjectProducer, Measure } from '@/core/producer';
 import type { ParseMeta, Location } from '@/types/index';
 
 /**
@@ -51,7 +51,7 @@ describe('Custom Schema Parsing', () => {
       // Preset field types are inferred from each producer's output type.
       expectTypeOf(result.broId).toEqualTypeOf<string | null>();
       expectTypeOf(result.deliveredLocation).toEqualTypeOf<Location | null>();
-      expectTypeOf(result.deliveredVerticalPositionOffset).toEqualTypeOf<number | null>();
+      expectTypeOf(result.deliveredVerticalPositionOffset).toEqualTypeOf<Measure | null>();
 
       expectExactKeys(result, presets.CPT_LOCATION_ONLY);
       expect(result.broId).toBe('CPT000000099543');
@@ -66,7 +66,7 @@ describe('Custom Schema Parsing', () => {
       expect(standardized.y).toBe(5.60907955);
       expect(standardized.epsg).toBe('EPSG:4258');
 
-      expect(result.deliveredVerticalPositionOffset).toBe(4.41);
+      expect(result.deliveredVerticalPositionOffset).toEqual({ value: 4.41, uom: 'm' });
     });
 
     it('METADATA_ONLY preset extracts metadata but not measurement data', () => {
@@ -81,7 +81,7 @@ describe('Custom Schema Parsing', () => {
       expect(result.researchReportDate).toBe('2019-04-23');
       expect(result.cptStandard?.code).toBe('ISO22476D1');
       expect(result.qualityClass?.code).toBe('klasse2');
-      expect(result.finalDepth).toBe(7.439);
+      expect(result.finalDepth).toEqual({ value: 7.439, uom: 'm' });
       expect((result.deliveredLocation as { epsg: string }).epsg).toBe('EPSG:28992');
     });
 
@@ -141,7 +141,7 @@ describe('Custom Schema Parsing', () => {
       expect(standardized.y).toBe(5.78917526);
       expect(standardized.epsg).toBe('EPSG:4258');
 
-      expect(result.deliveredVerticalPositionOffset).toBe(51.0);
+      expect(result.deliveredVerticalPositionOffset).toEqual({ value: 51, uom: 'm' });
     });
 
     it('METADATA_ONLY preset extracts metadata but not layer data', () => {
@@ -159,7 +159,7 @@ describe('Custom Schema Parsing', () => {
       expect(result.qualityRegime).toBe('IMBRO');
       expect(result.researchReportDate).toBe('2021-09-20');
       expect(result.descriptionProcedure?.[0]?.code).toBe('ISO14688d1v2019c2020');
-      expect(result.finalBoreDepth).toBe(3);
+      expect(result.finalBoreDepth).toEqual({ value: 3, uom: 'm' });
       expect(result.boreRockReached).toBe(false);
       expect((result.deliveredLocation as { epsg: string }).epsg).toBe('EPSG:28992');
     });
@@ -195,7 +195,7 @@ describe('Custom Schema Parsing', () => {
       expect(standardized.y).toBe(5.234567);
       expect(standardized.epsg).toBe('EPSG:4258');
 
-      expect(result.deliveredVerticalPositionOffset).toBe(5.5);
+      expect(result.deliveredVerticalPositionOffset).toEqual({ value: 5.5, uom: 'm' });
     });
 
     it('METADATA_ONLY preset extracts metadata but not layer data', () => {
@@ -212,7 +212,7 @@ describe('Custom Schema Parsing', () => {
       expect(result.qualityRegime).toBe('IMBRO');
       expect(result.researchReportDate).toBe('2024-01-10');
       expect(result.descriptionProcedure?.code).toBe('NEN5104');
-      expect(result.finalBoreDepth).toBe(8.5);
+      expect(result.finalBoreDepth).toEqual({ value: 8.5, uom: 'm' });
       expect(result.boreRockReached).toBe(false);
     });
   });
@@ -249,7 +249,7 @@ describe('Custom Schema Parsing', () => {
       expectExactKeys(result, extendedSchema);
       expect(result.broId).toBe('CPT000000099543');
       expect(result.qualityRegime).toBe('IMBRO');
-      expect(result.finalDepth).toBe(7.439);
+      expect(result.finalDepth).toEqual({ value: 7.439, uom: 'm' });
     });
   });
 });

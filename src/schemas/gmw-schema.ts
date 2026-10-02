@@ -5,7 +5,7 @@
  * @generated from https://schema.broservices.nl/xsd/dsgmw/1.1/dsgmw-messages.xsd
  */
 
-import { array, boolean, code, date, integer, number, object, text } from "../core/producer.js";
+import { array, boolean, code, date, integer, measure, object, text } from "../core/producer.js";
 import { gmlLocation } from "./common-fields.js";
 
 
@@ -35,9 +35,9 @@ export const GMW_PRODUCER = object({
     } }),
     deliveredVerticalPosition: object({ at: "./dsgmw:deliveredVerticalPosition", fields: {
       localVerticalReferencePoint: code("./gmwcommon:localVerticalReferencePoint"),
-      offset: number("./gmwcommon:offset"),
+      offset: measure("./gmwcommon:offset"),
       verticalDatum: code("./gmwcommon:verticalDatum"),
-      groundLevelPosition: number("./gmwcommon:groundLevelPosition"),
+      groundLevelPosition: measure("./gmwcommon:groundLevelPosition"),
       groundLevelPositioningMethod: code("./gmwcommon:groundLevelPositioningMethod"),
     } }),
     standardizedLocation: object({ at: "./dsgmw:standardizedLocation", fields: {
@@ -67,19 +67,19 @@ export const GMW_PRODUCER = object({
         eventData: object({ at: "./dsgmw:eventData", fields: {
           tubeData: array({ each: "./dsgmw:tubeData", item: object({ fields: {
             tubeNumber: integer("./dsgmw:tubeNumber"),
-            tubeTopDiameter: number("./dsgmw:tubeTopDiameter"),
+            tubeTopDiameter: measure("./dsgmw:tubeTopDiameter"),
             variableDiameter: boolean("./dsgmw:variableDiameter"),
             tubeStatus: code("./dsgmw:tubeStatus"),
-            tubeTopPosition: number("./dsgmw:tubeTopPosition"),
+            tubeTopPosition: measure("./dsgmw:tubeTopPosition"),
             tubeTopPositioningMethod: code("./dsgmw:tubeTopPositioningMethod"),
             tubePartInserted: boolean("./dsgmw:tubePartInserted"),
             tubeMaterial: code("./dsgmw:tubeMaterial"),
             glue: code("./dsgmw:glue"),
-            screenTopPosition: number("./dsgmw:screenTopPosition"),
-            screenBottomPosition: number("./dsgmw:screenBottomPosition"),
-            plainTubePartLength: number("./dsgmw:plainTubePartLength"),
-            insertedPartLength: number("./dsgmw:insertedPartLength"),
-            insertedPartDiameter: number("./dsgmw:insertedPartDiameter"),
+            screenTopPosition: measure("./dsgmw:screenTopPosition"),
+            screenBottomPosition: measure("./dsgmw:screenBottomPosition"),
+            plainTubePartLength: measure("./dsgmw:plainTubePartLength"),
+            insertedPartLength: measure("./dsgmw:insertedPartLength"),
+            insertedPartDiameter: measure("./dsgmw:insertedPartDiameter"),
             insertedPartMaterial: code("./dsgmw:insertedPartMaterial"),
           } }) }),
           electrodeData: array({ each: "./dsgmw:electrodeData", item: object({ fields: {
@@ -87,12 +87,12 @@ export const GMW_PRODUCER = object({
             cableNumber: integer("./dsgmw:cableNumber"),
             electrodeNumber: integer("./dsgmw:electrodeNumber"),
             electrodeStatus: code("./dsgmw:electrodeStatus"),
-            electrodePosition: number("./dsgmw:electrodePosition"),
+            electrodePosition: measure("./dsgmw:electrodePosition"),
           } }) }),
           wellData: object({ at: "./dsgmw:wellData", fields: {
             owner: text("./dsgmw:owner"),
             maintenanceResponsibleParty: text("./dsgmw:maintenanceResponsibleParty"),
-            groundLevelPosition: number("./dsgmw:groundLevelPosition"),
+            groundLevelPosition: measure("./dsgmw:groundLevelPosition"),
             groundLevelPositioningMethod: code("./dsgmw:groundLevelPositioningMethod"),
             wellHeadProtector: code("./dsgmw:wellHeadProtector"),
           } }),
@@ -113,10 +113,10 @@ export const GMW_PRODUCER = object({
       artesianWellCapPresent: text("./dsgmw:artesianWellCapPresent"),
       sedimentSumpPresent: text("./dsgmw:sedimentSumpPresent"),
       numberOfGeoOhmCables: integer("./dsgmw:numberOfGeoOhmCables"),
-      tubeTopDiameter: number("./dsgmw:tubeTopDiameter"),
+      tubeTopDiameter: measure("./dsgmw:tubeTopDiameter"),
       variableDiameter: text("./dsgmw:variableDiameter"),
       tubeStatus: code("./dsgmw:tubeStatus"),
-      tubeTopPosition: number("./dsgmw:tubeTopPosition"),
+      tubeTopPosition: measure("./dsgmw:tubeTopPosition"),
       tubeTopPositioningMethod: code("./dsgmw:tubeTopPositioningMethod"),
       tubePartInserted: boolean("./dsgmw:tubePartInserted"),
       tubeInUse: text("./dsgmw:tubeInUse"),
@@ -126,21 +126,21 @@ export const GMW_PRODUCER = object({
         glue: code("./gmwcommon:glue"),
       } }),
       screen: object({ at: "./dsgmw:screen", fields: {
-        screenLength: number("./dsgmw:screenLength"),
+        screenLength: measure("./dsgmw:screenLength"),
         screenProtection: code("./dsgmw:screenProtection"),
         sockMaterial: code("./dsgmw:sockMaterial"),
-        screenTopPosition: number("./dsgmw:screenTopPosition"),
-        screenBottomPosition: number("./dsgmw:screenBottomPosition"),
+        screenTopPosition: measure("./dsgmw:screenTopPosition"),
+        screenBottomPosition: measure("./dsgmw:screenBottomPosition"),
       } }),
       plainTubePart: object({ at: "./dsgmw:plainTubePart", fields: {
-        plainTubePartLength: number("./gmwcommon:plainTubePartLength"),
+        plainTubePartLength: measure("./gmwcommon:plainTubePartLength"),
       } }),
       sedimentSump: object({ at: "./dsgmw:sedimentSump", fields: {
-        sedimentSumpLength: number("./gmwcommon:sedimentSumpLength"),
+        sedimentSumpLength: measure("./gmwcommon:sedimentSumpLength"),
       } }),
       insertedPart: object({ at: "./dsgmw:insertedPart", fields: {
-        insertedPartLength: number("./gmwcommon:insertedPartLength"),
-        insertedPartDiameter: number("./gmwcommon:insertedPartDiameter"),
+        insertedPartLength: measure("./gmwcommon:insertedPartLength"),
+        insertedPartDiameter: measure("./gmwcommon:insertedPartDiameter"),
         insertedPartMaterial: code("./gmwcommon:insertedPartMaterial"),
       } }),
       geoOhmCable: array({ each: "./dsgmw:geoOhmCable", item: object({ fields: {
@@ -150,7 +150,7 @@ export const GMW_PRODUCER = object({
           electrodeNumber: integer("./gmwcommon:electrodeNumber"),
           electrodePackingMaterial: code("./gmwcommon:electrodePackingMaterial"),
           electrodeStatus: code("./gmwcommon:electrodeStatus"),
-          electrodePosition: number("./gmwcommon:electrodePosition"),
+          electrodePosition: measure("./gmwcommon:electrodePosition"),
         } }) }),
       } }) }),
     } }) }),

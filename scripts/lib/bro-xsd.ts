@@ -776,8 +776,7 @@ export function guessDecoder(baseType: string): string | null {
   if (t === "boolean") return "parseBoolean";
   if (t.includes("integer") || t === "int" || t === "long" || t === "nonnegativeinteger")
     return "parseInt";
-  if (t === "decimal" || t === "double" || t === "float" || t.includes("measure"))
-    return "parseFloat";
+  if (t === "decimal" || t === "double" || t === "float") return "parseFloat";
   return null;
 }
 
@@ -799,6 +798,9 @@ export function combinatorFor(decoder: string | null): string {
 
 /** The `producers` leaf combinator for an xsd base type (untyped/string → `text`). */
 export function baseTypeToCombinator(baseType: string): string {
+  // gml MeasureType / MeasureNillableType: a number carrying its unit in a
+  // `uom` attribute — a first-class `{ value, uom }` leaf, not a bare number.
+  if (baseType.toLowerCase().includes("measure")) return "measure";
   return combinatorFor(guessDecoder(baseType));
 }
 

@@ -49,7 +49,7 @@ type BranchFields<Br> = Br extends readonly [infer H, ...infer T]
  * Mirror a producer as a navigable path tree. Array producers → {@link ArraySel};
  * object producers → descend by field; `oneOf` → descend the merged base + branch
  * fields (selecting one flattens the union); every leaf (`text`/`number`/`date`/
- * `boolean`/`code`) and atomic `custom`/`columns` → a whole-value {@link Leaf}.
+ * `boolean`/`code`/`measure`) and atomic `custom`/`columns` → a whole-value {@link Leaf}.
  */
 export type SelectableProducer<P> = P extends { kind: "array"; _item?: infer I }
   ? ArraySel<I>
@@ -179,7 +179,7 @@ function proxyFor(producer: AnyProducer, path: string): unknown {
     });
   }
 
-  // Leaf kinds (scalar, code, custom): a terminal token, selected whole.
+  // Leaf kinds (scalar, code, measure, custom): a terminal token, selected whole.
   return { [TOKEN]: "leaf", producer, path } satisfies Token;
 }
 
