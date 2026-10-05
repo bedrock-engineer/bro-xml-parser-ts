@@ -11,9 +11,8 @@
 
 import type { NodeLens, Produced } from "../core/producer.js";
 import type { CPTMeasurement, DissipationMeasurement } from "../types/index.js";
-import { object, array, custom, scalar, date } from "../core/producer.js";
+import { object, array, custom, measure, date } from "../core/producer.js";
 import { decodeColumns, col, type ColumnSpec } from "../core/columns.js";
-import { parseFloat } from "../decoders/type-decoders.js";
 
 /** Fixed columns of a dissipation-test time-series. */
 const DISSIPATION_COLUMNS: Array<ColumnSpec> = [
@@ -90,10 +89,7 @@ const DISSIPATION_MEASUREMENTS = custom<Array<DissipationMeasurement>>({
 /** One dissipation test (pore-pressure decay time-series at a fixed depth). */
 const DISSIPATION_TEST = object({
   fields: {
-    penetrationLength: scalar<number>({
-      at: "./cptcommon:penetrationLength",
-      decode: (raw) => parseFloat(raw) ?? 0,
-    }),
+    penetrationLength: measure("./cptcommon:penetrationLength"),
     phenomenonTime: date("./om:phenomenonTime//gml:timePosition"),
     measurements: DISSIPATION_MEASUREMENTS,
   },

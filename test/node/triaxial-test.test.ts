@@ -52,8 +52,8 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     expect(test.specimenDisturbed).toBe(false);
     expect(test.specimenTrimmed).toBe(true);
     expect(test.sampleMoistness?.code).toBe('veldvochtig');
-    expect(test.beginDiameter).toBe(50.0);
-    expect(test.beginHeight).toBe(100.0);
+    expect(test.beginDiameter).toEqual({ value: 50, uom: 'mm' });
+    expect(test.beginHeight).toEqual({ value: 100, uom: 'mm' });
     expect(test.topCapTiltable).toBe(true);
     expect(test.filterPaperUsed).toBe(false);
     expect(test.drainageStripsUsed).toBe(true);
@@ -76,7 +76,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const test = intervalWithTriaxial?.shearStressChangeDuringLoadingDetermination?.[0];
     expect(test?.membraneCorrection).toBeDefined();
     expect(test?.membraneCorrection?.correctionMethod?.code).toBe('Greeuw2001');
-    expect(test?.membraneCorrection?.thickness).toBe(0.6);
+    expect(test?.membraneCorrection?.thickness).toEqual({ value: 0.6, uom: 'mm' });
     expect(test?.membraneCorrection?.stiffnessClass?.code).toBe('1700kPa');
   });
 
@@ -116,9 +116,9 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     expect(saturation?.usedMedium?.code).toBe('gezuiverdWater');
     expect(saturation?.constantHeight).toBe(false);
     expect(saturation?.cellPressureAutomaticallyControlled).toBe(true);
-    expect(saturation?.backPressure).toBe(300.0);
-    expect(saturation?.effectivePressure).toBe(5.9);
-    expect(saturation?.skemptonBCoefficient).toBe(0.99);
+    expect(saturation?.backPressure).toEqual({ value: 300, uom: 'kPa' });
+    expect(saturation?.effectivePressure).toEqual({ value: 5.9, uom: 'kPa' });
+    expect(saturation?.skemptonBCoefficient).toEqual({ value: 0.99, uom: '1' });
     expect(saturation?.disturbanceInduced).toBe(false);
   });
 
@@ -138,10 +138,10 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     const consolidation = test?.consolidationStageAtLoading;
     expect(consolidation?.drainageTwoSided).toBe(false);
     expect(consolidation?.consolidationMethod?.code).toBe('isotroop');
-    expect(consolidation?.verticalConsolidationStress).toBe(200.0);
-    expect(consolidation?.horizontalConsolidationStress).toBe(200.0);
-    expect(consolidation?.verticalStrain).toBe(10.81);
-    expect(consolidation?.lateralEarthPressureCoefficient).toBe(1.0);
+    expect(consolidation?.verticalConsolidationStress).toEqual({ value: 200, uom: 'kPa' });
+    expect(consolidation?.horizontalConsolidationStress).toEqual({ value: 200, uom: 'kPa' });
+    expect(consolidation?.verticalStrain).toEqual({ value: 10.81, uom: '%' });
+    expect(consolidation?.lateralEarthPressureCoefficient).toEqual({ value: 1, uom: '1' });
 
     // Check volume change time series data
     expect(consolidation?.volumeChangeDuringConsolidation).toBeDefined();
@@ -166,7 +166,7 @@ describe('Triaxial Test (Shear Stress During Loading) Parsing', () => {
     expect(test?.loadStage).toBeDefined();
 
     const loadStage = test?.loadStage;
-    expect(loadStage?.deformationRate).toBe(0.9);
+    expect(loadStage?.deformationRate).toEqual({ value: 0.9, uom: 'mm/h' });
     expect(loadStage?.specimenShape?.code).toBe('schuifvlakEnkel');
 
     // Check shear stress time series data

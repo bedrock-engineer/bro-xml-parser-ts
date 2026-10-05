@@ -235,7 +235,7 @@ describe('CPT Parsing (Node)', () => {
       expect(survey.dissipationTest).toHaveLength(1);
 
       const test = survey.dissipationTest[0];
-      expect(test.penetrationLength).toBe(20.1);
+      expect(test.penetrationLength).toEqual({ value: 20.1, uom: 'm' });
       expect(typeof test.phenomenonTime).toBe('string');
       expect(test.measurements).toHaveLength(317);
 

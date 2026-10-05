@@ -45,7 +45,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       // Exact set implies all other intervals (incl. the 4th) lack it
       expect(withSettlement).toEqual([5, 6]);
 
-      expect(bore.boreholeSampleAnalysis!.investigatedInterval[5].beginDepth).toBe(2.59);
+      expect(bore.boreholeSampleAnalysis!.investigatedInterval[5].beginDepth).toEqual({ value: 2.59, uom: 'm' });
       expect(
         bore.boreholeSampleAnalysis!.investigatedInterval[5].settlementCharacteristicsDetermination
       ).toBeDefined();
@@ -58,7 +58,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const sc = bore.boreholeSampleAnalysis!.investigatedInterval[5].settlementCharacteristicsDetermination!;
       expect(sc.determinationProcedure?.code).toBe('ISO17892d5v2017');
       expect(sc.determinationMethod?.code).toBe('samendrukkenBelastinggestuurd');
-      expect(sc.ringDiameter).toBe(63.5);
+      expect(sc.ringDiameter).toEqual({ value: 63.5, uom: 'mm' });
       expect(sc.sampleMoistness?.code).toBe('veldvochtig');
       expect(sc.filterPaperUsed).toBe(false);
       expect(sc.temperature).toBeDefined();
@@ -91,18 +91,18 @@ describe('Settlement & Permeability Determination Parsing', () => {
       // First step (loading)
       expect(steps[0].stepNumber).toBe(1);
       expect(steps[0].stepType?.code).toBe('belastingstap');
-      expect(steps[0].verticalStress).toBe(5.0);
+      expect(steps[0].verticalStress).toEqual({ value: 5, uom: 'kPa' });
       expect(steps[0].wetPerformed).toBe(true);
       expect(steps[0].swellObserved).toBe(false);
 
       // Second step
       expect(steps[1].stepNumber).toBe(2);
-      expect(steps[1].verticalStress).toBe(10.0);
+      expect(steps[1].verticalStress).toEqual({ value: 10, uom: 'kPa' });
 
       // Fifth step (last loading step)
       expect(steps[4].stepNumber).toBe(5);
       expect(steps[4].stepType?.code).toBe('belastingstap');
-      expect(steps[4].verticalStress).toBe(80.0);
+      expect(steps[4].verticalStress).toEqual({ value: 80, uom: 'kPa' });
     });
 
     it('should parse height change time-series data', () => {
@@ -148,7 +148,7 @@ describe('Settlement & Permeability Determination Parsing', () => {
       // Exact set implies all other intervals (incl. the 1st) lack it
       expect(withPermeability).toEqual([7, 8]);
 
-      expect(bore.boreholeSampleAnalysis!.investigatedInterval[7].beginDepth).toBe(7.44);
+      expect(bore.boreholeSampleAnalysis!.investigatedInterval[7].beginDepth).toEqual({ value: 7.44, uom: 'm' });
       expect(
         bore.boreholeSampleAnalysis!.investigatedInterval[7].saturatedPermeabilityDetermination
       ).toBeDefined();
@@ -181,8 +181,8 @@ describe('Settlement & Permeability Determination Parsing', () => {
       const bore = parser.parseBHRGT(xml);
 
       const sp = bore.boreholeSampleAnalysis!.investigatedInterval[7].saturatedPermeabilityDetermination!;
-      expect(sp.temperature).toBe(17.0);
-      expect(sp.maximumGradient).toBeCloseTo(6.1);
+      expect(sp.temperature).toEqual({ value: 17, uom: 'Cel' });
+      expect(sp.maximumGradient?.value).toBeCloseTo(6.1);
     });
 
     it('should extract permeability at specific density', () => {
@@ -193,8 +193,8 @@ describe('Settlement & Permeability Determination Parsing', () => {
       expect(sp.saturatedPermeabilityAtSpecificDensity).toHaveLength(1);
 
       const measurement = sp.saturatedPermeabilityAtSpecificDensity[0];
-      expect(measurement.dryVolumetricMassDensity).toBe(1.7);
-      expect(measurement.saturatedPermeability).toBe(0.000015);
+      expect(measurement.dryVolumetricMassDensity).toEqual({ value: 1.7, uom: 'g/cm3' });
+      expect(measurement.saturatedPermeability).toEqual({ value: 0.000015, uom: 'm/s' });
     });
   });
 });

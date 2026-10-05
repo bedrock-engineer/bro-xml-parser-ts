@@ -90,6 +90,8 @@ export type {
   MembraneCorrection,
   DrainageStripCorrection,
   SpecimenMadeForLoading,
+  SpecimenMadeForHorizontalDeformation,
+  InvestigatedMaterial,
   SaturationStageAtLoading,
   ConsolidationStageAtLoading,
   LoadStage,

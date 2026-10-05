@@ -8,6 +8,44 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **The BHR-GT lab-analysis (BMA) schema is now XSD-complete.** A path-level
+  diff against the XSD (260 leaves) found and closed the remaining gaps:
+  `analysisOperator` (chamber-of-commerce / EU company number),
+  `investigatedMaterial` on the investigated interval (soil name, colour,
+  content classes, median classes), `performanceIrregularity` /
+  `materialIrregularity` on every determination that defines them,
+  `madeSpecimenForHorizontalDeformation` on the direct-shear determination,
+  `waterContent` / `volumetricMassDensity` on `madeSpecimenForLoading`,
+  `verticalStrain` on the triaxial saturation stage, `deformationRate` on
+  settlement determination steps, and the permeability determination's
+  `makingMethod`, `porousDiscWet` and `swellObserved`. The standard `>63µm`
+  particle-size buckets are now also read from the detailed coarse group, where
+  the XSD equally allows them.
+
+### Changed
+
+- **BREAKING: BHR-GT lab-analysis (BMA) measured values are `Measure` objects.**
+  The 0.8.0 measure migration covered the generated schemas but missed the
+  hand-curated `boreholeSampleAnalysis` subtree, which decodes the same
+  `uom`-carrying GML measure pattern. Every decimal field there is measure-typed
+  in the XSD and now parses to `{ value, uom }`: the investigated-interval
+  `beginDepth`/`endDepth`, water/organic-matter/carbonate content, volumetric
+  mass densities, all particle-size fractions, consistency limits, and the
+  oedometer/triaxial/direct-shear stage fields (~50 fields). The only bare
+  numbers left are true counters (`stepNumber`, `numberOfFalls`) and the CSV
+  time-series rows, whose cells carry no `uom` in the data. The CPT dissipation
+  test's `penetrationLength` likewise becomes `Measure | null` (previously a
+  bare number that defaulted to `0` when absent).
+- **BREAKING: repeatable coded fields are lists.** `removedMaterial` (1..\* in
+  the XSD) on the water-content, organic-matter, carbonate, density-of-solids
+  and particle-size determinations, and `performanceIrregularity` (0..2) on the
+  consistency-limits determination, were bound as a single `Coded | null` and
+  silently dropped repeats; they are now `Array<Coded | null>`. The
+  permeability determination's `ringWaterRepellent` is a bi-state ja/nee
+  indicator in the XSD and now parses as `boolean | null` (was raw text).
+
 ## [0.8.0] - 2026-10-02
 
 ### Fixed

@@ -29,8 +29,8 @@ describe('Maximum Undrained Shear Strength Determination Parsing', () => {
     );
 
     expect(interval).toBeDefined();
-    expect(interval?.beginDepth).toBe(3.0);
-    expect(interval?.endDepth).toBe(3.1);
+    expect(interval?.beginDepth).toEqual({ value: 3, uom: 'm' });
+    expect(interval?.endDepth).toEqual({ value: 3.1, uom: 'm' });
     expect(interval?.analysisType?.code).toBe('maximaleSchuifsterkte');
 
     const det = interval!.maximumUndrainedShearStrengthDetermination!;
@@ -39,7 +39,7 @@ describe('Maximum Undrained Shear Strength Determination Parsing', () => {
     expect(det.determinationDiameter?.code).toBe('TVstandaard');
     expect(det.verticallyDetermined).toBe(true);
     expect(det.sampleMoistness?.code).toBe('veldvochtig');
-    expect(det.maximumUndrainedShearStrength).toBe(16.0);
+    expect(det.maximumUndrainedShearStrength).toEqual({ value: 16, uom: 'kPa' });
   });
 
   it('should parse BHR000000339288 with multiple undrained shear strength determinations', () => {
@@ -62,14 +62,14 @@ describe('Maximum Undrained Shear Strength Determination Parsing', () => {
 
     // First occurrence: 0.82-0.87m, 46.5 kPa
     const first = intervalsWithShearStrength[0];
-    expect(first.beginDepth).toBe(0.82);
-    expect(first.endDepth).toBe(0.87);
-    expect(first.maximumUndrainedShearStrengthDetermination!.maximumUndrainedShearStrength).toBe(46.5);
+    expect(first.beginDepth).toEqual({ value: 0.82, uom: 'm' });
+    expect(first.endDepth).toEqual({ value: 0.87, uom: 'm' });
+    expect(first.maximumUndrainedShearStrengthDetermination!.maximumUndrainedShearStrength).toEqual({ value: 46.5, uom: 'kPa' });
 
     // Second occurrence: 1.10-1.31m, 22.0 kPa
     const second = intervalsWithShearStrength[1];
-    expect(second.beginDepth).toBe(1.1);
-    expect(second.endDepth).toBe(1.31);
-    expect(second.maximumUndrainedShearStrengthDetermination!.maximumUndrainedShearStrength).toBe(22.0);
+    expect(second.beginDepth).toEqual({ value: 1.1, uom: 'm' });
+    expect(second.endDepth).toEqual({ value: 1.31, uom: 'm' });
+    expect(second.maximumUndrainedShearStrengthDetermination!.maximumUndrainedShearStrength).toEqual({ value: 22, uom: 'kPa' });
   });
 });

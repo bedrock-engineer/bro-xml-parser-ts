@@ -41,11 +41,11 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
       (i) =>
         i.shearStressChangeDuringHorizontalDeformationDetermination &&
         i.shearStressChangeDuringHorizontalDeformationDetermination.length > 0 &&
-        i.beginDepth === 1.31
+        i.beginDepth?.value === 1.31
     );
 
     expect(interval).toBeDefined();
-    expect(interval!.endDepth).toBe(1.34);
+    expect(interval!.endDepth).toEqual({ value: 1.34, uom: 'm' });
     expect(interval!.analysisType?.code).toBe('schuifspanningsverloopHorVervorming');
 
     const det = interval!.shearStressChangeDuringHorizontalDeformationDetermination![0];
@@ -58,8 +58,8 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
     expect(det.porousDiscWet).toBe(true);
     expect(det.drained).toBe(true);
     expect(det.lateralSupport?.code).toBe('ringenstapel');
-    expect(det.beginDiameter).toBe(65.9);
-    expect(det.beginHeight).toBe(27.7);
+    expect(det.beginDiameter).toEqual({ value: 65.9, uom: 'mm' });
+    expect(det.beginHeight).toEqual({ value: 27.7, uom: 'mm' });
     expect(det.stopCriterion?.code).toBe('einddoel');
     expect(det.membraneCorrectionApplied).toBe(true);
     expect(det.apparatusDeformationApplied).toBe(false);
@@ -74,7 +74,7 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
       (i) =>
         i.shearStressChangeDuringHorizontalDeformationDetermination &&
         i.shearStressChangeDuringHorizontalDeformationDetermination.length > 0 &&
-        i.beginDepth === 1.31
+        i.beginDepth?.value === 1.31
     );
 
     const det = interval!.shearStressChangeDuringHorizontalDeformationDetermination![0];
@@ -87,7 +87,7 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
 
     const step = consolidation.consolidationSteps[0];
     expect(step.stepNumber).toBe(1);
-    expect(step.verticalStress).toBe(21.0);
+    expect(step.verticalStress).toEqual({ value: 21, uom: 'kPa' });
 
     // Check height change time series
     expect(step.heightChangeDuringConsolidation.length).toBeGreaterThan(0);
@@ -110,7 +110,7 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
       (i) =>
         i.shearStressChangeDuringHorizontalDeformationDetermination &&
         i.shearStressChangeDuringHorizontalDeformationDetermination.length > 0 &&
-        i.beginDepth === 1.31
+        i.beginDepth?.value === 1.31
     );
 
     const det = interval!.shearStressChangeDuringHorizontalDeformationDetermination![0];
@@ -118,7 +118,7 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
     expect(det.shearStage).toBeDefined();
 
     const shearStage = det.shearStage!;
-    expect(shearStage.deformationRate).toBe(1.02);
+    expect(shearStage.deformationRate).toEqual({ value: 1.02, uom: 'mm/h' });
     expect(shearStage.activeHeightControl).toBe(false);
 
     // Check shear stress time series
@@ -140,19 +140,19 @@ describe('Direct Shear Test (Horizontal Deformation) Parsing', () => {
       (i) =>
         i.shearStressChangeDuringHorizontalDeformationDetermination &&
         i.shearStressChangeDuringHorizontalDeformationDetermination.length > 0 &&
-        i.beginDepth === 5.27
+        i.beginDepth?.value === 5.27
     );
 
     expect(interval).toBeDefined();
-    expect(interval!.endDepth).toBe(5.3);
+    expect(interval!.endDepth).toEqual({ value: 5.3, uom: 'm' });
 
     const det = interval!.shearStressChangeDuringHorizontalDeformationDetermination![0];
 
-    expect(det.beginHeight).toBe(28.6);
+    expect(det.beginHeight).toEqual({ value: 28.6, uom: 'mm' });
 
     // Different consolidation stress than first test
     const step = det.consolidationStageAtHorizontalDeformation!.consolidationSteps[0];
-    expect(step.verticalStress).toBe(190.89);
+    expect(step.verticalStress).toEqual({ value: 190.89, uom: 'kPa' });
     expect(step.heightChangeDuringConsolidation.length).toBe(17011);
 
     // Shear stage

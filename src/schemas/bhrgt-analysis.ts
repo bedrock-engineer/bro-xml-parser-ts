@@ -7,7 +7,7 @@
  * are decoded with the {@link columns} producer.
  */
 
-import type { Producer, CustomProducer, Presence, Produced, Coded } from "../core/producer.js";
+import type { Producer, CustomProducer, Presence, Produced, Measure } from "../core/producer.js";
 import {
   object,
   array,
@@ -16,7 +16,7 @@ import {
   text,
   code,
   date,
-  number,
+  measure,
   boolean,
 } from "../core/producer.js";
 import { columns, col } from "../core/columns.js";
@@ -31,13 +31,8 @@ function optional<T>(producer: Producer<T, Presence>, at: string): Producer<T, "
 }
 
 /** A repeatable coded list: a {@link Coded} per match, always present (may be empty). */
-function codeList(each: string): Producer<Array<Coded | null>> {
+function codeList(each: string) {
   return array({ each, item: code() });
-}
-
-/** Depth boundary: decimal (`number | null`), matching every other interval bound. */
-function depth(at: string): Producer<number | null> {
-  return scalar<number | null>({ at, decode: (raw) => parseFloat(raw) });
 }
 
 /** Integer step/count, defaulting to 0 when absent. */
@@ -105,11 +100,12 @@ const WATER_CONTENT = object({
     determinationProcedure: code("./bhrgtcom:determinationProcedure"),
     determinationMethod: code("./bhrgtcom:determinationMethod"),
     sampleMoistness: code("./bhrgtcom:sampleMoistness"),
-    removedMaterial: code("./bhrgtcom:removedMaterial"),
-    waterContent: number("./bhrgtcom:determinationResult/bhrgtcom:waterContent"),
+    removedMaterial: codeList("./bhrgtcom:removedMaterial"),
+    waterContent: measure("./bhrgtcom:determinationResult/bhrgtcom:waterContent"),
     dryingTemperature: code("./bhrgtcom:determinationResult/bhrgtcom:dryingTemperature"),
     dryingPeriod: code("./bhrgtcom:determinationResult/bhrgtcom:dryingPeriod"),
     saltCorrectionMethod: code("./bhrgtcom:determinationResult/bhrgtcom:saltCorrectionMethod"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
   },
 });
 
@@ -118,7 +114,8 @@ const VOLUMETRIC_MASS_DENSITY = object({
     determinationProcedure: code("./bhrgtcom:determinationProcedure"),
     determinationMethod: code("./bhrgtcom:determinationMethod"),
     sampleMoistness: code("./bhrgtcom:sampleMoistness"),
-    volumetricMassDensity: number("./bhrgtcom:volumetricMassDensity"),
+    volumetricMassDensity: measure("./bhrgtcom:volumetricMassDensity"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
   },
 });
 
@@ -126,9 +123,10 @@ const ORGANIC_MATTER = object({
   fields: {
     determinationProcedure: code("./bhrgtcom:determinationProcedure"),
     determinationMethod: code("./bhrgtcom:determinationMethod"),
-    removedMaterial: code("./bhrgtcom:removedMaterial"),
+    removedMaterial: codeList("./bhrgtcom:removedMaterial"),
     lutumCorrectionApplied: boolean("./bhrgtcom:lutumCorrectionApplied"),
-    organicMatterContent: number("./bhrgtcom:organicMatterContent"),
+    organicMatterContent: measure("./bhrgtcom:organicMatterContent"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
   },
 });
 
@@ -136,8 +134,9 @@ const CARBONATE = object({
   fields: {
     determinationProcedure: code("./bhrgtcom:determinationProcedure"),
     determinationMethod: code("./bhrgtcom:determinationMethod"),
-    removedMaterial: code("./bhrgtcom:removedMaterial"),
-    carbonateContent: number("./bhrgtcom:carbonateContent"),
+    removedMaterial: codeList("./bhrgtcom:removedMaterial"),
+    carbonateContent: measure("./bhrgtcom:carbonateContent"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
   },
 });
 
@@ -147,7 +146,9 @@ const DENSITY_OF_SOLIDS = object({
     determinationMethod: code("./bhrgtcom:determinationMethod"),
     liquidUsed: code("./bhrgtcom:usedMedium"),
     sampleContainerVolume: code("./bhrgtcom:sampleContainerVolume"),
-    volumetricMassDensityOfSolids: number("./bhrgtcom:volumetricMassDensitySolids"),
+    removedMaterial: codeList("./bhrgtcom:removedMaterial"),
+    volumetricMassDensityOfSolids: measure("./bhrgtcom:volumetricMassDensitySolids"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
   },
 });
 
@@ -158,9 +159,9 @@ const MAX_UNDRAINED_SHEAR = object({
     determinationDiameter: code("./bhrgtcom:determinationDiameter"),
     verticallyDetermined: boolean("./bhrgtcom:verticallyDetermined"),
     sampleMoistness: code("./bhrgtcom:sampleMoistness"),
-    maximumUndrainedShearStrength: number("./bhrgtcom:maximumUndrainedShearStrength"),
-    lowestMaximumUndrainedShearStrength: number("./bhrgtcom:lowestMaximumUndrainedShearStrength"),
-    highestMaximumUndrainedShearStrength: number(
+    maximumUndrainedShearStrength: measure("./bhrgtcom:maximumUndrainedShearStrength"),
+    lowestMaximumUndrainedShearStrength: measure("./bhrgtcom:lowestMaximumUndrainedShearStrength"),
+    highestMaximumUndrainedShearStrength: measure(
       "./bhrgtcom:highestMaximumUndrainedShearStrength",
     ),
   },
@@ -175,16 +176,30 @@ const PSD_STD_L = `${PSD}/bhrgtcom:standardDistributionFractionLarger63um`;
 const PSD_DET_L = `${PSD}/bhrgtcom:detailedDistributionFractionLarger63um`;
 
 /** A fraction read from one fixed group path (null when that group is absent). */
-const frac = (group: string, name: string): Producer<number | null> =>
-  number(`${group}/bhrgtcom:${name}`);
+const frac = (group: string, name: string): Producer<Measure | null> =>
+  measure(`${group}/bhrgtcom:${name}`);
 
 /** A fraction present in either of two mutually-exclusive groups (first non-null wins). */
-function fracEither(name: string): CustomProducer<number | null> {
-  return custom<number | null>({
-    produce: (lens) =>
-      parseFloat(lens.textAt(`${PSD_DET_S}/bhrgtcom:${name}`) ?? lens.textAt(`${PSD_STD_S}/bhrgtcom:${name}`)),
+function fracEither(name: string, groups: readonly [string, string]): CustomProducer<Measure | null> {
+  return custom<Measure | null>({
+    produce: (lens) => {
+      const at = groups
+        .map((group) => `${group}/bhrgtcom:${name}`)
+        .find((path) => lens.textAt(path) !== null);
+      if (!at) {
+        return null;
+      }
+      const value = parseFloat(lens.textAt(at));
+      const uom = lens.attr(`${at}/@uom`);
+      return value === null || uom === null ? null : { value, uom };
+    },
   });
 }
+
+/** The <63μm fractions shared by the detailed and standard fine groups. */
+const EITHER_S = [PSD_DET_S, PSD_STD_S] as const;
+/** The >63μm standard buckets, which the detailed coarse group also carries. */
+const EITHER_L = [PSD_STD_L, PSD_DET_L] as const;
 
 const PARTICLE_SIZE = object({
   fields: {
@@ -192,43 +207,45 @@ const PARTICLE_SIZE = object({
     determinationMethod: code("./bhrgtcom:determinationMethod"),
     fractionDistribution: code("./bhrgtcom:fractionDistribution"),
     dispersionMethod: code("./bhrgtcom:dispersionMethod"),
-    removedMaterial: code("./bhrgtcom:removedMaterial"),
+    removedMaterial: codeList("./bhrgtcom:removedMaterial"),
     equivalentMassDeterminationMethod: code("./bhrgtcom:equivalentMassDeterminationMethod"),
-    equivalentMass: number("./bhrgtcom:equivalentMass"),
+    equivalentMass: measure("./bhrgtcom:equivalentMass"),
     usedOpticalModel: code("./bhrgtcom:usedOpticalModel"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
+    materialIrregularity: codeList("./bhrgtcom:materialIrregularity"),
 
     fractionSmaller63um: frac(PSD, "fractionSmaller63um"),
     fractionLarger63um: frac(PSD, "fractionLarger63um"),
 
     // Detailed <63μm group (with 3 fractions shared with the standard <63μm group)
-    fraction0to2um: fracEither("fraction0to2um"),
+    fraction0to2um: fracEither("fraction0to2um", EITHER_S),
     fraction2to4um: frac(PSD_DET_S, "fraction2to4um"),
     fraction4to8um: frac(PSD_DET_S, "fraction4to8um"),
     fraction8to16um: frac(PSD_DET_S, "fraction8to16um"),
     fraction16to32um: frac(PSD_DET_S, "fraction16to32um"),
-    fraction32to50um: fracEither("fraction32to50um"),
-    fraction50to63um: fracEither("fraction50to63um"),
+    fraction32to50um: fracEither("fraction32to50um", EITHER_S),
+    fraction50to63um: fracEither("fraction50to63um", EITHER_S),
     fraction2to32um: frac(PSD_STD_S, "fraction2to32um"),
 
     // Standard >63μm group
-    fraction63to90um: frac(PSD_STD_L, "fraction63to90um"),
-    fraction90to125um: frac(PSD_STD_L, "fraction90to125um"),
-    fraction125to180um: frac(PSD_STD_L, "fraction125to180um"),
-    fraction180to250um: frac(PSD_STD_L, "fraction180to250um"),
-    fraction250to355um: frac(PSD_STD_L, "fraction250to355um"),
-    fraction355to500um: frac(PSD_STD_L, "fraction355to500um"),
-    fraction500to710um: frac(PSD_STD_L, "fraction500to710um"),
-    fraction710to1000um: frac(PSD_STD_L, "fraction710to1000um"),
-    fraction1000to1400um: frac(PSD_STD_L, "fraction1000to1400um"),
-    fraction1400umto2mm: frac(PSD_STD_L, "fraction1400umto2mm"),
-    fraction2to4mm: frac(PSD_STD_L, "fraction2to4mm"),
-    fraction4to8mm: frac(PSD_STD_L, "fraction4to8mm"),
-    fraction8to16mm: frac(PSD_STD_L, "fraction8to16mm"),
+    fraction63to90um: fracEither("fraction63to90um", EITHER_L),
+    fraction90to125um: fracEither("fraction90to125um", EITHER_L),
+    fraction125to180um: fracEither("fraction125to180um", EITHER_L),
+    fraction180to250um: fracEither("fraction180to250um", EITHER_L),
+    fraction250to355um: fracEither("fraction250to355um", EITHER_L),
+    fraction355to500um: fracEither("fraction355to500um", EITHER_L),
+    fraction500to710um: fracEither("fraction500to710um", EITHER_L),
+    fraction710to1000um: fracEither("fraction710to1000um", EITHER_L),
+    fraction1000to1400um: fracEither("fraction1000to1400um", EITHER_L),
+    fraction1400umto2mm: fracEither("fraction1400umto2mm", EITHER_L),
+    fraction2to4mm: fracEither("fraction2to4mm", EITHER_L),
+    fraction4to8mm: fracEither("fraction4to8mm", EITHER_L),
+    fraction8to16mm: fracEither("fraction8to16mm", EITHER_L),
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    fraction16to31_5mm: frac(PSD_STD_L, "fraction16to31_5mm"),
+    fraction16to31_5mm: fracEither("fraction16to31_5mm", EITHER_L),
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    fraction31_5to63mm: frac(PSD_STD_L, "fraction31_5to63mm"),
-    fractionLarger63mm: frac(PSD_STD_L, "fractionLarger63mm"),
+    fraction31_5to63mm: fracEither("fraction31_5to63mm", EITHER_L),
+    fractionLarger63mm: fracEither("fractionLarger63mm", EITHER_L),
 
     // Detailed >63μm group (finer buckets, alternative to the standard >63μm set)
     fraction63to75um: frac(PSD_DET_L, "fraction63to75um"),
@@ -259,20 +276,20 @@ const CONSISTENCY_LIMITS = object({
   fields: {
     determinationProcedure: code("./bhrgtcom:determinationProcedure"),
     determinationMethod: code("./bhrgtcom:determinationMethod"),
-    fractionLarger500um: number("./bhrgtcom:fractionLarger500um"),
+    fractionLarger500um: measure("./bhrgtcom:fractionLarger500um"),
     usedMedium: code("./bhrgtcom:usedMedium"),
-    performanceIrregularity: code("./bhrgtcom:performanceIrregularity"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
     conusType: code("./bhrgtcom:conusType"),
-    liquidLimit: number("./bhrgtcom:liquidLimit"),
-    plasticLimit: number("./bhrgtcom:plasticLimit"),
-    plasticityIndex: number("./bhrgtcom:plasticityIndex"),
+    liquidLimit: measure("./bhrgtcom:liquidLimit"),
+    plasticLimit: measure("./bhrgtcom:plasticLimit"),
+    plasticityIndex: measure("./bhrgtcom:plasticityIndex"),
     plasticityAtSpecificWaterContent: array({
       each: "./bhrgtcom:plasticityAtSpecificWaterContent",
       item: object({
         fields: {
-          waterContent: { ...number("./bhrgtcom:waterContent"), ...REQUIRED },
+          waterContent: { ...measure("./bhrgtcom:waterContent"), ...REQUIRED },
           numberOfFalls: intOr0("./bhrgtcom:numberOfFalls"),
-          penetrationDepth: number("./bhrgtcom:penetrationDepth"),
+          penetrationDepth: measure("./bhrgtcom:penetrationDepth"),
         },
       }),
     }),
@@ -283,12 +300,12 @@ const SATURATION_AT_COMPRESSION = object({
   fields: {
     porousDiscWet: boolean("./bhrgtcom:porousDiscWet"),
     usedMedium: code("./bhrgtcom:usedMedium"),
-    backPressure: number("./bhrgtcom:backPressure"),
+    backPressure: measure("./bhrgtcom:backPressure"),
     constantHeight: boolean("./bhrgtcom:constantHeight"),
-    specimenHeightAfterwards: number("./bhrgtcom:specimenHeightAfterwards"),
+    specimenHeightAfterwards: measure("./bhrgtcom:specimenHeightAfterwards"),
     disturbanceInduced: boolean("./bhrgtcom:disturbanceInduced"),
-    maximumStressDifference: number("./bhrgtcom:maximumStressDifference"),
-    maximumStrain: number("./bhrgtcom:maximumStrain"),
+    maximumStressDifference: measure("./bhrgtcom:maximumStressDifference"),
+    maximumStrain: measure("./bhrgtcom:maximumStrain"),
   },
 });
 
@@ -297,9 +314,10 @@ const SETTLEMENT_STEP = object({
     stepNumber: intOr0("./bhrgtcom:stepNumber"),
     wetPerformed: boolean("./bhrgtcom:wetPerformed"),
     swellObserved: boolean("./bhrgtcom:swellObserved"),
-    strainPoint24hours: number("./bhrgtcom:strainPoint24hours"),
+    strainPoint24hours: measure("./bhrgtcom:strainPoint24hours"),
     stepType: code("./bhrgtcom:stepType"),
-    verticalStress: number("./bhrgtcom:verticalStress"),
+    verticalStress: measure("./bhrgtcom:verticalStress"),
+    deformationRate: measure("./bhrgtcom:deformationRate"),
     heightChangeDuringSettlement: columns(
       "./bhrgtcom:heightChangeDuringSettlement/bhrgtcom:values",
       TIME_HEIGHT,
@@ -315,14 +333,16 @@ const SETTLEMENT = object({
   fields: {
     determinationProcedure: code("./bhrgtcom:determinationProcedure"),
     determinationMethod: code("./bhrgtcom:determinationMethod"),
-    ringDiameter: number("./bhrgtcom:ringDiameter"),
+    ringDiameter: measure("./bhrgtcom:ringDiameter"),
     sampleMoistness: code("./bhrgtcom:sampleMoistness"),
     filterPaperUsed: boolean("./bhrgtcom:filterPaperUsed"),
-    temperature: number("./bhrgtcom:temperature"),
+    temperature: measure("./bhrgtcom:temperature"),
     wallFrictionCorrectionMethod: code("./bhrgtcom:wallFrictionCorrectionMethod"),
     apparatusDeformationApplied: boolean("./bhrgtcom:apparatusDeformationApplied"),
     bearingFrictionCorrectionApplied: boolean("./bhrgtcom:bearingFrictionCorrectionApplied"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
     irregularResult: boolean("./bhrgtcom:irregularResult"),
+    materialIrregularity: codeList("./bhrgtcom:materialIrregularity"),
     saturationStageAtCompression: optional(
       SATURATION_AT_COMPRESSION,
       "./bhrgtcom:saturationStageAtCompression",
@@ -336,22 +356,26 @@ const PERMEABILITY = object({
     determinationProcedure: code("./bhrgtcom:determinationProcedure"),
     determinationMethod: code("./bhrgtcom:determinationMethod"),
     specimenMade: boolean("./bhrgtcom:specimenMade"),
+    makingMethod: code("./bhrgtcom:makingMethod"),
     saturatedWithCO2: boolean("./bhrgtcom:saturatedWithCO2"),
     verticallyDetermined: boolean("./bhrgtcom:verticallyDetermined"),
+    porousDiscWet: boolean("./bhrgtcom:porousDiscWet"),
     currentDownwards: boolean("./bhrgtcom:currentDownwards"),
     usedMedium: code("./bhrgtcom:usedMedium"),
     waterDegassed: boolean("./bhrgtcom:waterDegassed"),
-    temperature: number("./bhrgtcom:temperature"),
-    maximumGradient: number("./bhrgtcom:maximumGradient"),
-    ringWaterRepellent: text("./bhrgtcom:ringWaterRepellent"),
-    waterContentAfterwards: number("./bhrgtcom:waterContentAfterwards"),
+    temperature: measure("./bhrgtcom:temperature"),
+    swellObserved: boolean("./bhrgtcom:swellObserved"),
+    maximumGradient: measure("./bhrgtcom:maximumGradient"),
+    ringWaterRepellent: boolean("./bhrgtcom:ringWaterRepellent"),
+    waterContentAfterwards: measure("./bhrgtcom:waterContentAfterwards"),
     materialIrregularity: codeList("./bhrgtcom:materialIrregularity"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
     saturatedPermeabilityAtSpecificDensity: array({
       each: "./bhrgtcom:saturatedPermeabilityAtSpecificDensity",
       item: object({
         fields: {
-          dryVolumetricMassDensity: number("./bhrgtcom:dryVolumetricMassDensity"),
-          saturatedPermeability: number("./bhrgtcom:saturatedPermeability"),
+          dryVolumetricMassDensity: measure("./bhrgtcom:dryVolumetricMassDensity"),
+          saturatedPermeability: measure("./bhrgtcom:saturatedPermeability"),
         },
       }),
     }),
@@ -359,8 +383,8 @@ const PERMEABILITY = object({
       each: "./bhrgtcom:saturatedPermeabilityAtSpecificLoad",
       item: object({
         fields: {
-          load: number("./bhrgtcom:load"),
-          saturatedPermeability: number("./bhrgtcom:saturatedPermeability"),
+          load: measure("./bhrgtcom:load"),
+          saturatedPermeability: measure("./bhrgtcom:saturatedPermeability"),
         },
       }),
     }),
@@ -376,8 +400,8 @@ const SHEAR_LOADING_DET = object({
     specimenDisturbed: boolean("./bhrgtcom:specimenDisturbed"),
     specimenTrimmed: boolean("./bhrgtcom:specimenTrimmed"),
     sampleMoistness: code("./bhrgtcom:sampleMoistness"),
-    beginDiameter: number("./bhrgtcom:beginDiameter"),
-    beginHeight: number("./bhrgtcom:beginHeight"),
+    beginDiameter: measure("./bhrgtcom:beginDiameter"),
+    beginHeight: measure("./bhrgtcom:beginHeight"),
     topCapTiltable: boolean("./bhrgtcom:topCapTiltable"),
     filterPaperUsed: boolean("./bhrgtcom:filterPaperUsed"),
     drainageStripsUsed: boolean("./bhrgtcom:drainageStripsUsed"),
@@ -385,11 +409,13 @@ const SHEAR_LOADING_DET = object({
     apparatusDeformationApplied: boolean("./bhrgtcom:apparatusDeformationApplied"),
     cellDeformationApplied: boolean("./bhrgtcom:cellDeformationApplied"),
     stopCriterion: code("./bhrgtcom:stopCriterion"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
+    materialIrregularity: codeList("./bhrgtcom:materialIrregularity"),
     membraneCorrection: optional(
       object({
         fields: {
           correctionMethod: code("./bhrgtcom:correctionMethod"),
-          thickness: number("./bhrgtcom:thickness"),
+          thickness: measure("./bhrgtcom:thickness"),
           stiffnessClass: code("./bhrgtcom:stiffnessClass"),
         },
       }),
@@ -409,7 +435,9 @@ const SHEAR_LOADING_DET = object({
       object({
         fields: {
           makingMethod: code("./bhrgtcom:makingMethod"),
-          dryVolumetricMassDensity: number("./bhrgtcom:dryVolumetricMassDensity"),
+          waterContent: measure("./bhrgtcom:waterContent"),
+          volumetricMassDensity: measure("./bhrgtcom:volumetricMassDensity"),
+          dryVolumetricMassDensity: measure("./bhrgtcom:dryVolumetricMassDensity"),
         },
       }),
       "./bhrgtcom:madeSpecimenForLoading",
@@ -424,11 +452,12 @@ const SHEAR_LOADING_DET = object({
           cellPressureAutomaticallyControlled: boolean(
             "./bhrgtcom:cellPressureAutomaticallyControlled",
           ),
-          backPressure: number("./bhrgtcom:backPressure"),
-          effectivePressure: number("./bhrgtcom:effectivePressure"),
-          skemptonBCoefficient: number("./bhrgtcom:skemptonB_Coefficient"),
+          backPressure: measure("./bhrgtcom:backPressure"),
+          effectivePressure: measure("./bhrgtcom:effectivePressure"),
+          skemptonBCoefficient: measure("./bhrgtcom:skemptonB_Coefficient"),
+          verticalStrain: measure("./bhrgtcom:verticalStrain"),
           disturbanceInduced: boolean("./bhrgtcom:disturbanceInduced"),
-          stressDifference: number("./bhrgtcom:stressDifference"),
+          stressDifference: measure("./bhrgtcom:stressDifference"),
         },
       }),
       "./bhrgtcom:saturationStageAtLoading",
@@ -438,10 +467,10 @@ const SHEAR_LOADING_DET = object({
         fields: {
           drainageTwoSided: boolean("./bhrgtcom:drainageTwoSided"),
           consolidationMethod: code("./bhrgtcom:consolidationMethod"),
-          verticalConsolidationStress: number("./bhrgtcom:verticalConsolidationStress"),
-          horizontalConsolidationStress: number("./bhrgtcom:horizontalConsolidationStress"),
-          verticalStrain: number("./bhrgtcom:verticalStrain"),
-          lateralEarthPressureCoefficient: number("./bhrgtcom:lateralEarthPressureCoefficient"),
+          verticalConsolidationStress: measure("./bhrgtcom:verticalConsolidationStress"),
+          horizontalConsolidationStress: measure("./bhrgtcom:horizontalConsolidationStress"),
+          verticalStrain: measure("./bhrgtcom:verticalStrain"),
+          lateralEarthPressureCoefficient: measure("./bhrgtcom:lateralEarthPressureCoefficient"),
           volumeChangeDuringConsolidation: columns(
             "./bhrgtcom:volumeChangeDuringConsolidation/bhrgtcom:values",
             VOLUME_CHANGE,
@@ -453,7 +482,7 @@ const SHEAR_LOADING_DET = object({
     loadStage: optional(
       object({
         fields: {
-          deformationRate: number("./bhrgtcom:deformationRate"),
+          deformationRate: measure("./bhrgtcom:deformationRate"),
           specimenShape: code("./bhrgtcom:specimenShape"),
           shearStressChangeDuringLoading: columns(
             "./bhrgtcom:shearStressChangeDuringLoading/bhrgtcom:values",
@@ -469,7 +498,7 @@ const SHEAR_LOADING_DET = object({
 const HORIZONTAL_CONSOLIDATION_STEP = object({
   fields: {
     stepNumber: intOr0("./bhrgtcom:stepNumber"),
-    verticalStress: number("./bhrgtcom:verticalStress"),
+    verticalStress: measure("./bhrgtcom:verticalStress"),
     heightChangeDuringConsolidation: columns(
       "./bhrgtcom:heightChangeDuringConsolidation/bhrgtcom:values",
       TIME_HEIGHT,
@@ -487,12 +516,24 @@ const SHEAR_HORIZONTAL_DET = object({
     porousDiscWet: boolean("./bhrgtcom:porousDiscWet"),
     drained: boolean("./bhrgtcom:drained"),
     lateralSupport: code("./bhrgtcom:lateralSupport"),
-    beginDiameter: number("./bhrgtcom:beginDiameter"),
-    beginHeight: number("./bhrgtcom:beginHeight"),
+    beginDiameter: measure("./bhrgtcom:beginDiameter"),
+    beginHeight: measure("./bhrgtcom:beginHeight"),
     stopCriterion: code("./bhrgtcom:stopCriterion"),
+    performanceIrregularity: codeList("./bhrgtcom:performanceIrregularity"),
+    materialIrregularity: codeList("./bhrgtcom:materialIrregularity"),
     membraneCorrectionApplied: boolean("./bhrgtcom:membraneCorrectionApplied"),
     apparatusDeformationApplied: boolean("./bhrgtcom:apparatusDeformationApplied"),
     bearingFrictionCorrectionApplied: boolean("./bhrgtcom:bearingFrictionCorrectionApplied"),
+    madeSpecimenForHorizontalDeformation: optional(
+      object({
+        fields: {
+          makingMethod: code("./bhrgtcom:makingMethod"),
+          waterContent: measure("./bhrgtcom:waterContent"),
+          volumetricMassDensity: measure("./bhrgtcom:volumetricMassDensity"),
+        },
+      }),
+      "./bhrgtcom:madeSpecimenForHorizontalDeformation",
+    ),
     consolidationStageAtHorizontalDeformation: optional(
       object({
         fields: {
@@ -508,7 +549,7 @@ const SHEAR_HORIZONTAL_DET = object({
     shearStage: optional(
       object({
         fields: {
-          deformationRate: number("./bhrgtcom:deformationRate"),
+          deformationRate: measure("./bhrgtcom:deformationRate"),
           activeHeightControl: boolean("./bhrgtcom:activeHeightControl"),
           shearStressChangeDuringHorizontalDeformation: columns(
             "./bhrgtcom:shearStressChangeDuringHorizontalDeformation/bhrgtcom:values",
@@ -525,8 +566,8 @@ const SHEAR_HORIZONTAL_DET = object({
 
 const INVESTIGATED_INTERVAL = object({
   fields: {
-    beginDepth: depth("./bhrgtcom:beginDepth"),
-    endDepth: depth("./bhrgtcom:endDepth"),
+    beginDepth: measure("./bhrgtcom:beginDepth"),
+    endDepth: measure("./bhrgtcom:endDepth"),
     sampleQuality: code("./bhrgtcom:sampleQuality"),
     analysisType: code("./bhrgtcom:analysisType"),
     waterContentDetermined: boolean("./bhrgtcom:waterContentDetermined"),
@@ -537,6 +578,19 @@ const INVESTIGATED_INTERVAL = object({
       "./bhrgtcom:volumetricMassDensitySolidsDetermined",
     ),
     described: boolean("./bhrgtcom:described"),
+    investigatedMaterial: object({
+      at: "./bhrgtcom:investigatedMaterial",
+      fields: {
+        specialMaterial: code("./bhrgtcom:specialMaterial"),
+        geotechnicalSoilName: code("./bhrgtcom:geotechnicalSoilName"),
+        tertiaryConstituent: codeList("./bhrgtcom:tertiaryConstituent"),
+        colour: code("./bhrgtcom:colour"),
+        carbonateContentClass: code("./bhrgtcom:carbonateContentClass"),
+        organicMatterContentClass: code("./bhrgtcom:organicMatterContentClass"),
+        gravelMedianClass: code("./bhrgtcom:gravelMedianClass"),
+        sandMedianClass: code("./bhrgtcom:sandMedianClass"),
+      },
+    }),
 
     waterContentDetermination: optional(WATER_CONTENT, "./bhrgtcom:waterContentDetermination"),
     organicMatterContentDetermination: optional(
@@ -592,6 +646,13 @@ export const ANALYSIS_PRODUCER = object({
   fields: {
     analysisReportDate: date("./bhrgtcom:analysisReportDate"),
     analysisProcedure: code("./bhrgtcom:analysisProcedure"),
+    analysisOperator: object({
+      at: "./bhrgtcom:analysisOperator",
+      fields: {
+        chamberOfCommerceNumber: text("./brocom:chamberOfCommerceNumber"),
+        europeanCompanyRegistrationNumber: text("./brocom:europeanCompanyRegistrationNumber"),
+      },
+    }),
     investigatedInterval: array({
       each: "./bhrgtcom:investigatedInterval",
       item: INVESTIGATED_INTERVAL,
@@ -664,6 +725,12 @@ export type DrainageStripCorrection = NonNullable<
 export type SpecimenMadeForLoading = NonNullable<
   ShearStressChangeDuringLoadingDetermination["madeSpecimenForLoading"]
 >;
+/** @internal */
+export type SpecimenMadeForHorizontalDeformation = NonNullable<
+  ShearStressChangeDuringHorizontalDeformationDetermination["madeSpecimenForHorizontalDeformation"]
+>;
+/** The field description of the investigated material (coded classes). @internal */
+export type InvestigatedMaterial = NonNullable<InvestigatedInterval["investigatedMaterial"]>;
 /** @internal */
 export type SaturationStageAtLoading = NonNullable<
   ShearStressChangeDuringLoadingDetermination["saturationStageAtLoading"]

@@ -27,11 +27,11 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
-      (i) => i.beginDepth === 1.79
+      (i) => i.beginDepth?.value === 1.79
     );
 
     expect(interval).toBeDefined();
-    expect(interval!.endDepth).toBe(1.82);
+    expect(interval!.endDepth).toEqual({ value: 1.82, uom: 'm' });
     expect(interval!.analysisType?.code).toBe('basisparameter');
     expect(interval!.waterContentDetermined).toBe(true);
     expect(interval!.volumetricMassDensityDetermined).toBe(true);
@@ -43,14 +43,14 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
-      (i) => i.beginDepth === 1.79
+      (i) => i.beginDepth?.value === 1.79
     );
 
     const det = interval!.volumetricMassDensityOfSolidsDetermination;
     expect(det).toBeDefined();
     expect(det!.determinationProcedure?.code).toBe('ISO17892d3v2016');
     expect(det!.determinationMethod?.code).toBe('pyknometerGas');
-    expect(det!.volumetricMassDensityOfSolids).toBe(2.413);
+    expect(det!.volumetricMassDensityOfSolids).toEqual({ value: 2.413, uom: 'g/cm3' });
   });
 
   it('should parse sibling volumetric mass density determination', () => {
@@ -58,7 +58,7 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
-      (i) => i.beginDepth === 1.79
+      (i) => i.beginDepth?.value === 1.79
     );
 
     const det = interval!.volumetricMassDensityDetermination;
@@ -66,7 +66,7 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
     expect(det!.determinationProcedure?.code).toBe('ISO17892d2v2014');
     expect(det!.determinationMethod?.code).toBe('volumeVoorbepaald');
     expect(det!.sampleMoistness?.code).toBe('veldvochtig');
-    expect(det!.volumetricMassDensity).toBe(1.386);
+    expect(det!.volumetricMassDensity).toEqual({ value: 1.386, uom: 'g/cm3' });
   });
 
   it('should parse korrelgrootteverdeling interval (1.65-1.75m) with particle size', () => {
@@ -74,30 +74,30 @@ describe('Volumetric Mass Density of Solids Determination Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     const interval = bore.boreholeSampleAnalysis!.investigatedInterval.find(
-      (i) => i.beginDepth === 1.65
+      (i) => i.beginDepth?.value === 1.65
     );
 
     expect(interval).toBeDefined();
-    expect(interval!.endDepth).toBe(1.75);
+    expect(interval!.endDepth).toEqual({ value: 1.75, uom: 'm' });
     expect(interval!.analysisType?.code).toBe('korrelgrootteverdeling');
 
     // Particle size distribution
     const psd = interval!.particleSizeDistributionDetermination;
     expect(psd).toBeDefined();
     expect(psd!.determinationProcedure?.code).toBe('ISO17892d4v2016enISO13317d3v2001');
-    expect(psd!.fractionSmaller63um).toBe(41.2);
-    expect(psd!.fractionLarger63um).toBe(58.8);
+    expect(psd!.fractionSmaller63um).toEqual({ value: 41.2, uom: '%' });
+    expect(psd!.fractionLarger63um).toEqual({ value: 58.8, uom: '%' });
 
     // Water content
     expect(interval!.waterContentDetermination).toBeDefined();
-    expect(interval!.waterContentDetermination!.waterContent).toBe(98.6);
+    expect(interval!.waterContentDetermination!.waterContent).toEqual({ value: 98.6, uom: '%' });
 
     // Organic matter
     expect(interval!.organicMatterContentDetermination).toBeDefined();
-    expect(interval!.organicMatterContentDetermination!.organicMatterContent).toBe(5.7);
+    expect(interval!.organicMatterContentDetermination!.organicMatterContent).toEqual({ value: 5.7, uom: '%' });
 
     // Carbonate
     expect(interval!.carbonateContentDetermination).toBeDefined();
-    expect(interval!.carbonateContentDetermination!.carbonateContent).toBe(3.4);
+    expect(interval!.carbonateContentDetermination!.carbonateContent).toEqual({ value: 3.4, uom: '%' });
   });
 });

@@ -41,9 +41,9 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const cl = bore.boreholeSampleAnalysis!.investigatedInterval[0].consistencyLimitsDetermination!;
     expect(cl.determinationProcedure?.code).toBe('ISO17892d12v2018');
     expect(cl.determinationMethod?.code).toBe('casagrandeKleistaaf');
-    expect(cl.fractionLarger500um).toBe(7.60);
+    expect(cl.fractionLarger500um).toEqual({ value: 7.6, uom: '%' });
     expect(cl.usedMedium?.code).toBe('leidingwater');
-    expect(cl.performanceIrregularity?.code).toBe('massaProefstukVloeigrens');
+    expect(cl.performanceIrregularity[0]?.code).toBe('massaProefstukVloeigrens');
   });
 
   it('should extract calculated limit values', () => {
@@ -51,9 +51,9 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const bore = parser.parseBHRGT(xml);
 
     const cl = bore.boreholeSampleAnalysis!.investigatedInterval[0].consistencyLimitsDetermination!;
-    expect(cl.liquidLimit).toBe(32.2);
-    expect(cl.plasticLimit).toBe(17.14);
-    expect(cl.plasticityIndex).toBe(15.05);
+    expect(cl.liquidLimit).toEqual({ value: 32.2, uom: '%' });
+    expect(cl.plasticLimit).toEqual({ value: 17.14, uom: '%' });
+    expect(cl.plasticityIndex).toEqual({ value: 15.05, uom: '%' });
   });
 
   it('should extract 4 plasticity data points for Casagrande chart', () => {
@@ -72,19 +72,19 @@ describe('Atterberg Limits (Consistency Limits) Parsing', () => {
     const points = cl.plasticityAtSpecificWaterContent;
 
     // First point
-    expect(points[0].waterContent).toBe(28.7);
+    expect(points[0].waterContent).toEqual({ value: 28.7, uom: '%' });
     expect(points[0].numberOfFalls).toBe(49);
 
     // Second point
-    expect(points[1].waterContent).toBe(29.9);
+    expect(points[1].waterContent).toEqual({ value: 29.9, uom: '%' });
     expect(points[1].numberOfFalls).toBe(38);
 
     // Third point
-    expect(points[2].waterContent).toBe(32.3);
+    expect(points[2].waterContent).toEqual({ value: 32.3, uom: '%' });
     expect(points[2].numberOfFalls).toBe(25);
 
     // Fourth point
-    expect(points[3].waterContent).toBe(34.3);
+    expect(points[3].waterContent).toEqual({ value: 34.3, uom: '%' });
     expect(points[3].numberOfFalls).toBe(16);
   });
 
