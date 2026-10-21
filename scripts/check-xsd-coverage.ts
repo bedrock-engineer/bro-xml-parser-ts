@@ -172,6 +172,10 @@ function extractCoveredNames(): { qualified: Set<string>; bare: Set<string> } {
     if (fs.existsSync(g)) collectSourceFiles(g, files);
   }
   const re = /([a-zA-Z][a-zA-Z0-9]*):([A-Za-z][A-Za-z0-9_]*)/g;
+  // Bare element names handed to path-building helpers (e.g. frac(group, "fraction2to32um"))
+  // never appear in prefix:local form - the prefix is added at runtime. Harvest
+  // string literals that are a single identifier into the bare set.
+  const bareLit = /["']([A-Za-z][A-Za-z0-9_]*)["']/g;
   for (const file of files) {
     const text = fs.readFileSync(file, "utf-8");
     let m: RegExpExecArray | null;
@@ -180,6 +184,9 @@ function extractCoveredNames(): { qualified: Set<string>; bare: Set<string> } {
       if (!KNOWN_PREFIXES.has(prefix)) continue;
       qualified.add(`${prefix}:${local}`);
       bare.add(local);
+    }
+    while ((m = bareLit.exec(text)) !== null) {
+      bare.add(m[1]);
     }
   }
   return { qualified, bare };

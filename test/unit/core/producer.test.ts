@@ -6,8 +6,8 @@ import {
   text,
   number,
   code,
+  measure,
   custom,
-  oneOf,
 } from '@/core/producer';
 import { NodeXMLAdapter } from '@/adapters/node-adapter';
 
@@ -17,7 +17,7 @@ import { NodeXMLAdapter } from '@/adapters/node-adapter';
  * These exercise the interpreter through synthetic (namespace-free) XML rather
  * than multi-MB BRO fixtures, so the recursion, the absence model, and the
  * `NodeLens` seam can be tested in isolation — the seams that GLD's declarative
- * schema does not itself reach (custom, oneOf, required failures).
+ * schema does not itself reach (custom, required failures).
  */
 
 const adapter = new NodeXMLAdapter();
@@ -177,6 +177,25 @@ describe('SchemaParser.produce', () => {
       expect(value).toEqual({ id: 'x' });
       expect('quality' in value).toBe(false);
     });
+
+    it('warns when text is present but the codeSpace attribute is missing', () => {
+      const schema = object({ fields: { quality: code('./qualityClass') } });
+      const { value, warnings } = produce<{ quality: unknown }>(
+        '<qualityClass>klasse2</qualityClass>',
+        schema,
+      );
+      expect(value.quality).toBeNull();
+      expect(warnings).toEqual(['Coded value "klasse2" has no codeSpace attribute']);
+    });
+  });
+
+  describe('measure leaf', () => {
+    it('warns when the value parses but the uom attribute is missing', () => {
+      const schema = object({ fields: { depth: measure('./depth') } });
+      const { value, warnings } = produce<{ depth: unknown }>('<depth>7.4</depth>', schema);
+      expect(value.depth).toBeNull();
+      expect(warnings).toEqual(['Measured value "7.4" has no uom attribute']);
+    });
   });
 
   describe('custom / NodeLens seam', () => {
@@ -208,35 +227,4 @@ describe('SchemaParser.produce', () => {
     });
   });
 
-  describe('oneOf discriminated union', () => {
-    const schema = object({
-      fields: {
-        layer: oneOf({
-          at: './layer',
-          tagAs: 'kind',
-          base: { top: number('./top') },
-          branches: [
-            { when: './soil', at: './soil', tag: 'soil', fields: { name: text('./name') } },
-            { when: './rock', at: './rock', tag: 'rock', fields: { hardness: text('./hardness') } },
-          ],
-        }),
-      },
-    });
-
-    it('selects the first matching branch and merges base + tag', () => {
-      const { value } = produce<{ layer: Record<string, unknown> }>(
-        '<layer><top>0.5</top><soil><name>zand</name></soil></layer>',
-        schema,
-      );
-      expect(value.layer).toEqual({ kind: 'soil', top: 0.5, name: 'zand' });
-    });
-
-    it('picks the other branch by its `when` test', () => {
-      const { value } = produce<{ layer: Record<string, unknown> }>(
-        '<layer><top>1</top><rock><hardness>high</hardness></rock></layer>',
-        schema,
-      );
-      expect(value.layer).toEqual({ kind: 'rock', top: 1, hardness: 'high' });
-    });
-  });
 });

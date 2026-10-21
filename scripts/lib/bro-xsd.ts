@@ -230,8 +230,6 @@ export interface Leaf {
   baseType: string;
   /** the `fixed` value of the type's `codeSpace` attribute, if this is a coded leaf (e.g. "urn:bro:cpt:QualityClass") */
   domain?: string;
-  /** xs:documentation text on the leaf element (BRO ships Dutch Definition/Explanation), if any */
-  doc?: string;
 }
 
 /** The `fixed` value of a `codeSpace` attribute on a complexType's simpleContent, if any. */
@@ -266,18 +264,6 @@ function codeSpaceDomain(typeQ: QName | null, inlineType: Element | null): strin
     if (ct) return findFixedCodeSpace(ct);
   }
   return undefined;
-}
-
-/** Collapsed text of an element's own `xs:annotation/xs:documentation` (whitespace-normalized). */
-function documentationOf(el: Element): string | undefined {
-  const ann = directChildElements(el, "annotation")[0];
-  if (!ann) return undefined;
-  const text = directChildElements(ann, "documentation")
-    .map((d) => (d.textContent ?? "").trim())
-    .filter(Boolean)
-    .join(" ")
-    .replace(/\s+/g, " ");
-  return text || undefined;
 }
 
 const MAX_DEPTH = 40;
@@ -486,7 +472,6 @@ function collectLeaves(nodes: TreeNode[]): Leaf[] {
         cardinality: n.cardinality,
         baseType: n.baseType ?? "unknown",
         ...(n.domain ? { domain: n.domain } : {}),
-        doc: n.doc,
       });
     } else if (n.children) {
       out.push(...collectLeaves(n.children));
@@ -527,7 +512,6 @@ export interface TreeNode {
    * node's `at`/`each` must descend through it (`./boring/bhrgcom:Boring`).
    */
   wrapper?: string;
-  doc?: string;
   /** object: child nodes. */
   children?: TreeNode[];
 }
@@ -543,7 +527,6 @@ interface ResolvedElement {
   effInline: Element | null;
   /** GML property/object wrapper element, if the type is a property-type wrapper. */
   wrapper?: string;
-  doc?: string;
 }
 
 function resolveElement(el: Element): ResolvedElement | null {
@@ -554,14 +537,12 @@ function resolveElement(el: Element): ResolvedElement | null {
   let ownerUrl = docUrlOf(el);
   let inlineType: Element | null =
     directChildElements(el, "complexType")[0] ?? directChildElements(el, "simpleType")[0] ?? null;
-  let docEl: Element = el;
 
   if (ref && !name) {
     const q = resolveQName(ref, ownerUrl);
     if (q) {
       const globalEl = globalElements.get(typeKey(q.uri, q.local));
       if (globalEl) {
-        docEl = globalEl;
         name = globalEl.getAttribute("name");
         typeAttr = globalEl.getAttribute("type");
         elemNs = q.uri;
@@ -609,7 +590,6 @@ function resolveElement(el: Element): ResolvedElement | null {
     typeQ,
     effInline,
     ...(wrapper ? { wrapper } : {}),
-    doc: documentationOf(docEl),
   };
 }
 
@@ -631,7 +611,6 @@ function elementParticleTree(
     path,
     cardinality: r.cardinality,
     array: r.array,
-    doc: r.doc,
   };
 
   // BRO partial-date fields collapse to a single date leaf (as in the flattener).
@@ -770,7 +749,7 @@ function scoreObj(name: string): number {
 // ---------------------------------------------------------------------------
 
 /** Map an xsd base type local name to one of our type decoders (or null for string). */
-export function guessDecoder(baseType: string): string | null {
+function guessDecoder(baseType: string): string | null {
   const t = baseType.toLowerCase();
   if (t.includes("date") || t.includes("time") || t.startsWith("gyear")) return "parseDate";
   if (t === "boolean") return "parseBoolean";
@@ -781,7 +760,7 @@ export function guessDecoder(baseType: string): string | null {
 }
 
 /** Map a {@link guessDecoder} result to the `producers` combinator that wraps it. */
-export function combinatorFor(decoder: string | null): string {
+function combinatorFor(decoder: string | null): string {
   switch (decoder) {
     case "parseFloat":
       return "number";

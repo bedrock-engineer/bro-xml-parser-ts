@@ -6,13 +6,12 @@
  * themselves producers, an array producer's item is a producer, and so on all
  * the way down. {@link SchemaParser.produce} interprets this tree.
  *
- * Seven kinds, each built by a combinator:
+ * Six kinds, each built by a combinator:
  *   - `scalar`  — a leaf: text (or an attribute) decoded into `T`.
  *   - `code`    — a leaf: a BRO coded value (`{ code, codeSpace }`), text + its domain.
  *   - `measure` — a leaf: a BRO measured value (`{ value, uom }`), number + its unit.
  *   - `object`  — a fixed set of named fields, each a producer.
  *   - `array`   — a repeated subtree: `each` selects item nodes, `item` produces one.
- *   - `oneOf`   — an honest discriminated union (shared `base` + tagged `branches`).
  *   - `custom`  — the sole escape hatch, handed a narrow {@link NodeLens}.
  *
  * Absence model: a `required` field that is missing nulls its
@@ -97,10 +96,6 @@ export interface NodeLens {
 interface ProducerMeta {
   /** Relative XPath from the enclosing node to this producer's node. */
   at?: string;
-  /** Docstring carried into generated types as `/** *\/`. */
-  doc?: string;
-  /** Group name carried into generated types as `@group`. */
-  group?: string;
 }
 
 /**
@@ -127,7 +122,7 @@ export interface ScalarProducer<T, P extends Presence = "optional"> extends Prod
  */
 export interface CodeProducer<T, P extends Presence = "optional"> extends ProducerMeta {
   kind: "code";
-  decode: (text: string | null, codeSpace: string | null) => T;
+  decode: (text: string | null, codeSpace: string | null, warn?: WarnSink) => T;
   presence?: P;
   readonly _out?: T;
 }
@@ -167,36 +162,13 @@ export interface CustomProducer<T, P extends Presence = "optional"> extends Prod
   readonly _out?: T;
 }
 
-/** One tagged branch of a {@link OneOfProducer}. */
-interface OneOfBranch {
-  /** XPath whose existence selects this branch (first match wins). */
-  when: string;
-  /** Relative XPath to the branch's node (defaults to the oneOf node). */
-  at?: string;
-  /** Literal discriminant value written under the oneOf's `tagAs` key. */
-  tag: string;
-  fields: Record<string, Producer<unknown, Presence>>;
-}
-
-export interface OneOfProducer<T, P extends Presence = "optional"> extends ProducerMeta {
-  kind: "oneOf";
-  /** Field name that carries each branch's literal `tag`. */
-  tagAs: string;
-  /** Fields parsed once and merged into every branch. */
-  base: Record<string, Producer<unknown, Presence>>;
-  branches: ReadonlyArray<OneOfBranch>;
-  presence?: P;
-  readonly _out?: T;
-}
-
 export type Producer<T, P extends Presence = "optional"> =
   | ScalarProducer<T, P>
   | CodeProducer<T, P>
   | MeasureProducer<T, P>
   | ObjectProducer<T, P>
   | ArrayProducer<T, P>
-  | CustomProducer<T, P>
-  | OneOfProducer<T, P>;
+  | CustomProducer<T, P>;
 
 /** Leaf producer kinds: value-bearing, driven by text presence. */
 export type LeafKind = "scalar" | "code" | "measure";
@@ -214,21 +186,21 @@ type OmitPresenceKeys<F> = { [K in keyof F]: PresenceOf<F[K]> extends "omit" ? K
 
 /**
  * A field's produced value. When an element is absent the runtime nulls only
- * `object`/`oneOf` producers (leaves already carry `null` in their own type, and
- * arrays default to `[]`), so an **optional** object/oneOf field is widened with
+ * `object` producers (leaves already carry `null` in their own type, and
+ * arrays default to `[]`), so an **optional** object field is widened with
  * `| null` to match. `required` fields (never nulled) and `omit` fields (keyed
  * only when present, hence non-null) keep their bare produced type.
  */
 type FieldValue<X> = PresenceOf<X> extends "required" | "omit"
   ? Produced<X>
-  : X extends { kind: "object" | "oneOf" }
+  : X extends { kind: "object" }
     ? Produced<X> | null
     : Produced<X>;
 
 /**
  * The output type of an object built from a fields map. A field whose producer
  * has `presence: "omit"` becomes an **optional** key (`key?:`); every other
- * field is a required key. Optional object/oneOf fields are `T | null` (see
+ * field is a required key. Optional object fields are `T | null` (see
  * {@link FieldValue}). Under `exactOptionalPropertyTypes` this exactly mirrors
  * the runtime absence model.
  */
@@ -323,8 +295,18 @@ export function code<P extends Presence = "optional">(
 ): CodeProducer<Coded | null, P> {
   return {
     kind: "code",
-    decode: (text, codeSpace) =>
-      text === null || codeSpace === null ? null : { code: text, codeSpace },
+    decode: (text, codeSpace, warn) => {
+      if (text === null) {
+        return null;
+      }
+      if (codeSpace === null) {
+        // Text without a codeSpace means the element isn't coded — likely a
+        // schema mismatch (`code()` on a plain element). Don't degrade silently.
+        warn?.(`Coded value "${text}" has no codeSpace attribute`);
+        return null;
+      }
+      return { code: text, codeSpace };
+    },
     ...withAt(at, opts),
   };
 }
@@ -343,7 +325,16 @@ export function measure<P extends Presence = "optional">(
     kind: "measure",
     decode: (text, uom, warn) => {
       const value = parseFloat(text, warn);
-      return value === null || uom === null ? null : { value, uom };
+      if (value === null) {
+        return null;
+      }
+      if (uom === null) {
+        // A parseable number without a unit isn't a measure — likely a schema
+        // mismatch (`measure()` on a plain numeric element). Don't degrade silently.
+        warn?.(`Measured value "${text}" has no uom attribute`);
+        return null;
+      }
+      return { value, uom };
     },
     ...withAt(at, opts),
   };
@@ -386,47 +377,4 @@ export function custom<T, P extends Presence = "optional">(
 ): CustomProducer<T, P> {
   const { produce, ...meta } = opts;
   return { kind: "custom", produce, ...meta };
-}
-
-/** A branch as written at the `oneOf` call site (captured for type inference). */
-interface BranchInput<
-  Tag extends string = string,
-  F extends Record<string, Producer<unknown, Presence>> = Record<string, Producer<unknown, Presence>>,
-> { when: string; at?: string; tag: Tag; fields: F }
-
-/** Output type of one branch: shared base ∪ branch fields ∪ the tag literal. */
-type BranchOut<TagKey extends string, Base, B> = B extends {
-  tag: infer Tag extends string;
-  fields: infer F;
-}
-  ? Simplify<ProducedFields<Base> & ProducedFields<F> & Record<TagKey, Tag>>
-  : never;
-
-/** The discriminated union over all branches (mapped tuple → indexed union). */
-type OneOfOut<TagKey extends string, Base, Branches extends ReadonlyArray<unknown>> = {
-  [I in keyof Branches]: BranchOut<TagKey, Base, Branches[I]>;
-}[number];
-
-/**
- * An honest discriminated union. `base` fields are parsed once; the first branch
- * whose `when` XPath exists is parsed and merged, with its literal `tag` written
- * under `tagAs`.
- *
- * The output type is **inferred**: a discriminated union keyed on `tagAs`, each
- * member being the shared `base` fields plus that branch's `fields` plus the
- * literal `tag`. Presence is honoured throughout (`omit` → optional key).
- */
-export function oneOf<
-  TagKey extends string,
-  const Base extends Record<string, Producer<unknown, Presence>>,
-  const Branches extends ReadonlyArray<BranchInput>,
-  P extends Presence = "optional",
->(
-  opts: { tagAs: TagKey; base?: Base; branches: Branches; presence?: P } & ProducerMeta,
-): OneOfProducer<OneOfOut<TagKey, Base, Branches>, P> & {
-  readonly _base?: Base;
-  readonly _branches?: Branches;
-} {
-  const { tagAs, base = {}, branches, ...meta } = opts;
-  return { kind: "oneOf", tagAs, base, branches, ...meta };
 }

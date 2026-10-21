@@ -6,7 +6,7 @@
  *
  *   - the leaf combinators (`text`, `date`, `number`, `integer`, `boolean`,
  *     `code`, `measure`) and the structural combinators (`object`, `array`,
- *     `oneOf`, and the `custom` / `scalar` escape hatches),
+ *     and the `custom` / `scalar` escape hatches),
  *   - the domain helpers `gmlLocation` (GML `Point` → {@link Location}) and
  *     `columns` / `col` (BRO's column time-series CSVs).
  *
@@ -40,7 +40,6 @@ export {
   object,
   array,
   custom,
-  oneOf,
 } from "./core/producer.js";
 export type { Coded, Measure } from "./core/producer.js";
 

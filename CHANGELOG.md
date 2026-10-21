@@ -8,6 +8,19 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **New `/workers` entry point for edge runtimes (Cloudflare Workers, Deno).**
+  `WorkersXMLAdapter` pairs `@xmldom/xmldom` with the pure-JS `xpath` package
+  (XPath 1.0) instead of fontoxpath, bundling to ~66 kB gzipped so it fits
+  comfortably in a Worker. XPath 1.0 suffices by construction: the browser
+  adapter evaluates the same schema queries with native `document.evaluate()`,
+  which supports nothing newer. A parity suite asserts deep-equal parse results
+  against `NodeXMLAdapter` on every fixture. The package's root export also
+  gains a `workerd` condition, so bundlers targeting Cloudflare resolve the
+  workers entry automatically. Requires the optional peer dependencies
+  `@xmldom/xmldom` and `xpath`.
+
 ## [0.9.0] - 2026-10-05
 
 ### Added

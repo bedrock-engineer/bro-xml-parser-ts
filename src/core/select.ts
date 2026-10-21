@@ -40,26 +40,18 @@ export interface ArraySel<I> extends Leaf<Array<Produced<I>>> {
   each<R>(fn: (el: SelectableProducer<I>) => R): Leaf<Array<ProjectResult<R>>>;
 }
 
-/** Intersect the `fields` maps of every `oneOf` branch (a tuple of `BranchInput`). */
-type BranchFields<Br> = Br extends readonly [infer H, ...infer T]
-  ? (H extends { fields: infer F } ? F : object) & BranchFields<T>
-  : object;
-
 /**
  * Mirror a producer as a navigable path tree. Array producers → {@link ArraySel};
- * object producers → descend by field; `oneOf` → descend the merged base + branch
- * fields (selecting one flattens the union); every leaf (`text`/`number`/`date`/
+ * object producers → descend by field; every leaf (`text`/`number`/`date`/
  * `boolean`/`code`/`measure`) and atomic `custom`/`columns` → a whole-value {@link Leaf}.
  */
 export type SelectableProducer<P> = P extends { kind: "array"; _item?: infer I }
   ? ArraySel<I>
   : P extends { kind: "object"; _fields?: infer F }
     ? { [K in keyof F]-?: SelectableProducer<F[K]> }
-    : P extends { kind: "oneOf"; _base?: infer B; _branches?: infer Br }
-      ? { [K in keyof (B & BranchFields<Br>)]-?: SelectableProducer<(B & BranchFields<Br>)[K]> }
-      : P extends { readonly _out?: infer V }
-        ? Leaf<V>
-        : never;
+    : P extends { readonly _out?: infer V }
+      ? Leaf<V>
+      : never;
 
 /** Resolve a returned selection tree to its parsed output type. */
 export type ProjectResult<S> = S extends Leaf<infer V>
@@ -107,11 +99,6 @@ interface ArrayNode {
   each: string;
   item: AnyProducer;
 }
-interface OneOfNode {
-  at?: string;
-  base: FieldMap;
-  branches: ReadonlyArray<{ at?: string; fields: FieldMap }>;
-}
 
 function readOwn(target: object, key: string | symbol): unknown {
   return Reflect.get(target, key);
@@ -151,30 +138,6 @@ function proxyFor(producer: AnyProducer, path: string): unknown {
           return readOwn(target, key);
         }
         throw new Error("project: use .each() to select array elements");
-      },
-    });
-  }
-
-  if (producer.kind === "oneOf") {
-    // Navigate the merged base + branch fields; selecting one flattens the union.
-    const node = producer as unknown as OneOfNode;
-    const token: Token = { [TOKEN]: "leaf", producer, path };
-    return new Proxy(token, {
-      get(target, key) {
-        if (typeof key === "symbol" || Reflect.has(target, key)) {
-          return readOwn(target, key);
-        }
-        const baseField = node.base[key];
-        if (baseField) {
-          return proxyFor(baseField, joinPath(path, baseField.at));
-        }
-        for (const branch of node.branches) {
-          const bf = branch.fields[key];
-          if (bf) {
-            return proxyFor(bf, joinPath(joinPath(path, branch.at), bf.at));
-          }
-        }
-        throw new Error(`project: unknown field '${key}' on union`);
       },
     });
   }

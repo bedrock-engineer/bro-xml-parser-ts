@@ -8,6 +8,11 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "workerd": {
+        "types": "./dist/workers.d.ts",
+        "import": "./dist/workers.js",
+        "default": "./dist/workers.js"
+      },
       "browser": {
         "types": "./dist/browser.d.ts",
         "import": "./dist/browser.js",
@@ -33,6 +38,11 @@
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js",
       "default": "./dist/node.js"
+    },
+    "./workers": {
+      "types": "./dist/workers.d.ts",
+      "import": "./dist/workers.js",
+      "default": "./dist/workers.js"
     },
     "./reference-codes": {
       "types": "./dist/reference-codes-entry.d.ts",
@@ -111,14 +121,19 @@
     "typedoc-plugin-markdown": "^4.13.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "xpath": "^0.0.35"
   },
   "peerDependencies": {
     "@xmldom/xmldom": "^0.9.10",
-    "fontoxpath": "^3.34.0"
+    "fontoxpath": "^3.34.0",
+    "xpath": "^0.0.35"
   },
   "peerDependenciesMeta": {
     "@xmldom/xmldom": {
+      "optional": true
+    },
+    "xpath": {
       "optional": true
     },
     "fontoxpath": {

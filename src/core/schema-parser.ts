@@ -2,9 +2,9 @@
  * Generic schema-driven XML parser.
  *
  * Interprets a {@link Producer} schema against a document — recursing through
- * nested objects, arrays, unions and custom decoders — and produces typed
- * output. The same interpreter drives every data type (CPT, Bore, ...) and the
- * public {@link BROParser.parseCustom} surface.
+ * nested objects, arrays and custom decoders — and produces typed output. The
+ * same interpreter drives every data type (CPT, Bore, ...) and the public
+ * {@link BROParser.parseCustom} surface.
  */
 
 import type { XMLAdapter, Namespaces } from "../types/index.js";
@@ -55,7 +55,7 @@ export class SchemaParser {
 
   /**
    * Interpret a {@link Producer} schema against a document, recursing through
-   * nested objects, arrays, unions and custom decoders.
+   * nested objects, arrays and custom decoders.
    *
    * The top-level producer must be an object (a registration object's fields).
    * Warnings from the absence model (dropped array items) are returned rather
@@ -163,7 +163,10 @@ export class SchemaParser {
         const raw = readText(self);
         const csNode = this.xpath(self, "@codeSpace");
         const codeSpace = csNode ? readText(csNode) : null;
-        return { value: producer.decode(raw, codeSpace), satisfied: raw !== null };
+        return {
+          value: producer.decode(raw, codeSpace, (msg) => warnings.push(msg)),
+          satisfied: raw !== null,
+        };
       }
       case "measure": {
         const raw = readText(self);
@@ -186,7 +189,7 @@ export class SchemaParser {
         for (const itemNode of items) {
           const outcome = this.run(itemNode, producer.item, warnings);
           if (!outcome.satisfied) {
-            // Structured items (object/oneOf) that fail a required field are a
+            // Structured items (objects) that fail a required field are a
             // meaningful data loss; an empty leaf (scalar/code/measure) in a value list is not.
             if (!isLeafKind(producer.item.kind)) {
               warnings.push(
@@ -198,9 +201,6 @@ export class SchemaParser {
           out.push(outcome.value);
         }
         return { value: out, satisfied: items.length > 0 };
-      }
-      case "oneOf": {
-        return this.runOneOf(self, producer, warnings);
       }
     }
   }
@@ -247,41 +247,6 @@ export class SchemaParser {
     return { value: obj, satisfied: true };
   }
 
-  /** Run a discriminated union: base fields once, then the first matching branch. */
-  private runOneOf(
-    self: Node,
-    producer: OneOfProducerNode,
-    warnings: Array<string>,
-  ): Outcome {
-    // Assign each field, honouring `presence: "omit"` (skip the key when absent).
-    const assign = (target: Record<string, unknown>, node: Node, fields: ObjectProducer<unknown, Presence>["fields"]): void => {
-      for (const [key, field] of Object.entries(fields)) {
-        const outcome = this.run(node, field, warnings);
-        if (outcome.satisfied || (field.presence ?? "optional") !== "omit") {
-          target[key] = outcome.value;
-        }
-      }
-    };
-
-    const base: Record<string, unknown> = {};
-    assign(base, self, producer.base);
-
-    for (const branch of producer.branches) {
-      if (!this.xpath(self, branch.when)) {
-        continue;
-      }
-      const branchNode = branch.at ? this.xpath(self, branch.at) : self;
-      const merged: Record<string, unknown> = { ...base, [producer.tagAs]: branch.tag };
-      if (branchNode) {
-        assign(merged, branchNode, branch.fields);
-      }
-      return { value: merged, satisfied: true };
-    }
-
-    // No branch matched: absent.
-    return { value: null, satisfied: false };
-  }
-
   /** The "empty" value a producer yields when its node is absent. */
   private emptyValue(producer: Producer<unknown, Presence>): unknown {
     switch (producer.kind) {
@@ -316,6 +281,3 @@ export class SchemaParser {
     };
   }
 }
-
-/** The runtime shape of {@link OneOfProducer} without its phantom type param. */
-type OneOfProducerNode = Extract<Producer<unknown, Presence>, { kind: "oneOf" }>;

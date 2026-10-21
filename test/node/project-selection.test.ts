@@ -9,8 +9,7 @@ import type { Coded, Measure } from '@/core/producer';
 
 /**
  * The `project()` selector over the existing producer schemas: renaming, Coded
- * capture, deep (hoisted) selection, whole sub-objects, `.each` over real arrays,
- * and `.each` over a soil/rock `oneOf` layer array — all typed, no XPath strings.
+ * capture, deep (hoisted) selection, whole sub-objects, and `.each` over real arrays — all typed, no XPath strings.
  */
 describe('project() selection', () => {
   let parser: BROParser;

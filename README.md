@@ -37,6 +37,12 @@ For use in node.js, you need to install two extra dependencies.
 npm install @xmldom/xmldom fontoxpath
 ```
 
+For edge runtimes (Cloudflare Workers), install these two instead:
+
+```
+npm install @xmldom/xmldom xpath
+```
+
 ## Usage
 
 **Browser** (zero dependencies):
@@ -64,6 +70,19 @@ const cpt = parser.parseCPT(xmlText);
 const bhr_gt = parser.parseBHRGT(xmlText);
 const bhr_g = parser.parseBHRG(xmlText);
 ```
+
+**Edge runtimes** (Cloudflare Workers, Deno; requires `@xmldom/xmldom` and `xpath`):
+
+```typescript
+import { BROParser, XMLAdapter } from "@bedrock-engineer/bro-xml-parser/workers";
+
+const parser = new BROParser(new XMLAdapter());
+const data = parser.parse(xmlText);
+```
+
+Unlike the Node entry it avoids fontoxpath, so the whole parser bundles to
+roughly 66 kB gzipped. Bundlers that target Cloudflare (`workerd` export
+condition) resolve this entry automatically from the bare package name.
 
 ### Coded values
 
@@ -121,7 +140,7 @@ const result = parser.parseCustom(
 
 The `producers` namespace carries every building block the library uses internally:
 leaf combinators (`text`, `number`, `integer`, `date`, `boolean`, `code`, `measure`),
-structural combinators (`object`, `array`, `oneOf`, `custom`), and the domain
+structural combinators (`object`, `array`, `custom`), and the domain
 helpers (`gmlLocation`, `columns` / `col`).
 
 ## API

@@ -1,0 +1,153 @@
+/**
+ * Edge/Workers entry point for BRO Parser (Cloudflare Workers, Deno, etc.)
+ *
+ * Uses @xmldom/xmldom for DOM parsing and the pure-JS `xpath` package for
+ * XPath evaluation, so it bundles into a Cloudflare Worker (fontoxpath,
+ * used by the Node entry, is too large for that).
+ *
+ * Usage:
+ * ```typescript
+ * import { BROParser, XMLAdapter } from '@bedrock-engineer/bro-xml-parser/workers';
+ *
+ * const parser = new BROParser(new XMLAdapter());
+ * const cptData = parser.parseCPT(xmlString);
+ * ```
+ */
+
+export { BROParser } from "./parser.js";
+
+export { WorkersXMLAdapter as XMLAdapter } from "./adapters/workers-adapter.js";
+
+export type {
+  CPTData,
+  CPTMeasurement,
+  DissipationMeasurement,
+  BHRGTData,
+  BHRGData,
+  GMWData,
+  GLDData,
+  BROData,
+  BROFileType,
+  Location,
+  ParseMeta,
+  Namespaces,
+  QualityRegime,
+} from "./types/index.js";
+export type { RegistrationHistory } from "./types/index.js";
+
+export { BROParseError } from "./types/index.js";
+
+export { SUPPORTED_VERSIONS } from "./core/version-detector.js";
+export type { DataType } from "./core/version-detector.js";
+
+export { CPT_PRODUCER } from "./schemas/cpt-schema.js";
+export type { DissipationTest, RemovedLayer } from "./types/index.js";
+export { BORE_PRODUCER } from "./schemas/bore-schema.js";
+export type {
+  BHRGTLayer,
+  BHRGTLayerBase,
+  BHRGTSoilLayer,
+  BHRGTRockLayer,
+  SoilDescription,
+  RockDescription,
+  RockWeatheringDegree,
+  Grainshape,
+  BoredInterval,
+  SampledInterval,
+  SamplerDetails,
+  CoreRecovery,
+  CompletedInterval,
+  PostSedimentaryDiscontinuity,
+  ExcavatedLayer,
+  BoringVelocityMeasurement,
+  NotDescribedInterval,
+  FluidMudLayer,
+} from "./schemas/bore-types.js";
+export type {
+  HeightAtSpecificTime,
+  StressAtSpecificSettlement,
+  VolumeChangeAtSpecificTime,
+  ShearStressAtSpecificStrain,
+  HorizontalDeformationDataPoint,
+  BoreholeSampleAnalysis,
+  InvestigatedInterval,
+  WaterContentDetermination,
+  VolumetricMassDensityDetermination,
+  OrganicMatterContentDetermination,
+  CarbonateContentDetermination,
+  VolumetricMassDensityOfSolidsDetermination,
+  MaximumUndrainedShearStrengthDetermination,
+  ParticleSizeDistributionDetermination,
+  ConsistencyLimitsDetermination,
+  SettlementCharacteristicsDetermination,
+  SettlementDeterminationStep,
+  SaturationStageAtCompression,
+  SaturatedPermeabilityDetermination,
+  ShearStressChangeDuringLoadingDetermination,
+  ConsolidationStepAtHorizontalDeformation,
+  ShearStressChangeDuringHorizontalDeformationDetermination,
+  PlasticityAtSpecificWaterContent,
+  SaturatedPermeabilityAtSpecificDensity,
+  SaturatedPermeabilityAtSpecificLoad,
+  MembraneCorrection,
+  DrainageStripCorrection,
+  SpecimenMadeForLoading,
+  SpecimenMadeForHorizontalDeformation,
+  InvestigatedMaterial,
+  SaturationStageAtLoading,
+  ConsolidationStageAtLoading,
+  LoadStage,
+  ConsolidationStageAtHorizontalDeformation,
+  ShearStageAtHorizontalDeformation,
+} from "./schemas/bhrgt-analysis.js";
+export type {
+  GLDObservation,
+  GLDObservationPoint,
+  GroundwaterMonitoringTubeRef,
+} from "./schemas/gld-types.js";
+export { BHRG_PRODUCER } from "./schemas/bhrg-schema.js";
+export type {
+  BHRGLayer,
+  MunsellColour,
+  SandFraction,
+  SandConstituent,
+  ShellFraction,
+  ShellConstituent,
+  GravelFraction,
+  GravelConstituent,
+  PeatFraction,
+  PeatConstituent,
+  Chunk,
+  FractionDistribution,
+  FineFractionDistributionOrganicSoil,
+  FineFractionDistributionShellySoil,
+  Mottle,
+  ThinStratum,
+  ReportHistory,
+  IntermediateEvent,
+} from "./schemas/bhrg-types.js";
+export { GMW_PRODUCER } from "./schemas/gmw-schema.js";
+export type {
+  MonitoringTube,
+  GeoOhmCable,
+  Electrode,
+  GMWIntermediateEvent,
+} from "./schemas/gmw-types.js";
+export { GLD_PRODUCER } from "./schemas/gld-schema.js";
+
+export { BRO_NAMESPACES, KNOWN_BRO_PREFIXES } from "./namespaces.js";
+
+export { BRO_SOIL_COLORS, getSoilColor, isValidSoilColor, getSoilColorNames } from "./colors.js";
+
+// The authoring surface for custom schemas (combinators + domain helpers).
+export * as producers from "./producers.js";
+
+// The producer schema types, for authoring and inferring custom schemas.
+export type { Producer, NodeLens, Produced, ProducedFields, Coded } from "./core/producer.js";
+
+// The typed path-tree selector over a producer schema (see BROParser.parseSelection).
+export { project } from "./core/select.js";
+export type { Leaf, ArraySel, SelectableProducer, ProjectResult } from "./core/select.js";
+
+// Export schema presets for common use cases
+export * as presets from "./schema-presets.js";
