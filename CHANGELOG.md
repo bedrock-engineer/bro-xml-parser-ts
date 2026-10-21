@@ -8,6 +8,8 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-21
+
 ### Added
 
 - **New `/workers` entry point for edge runtimes (Cloudflare Workers, Deno).**
@@ -424,7 +426,7 @@ XSD structure. This is a large breaking change across the whole API.
   structures previously parsed dates inline with `new Date()`, duplicating logic
   and carrying the same bugs; these now route through `parseDate`.
 
-[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.10.0...HEAD
 
 [0.6.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.4.0...v0.5.0
@@ -433,6 +435,7 @@ XSD structure. This is a large breaking change across the whole API.
 [0.3.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.1.7...v0.2.0
 
+[0.10.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/bedrock-engineer/bro-xml-parser-ts/compare/v0.6.0...v0.7.0
