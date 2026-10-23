@@ -8,6 +8,21 @@ While the major version is `0`, breaking changes are released as minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **Reference-code descriptions for GMW and GLD.** The codegen now includes the
+  `urn:bro:gmw:` and `urn:bro:gld:` domains (targeting the parsed schema
+  versions, GMW 1.1 and GLD 1.0), so `describe` resolves coded values for
+  groundwater monitoring wells and groundwater level dossiers — 23 GMW and 11
+  GLD domains. Previously these fields fell through to the raw code because only
+  CPT, BHR-GT and BHR-G domains were generated.
+
+### Fixed
+
+- Codegen no longer aborts a domain when the BRO reference API returns a code
+  with a `null` description (e.g. gmw `CoordTransformation`, `EventName`). Such
+  codes are skipped, so the remaining codes in that domain still generate.
+
 ## [0.10.0] - 2026-10-21
 
 ### Added

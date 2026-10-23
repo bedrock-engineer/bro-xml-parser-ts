@@ -263,6 +263,40 @@ import { CPT_STOP_CRITERION_CODES } from "./cpt-stop-criterion.js";
 import { CPT_SURVEY_PURPOSE_CODES } from "./cpt-survey-purpose.js";
 import { CPT_VERTICAL_DATUM_CODES } from "./cpt-vertical-datum.js";
 import { CPT_VERTICAL_POSITIONING_METHOD_CODES } from "./cpt-vertical-positioning-method.js";
+import { GLD_EVALUATION_PROCEDURE_CODES } from "./gld-evaluation-procedure.js";
+import { GLD_CENSORED_REASON_CODES } from "./gld-censored-reason.js";
+import { GLD_CORRECTION_REASON_CODES } from "./gld-correction-reason.js";
+import { GLD_INTERPOLATION_TYPE_CODES } from "./gld-interpolation-type.js";
+import { GLD_STATUS_CODE_CODES } from "./gld-status-code.js";
+import { GLD_PROCESS_REFERENCE_CODES } from "./gld-process-reference.js";
+import { GLD_OBSERVATION_TYPE_CODES } from "./gld-observation-type.js";
+import { GLD_PROCESS_TYPE_CODES } from "./gld-process-type.js";
+import { GLD_STATUS_QUALITY_CONTROL_CODES } from "./gld-status-quality-control.js";
+import { GLD_AIR_PRESSURE_COMPENSATION_TYPE_CODES } from "./gld-air-pressure-compensation-type.js";
+import { GLD_MEASUREMENT_INSTRUMENT_TYPE_CODES } from "./gld-measurement-instrument-type.js";
+import { GMW_TUBE_PACKING_MATERIAL_CODES } from "./gmw-tube-packing-material.js";
+import { GMW_ELECTRODE_PACKING_MATERIAL_CODES } from "./gmw-electrode-packing-material.js";
+import { GMW_WELL_HEAD_PROTECTOR_CODES } from "./gmw-well-head-protector.js";
+import { GMW_TUBE_MATERIAL_CODES } from "./gmw-tube-material.js";
+import { GMW_TUBE_STATUS_CODES } from "./gmw-tube-status.js";
+import { GMW_TUBE_TYPE_CODES } from "./gmw-tube-type.js";
+import { GMW_COORD_TRANSFORMATION_CODES } from "./gmw-coord-transformation.js";
+import { GMW_CORRECTION_REASON_CODES } from "./gmw-correction-reason.js";
+import { GMW_ELECTRODE_STATUS_CODES } from "./gmw-electrode-status.js";
+import { GMW_SCREEN_PROTECTION_CODES } from "./gmw-screen-protection.js";
+import { GMW_INITIAL_FUNCTION_CODES } from "./gmw-initial-function.js";
+import { GMW_DELIVERY_CONTEXT_CODES } from "./gmw-delivery-context.js";
+import { GMW_SOCK_MATERIAL_CODES } from "./gmw-sock-material.js";
+import { GMW_CONSTRUCTION_STANDARD_CODES } from "./gmw-construction-standard.js";
+import { GMW_GLUE_CODES } from "./gmw-glue.js";
+import { GMW_LOCAL_VERTICAL_REFERENCE_POINT_CODES } from "./gmw-local-vertical-reference-point.js";
+import { GMW_HORIZONTAL_POSITIONING_METHOD_CODES } from "./gmw-horizontal-positioning-method.js";
+import { GMW_TUBE_TOP_POSITIONING_METHOD_CODES } from "./gmw-tube-top-positioning-method.js";
+import { GMW_GROUND_LEVEL_POSITIONING_METHOD_CODES } from "./gmw-ground-level-positioning-method.js";
+import { GMW_EVENT_NAME_CODES } from "./gmw-event-name.js";
+import { GMW_WELL_STABILITY_CODES } from "./gmw-well-stability.js";
+import { GMW_HORIZONTAL_CRS_CODES } from "./gmw-horizontal-crs.js";
+import { GMW_VERTICAL_DATUM_CODES } from "./gmw-vertical-datum.js";
 
 export const CODES_BY_DOMAIN: Record<string, Record<string, string>> = {
   "urn:bro:bhrg:BackfillMaterial": BHRG_BACKFILL_MATERIAL_CODES,
@@ -520,4 +554,38 @@ export const CODES_BY_DOMAIN: Record<string, Record<string, string>> = {
   "urn:bro:cpt:SurveyPurpose": CPT_SURVEY_PURPOSE_CODES,
   "urn:bro:cpt:VerticalDatum": CPT_VERTICAL_DATUM_CODES,
   "urn:bro:cpt:VerticalPositioningMethod": CPT_VERTICAL_POSITIONING_METHOD_CODES,
+  "urn:bro:gld:EvaluationProcedure": GLD_EVALUATION_PROCEDURE_CODES,
+  "urn:bro:gld:CensoredReason": GLD_CENSORED_REASON_CODES,
+  "urn:bro:gld:CorrectionReason": GLD_CORRECTION_REASON_CODES,
+  "urn:bro:gld:InterpolationType": GLD_INTERPOLATION_TYPE_CODES,
+  "urn:bro:gld:StatusCode": GLD_STATUS_CODE_CODES,
+  "urn:bro:gld:ProcessReference": GLD_PROCESS_REFERENCE_CODES,
+  "urn:bro:gld:ObservationType": GLD_OBSERVATION_TYPE_CODES,
+  "urn:bro:gld:ProcessType": GLD_PROCESS_TYPE_CODES,
+  "urn:bro:gld:StatusQualityControl": GLD_STATUS_QUALITY_CONTROL_CODES,
+  "urn:bro:gld:AirPressureCompensationType": GLD_AIR_PRESSURE_COMPENSATION_TYPE_CODES,
+  "urn:bro:gld:MeasurementInstrumentType": GLD_MEASUREMENT_INSTRUMENT_TYPE_CODES,
+  "urn:bro:gmw:TubePackingMaterial": GMW_TUBE_PACKING_MATERIAL_CODES,
+  "urn:bro:gmw:ElectrodePackingMaterial": GMW_ELECTRODE_PACKING_MATERIAL_CODES,
+  "urn:bro:gmw:WellHeadProtector": GMW_WELL_HEAD_PROTECTOR_CODES,
+  "urn:bro:gmw:TubeMaterial": GMW_TUBE_MATERIAL_CODES,
+  "urn:bro:gmw:TubeStatus": GMW_TUBE_STATUS_CODES,
+  "urn:bro:gmw:TubeType": GMW_TUBE_TYPE_CODES,
+  "urn:bro:gmw:CoordTransformation": GMW_COORD_TRANSFORMATION_CODES,
+  "urn:bro:gmw:CorrectionReason": GMW_CORRECTION_REASON_CODES,
+  "urn:bro:gmw:ElectrodeStatus": GMW_ELECTRODE_STATUS_CODES,
+  "urn:bro:gmw:ScreenProtection": GMW_SCREEN_PROTECTION_CODES,
+  "urn:bro:gmw:InitialFunction": GMW_INITIAL_FUNCTION_CODES,
+  "urn:bro:gmw:DeliveryContext": GMW_DELIVERY_CONTEXT_CODES,
+  "urn:bro:gmw:SockMaterial": GMW_SOCK_MATERIAL_CODES,
+  "urn:bro:gmw:ConstructionStandard": GMW_CONSTRUCTION_STANDARD_CODES,
+  "urn:bro:gmw:Glue": GMW_GLUE_CODES,
+  "urn:bro:gmw:LocalVerticalReferencePoint": GMW_LOCAL_VERTICAL_REFERENCE_POINT_CODES,
+  "urn:bro:gmw:HorizontalPositioningMethod": GMW_HORIZONTAL_POSITIONING_METHOD_CODES,
+  "urn:bro:gmw:TubeTopPositioningMethod": GMW_TUBE_TOP_POSITIONING_METHOD_CODES,
+  "urn:bro:gmw:GroundLevelPositioningMethod": GMW_GROUND_LEVEL_POSITIONING_METHOD_CODES,
+  "urn:bro:gmw:EventName": GMW_EVENT_NAME_CODES,
+  "urn:bro:gmw:WellStability": GMW_WELL_STABILITY_CODES,
+  "urn:bro:gmw:HorizontalCrs": GMW_HORIZONTAL_CRS_CODES,
+  "urn:bro:gmw:VerticalDatum": GMW_VERTICAL_DATUM_CODES,
 };

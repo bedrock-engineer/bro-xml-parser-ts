@@ -32,6 +32,8 @@ const SUPPORTED_VERSIONS: Record<string, string> = {
   CPT: "1.1",
   "BHR-GT": "2.1",
   "BHR-G": "3.1",
+  GMW: "1.1",
+  GLD: "1.0",
 };
 
 /**
@@ -42,6 +44,8 @@ const URN_PREFIX_TO_DATATYPE: Record<string, string | null> = {
   "urn:bro:bhrgt:": "BHR-GT",
   "urn:bro:bhrg:": "BHR-G",
   "urn:bro:bhrgcommon:": "BHR-G",
+  "urn:bro:gmw:": "GMW",
+  "urn:bro:gld:": "GLD",
   "urn:bro:": null, // Common codes - use latest
 };
 
@@ -59,6 +63,8 @@ const INCLUDED_DOMAIN_PREFIXES = [
   "urn:bro:bhrgt:",
   "urn:bro:bhrg:",
   "urn:bro:bhrgcommon:",
+  "urn:bro:gmw:",
+  "urn:bro:gld:",
 ];
 
 /** A shared common domain: `urn:bro:` directly followed by a capitalized name. */
@@ -243,7 +249,11 @@ function generateFile(urn: string, codes: RefCode[]): string {
   const constName = urnToConstName(urn);
   const domainName = urn.split(":").pop() || "Unknown";
 
+  // Some BRO codes carry a null description (e.g. gmw CoordTransformation,
+  // EventName). Skip those: with no description `describe` returns null and the
+  // UI falls back to prettifying the code, which is the right behaviour anyway.
   const codeEntries = codes
+    .filter((c) => c.description != null)
     .map((c) => `  ${formatKey(c.code)}: '${escapeString(c.description)}',`)
     .join("\n");
 
